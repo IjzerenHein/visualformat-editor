@@ -1,0 +1,7 @@
+body {
+  color: #555555;
+}
+textarea {
+  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;
+  font-size: 17px;
+}
