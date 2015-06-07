@@ -25,7 +25,7 @@ var config = {
   reload: isDevServer() ? 'localhost' : null,
   module:{
     loaders:[
-      //{ test: /\.js$/,              loader: 'babel-loader', exclude: /node_modules/ },
+      { test: /\.es6$/,             loader: 'babel-loader'},
       { test: /\.json$/,            loader: 'json-loader' },
       { test: /\.css$/,             loader: 'style-loader!css-loader' },
       { test: /\.less$/,            loader: 'style-loader!css-loader!less-loader' },

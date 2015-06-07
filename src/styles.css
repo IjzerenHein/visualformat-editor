@@ -5,3 +5,24 @@ textarea {
   font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;
   font-size: 17px;
 }
+
+.constraints {
+  overflow: scroll;
+}
+
+.va {
+  /* align vertical */
+  display: block;
+  position: relative;
+  top: 50%;
+  -webkit-transform: translateY(-50%);
+  -moz-transform: translateY(-50%);
+  -ms-transform: translateY(-50%);
+  -o-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+
+.subView {
+  border: 1px solid #DDDDDD;
+  text-align: center;
+}

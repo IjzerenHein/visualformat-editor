@@ -24,20 +24,25 @@ define(function(require) {
     // import dependencies
     var Engine = require('famous/core/Engine');
     var LayoutController = require('famous-flex/LayoutController');
-    var Surface = require('famous/core/Surface');
     var TextareaSurface = require('famous/surfaces/TextareaSurface');
+    var Surface = require('famous/core/Surface');
     var c = require('cassowary/bin/c');
     window.c = c;
     var AutoLayout = require('autolayout.js/dist/autolayout');
+    var OutputView = require('./views/OutputView.es6');
 
     // create the main context and layout
     var mainContext = Engine.createContext();
     var mainLC = new LayoutController({
-        layout: function(context, options) {
-            context.set('left', {
-                size: [context.size[0] / 2, context.size[1]]
+        layout: function(context) {
+            context.set('vfl', {
+                size: [context.size[0] / 2, context.size[1] / 2]
             });
-            context.set('right', {
+            context.set('constraints', {
+                size: [context.size[0] / 2, context.size[1] / 2],
+                translate: [0, context.size[1] / 2, 0]
+            });
+            context.set('output', {
                 size: [context.size[0] / 2, context.size[1]],
                 translate: [context.size[0] / 2, 0, 0]
             });
@@ -50,49 +55,38 @@ define(function(require) {
         placeholder: 'type your VFL here',
         value: '|[green]|\nV:|[green]|\n'
     });
-    mainLC.insert('left', vflText);
+    mainLC.insert('vfl', vflText);
+
+    // Create constraints list
+    var constraintsSur = new Surface({
+        classes: ['constraints']
+    });
+    mainLC.insert('constraints', constraintsSur);
 
     // Create output layout-controller for results
-    var alView;
-    var outputLC = new LayoutController({
-        flow: true,
-        dataSource: {
-            yellow: new Surface({properties: {background: 'yellow'}}),
-            orange: new Surface({properties: {background: 'orange'}}),
-            purple: new Surface({properties: {background: 'purple'}}),
-            black: new Surface({properties: {background: 'black'}}),
-            white: new Surface({properties: {background: 'white'}}),
-            pink: new Surface({properties: {background: 'pink'}}),
-            green: new Surface({properties: {background: 'green'}}),
-            blue: new Surface({properties: {background: 'blue'}}),
-            red: new Surface({properties: {background: 'red'}}),
-            brown: new Surface({properties: {background: 'brown'}})
-        },
-        layout: function(context, options) {
-            if (alView) {
-                alView.setSize(context.size[0], context.size[1]);
-                var subView;
-                for (var key in alView.subViews) {
-                    subView = alView.subViews[key];
-                    context.set(subView.name, {
-                        size: [subView.width, subView.height],
-                        translate: [subView.left, subView.top, 0]
-                    });
-                }
-            }
-        }
-    });
-    mainLC.insert('right', outputLC);
+    var outputView = new OutputView();
+    mainLC.insert('output', outputView);
 
     // Update handling
+    var constraints = [];
     function _update() {
         var vfl = vflText.getValue();
+
         var view = new AutoLayout.View();
         try {
-            view.addVisualFormat(vfl);
-            alView = view;
+            constraints = AutoLayout.VisualFormat.parse(vfl);
+            //var raw = AutoLayout.VisualFormat.parse(vfl, undefined, {outFormat: 'raw'});
+            //var out = raw;
+            var out = constraints;
+            var csLines = '<ul>';
+            for (var i = 0; i < out.length; i++) {
+                csLines += '<li><code>' + JSON.stringify(out[i], undefined, 2) + '</code></li>';
+            }
+            csLines += '</ul>';
+            constraintsSur.setContent(csLines);
+            view.addConstraint(constraints);
+            outputView.setAutoLayoutView(view);
             console.log('VFL compiled succesfully: ' + vfl); //eslint-disable-line no-console
-            outputLC.reflowLayout();
         }
         catch (err) {
             console.log(err); //eslint-disable-line no-console
