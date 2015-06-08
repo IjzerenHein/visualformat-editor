@@ -1,5 +1,5 @@
-# famous-flex-autolayout
+# VisualFormat Editor
 
-Apple's Auto Layout and Visual Format language for famo.us
+Editor & previewer for Apple's Visual Format Language (built with (autolayout.js)[github/IjzerenHein/autolayout.js])
 
-[View the live demo here](https://rawgit.com/IjzerenHein/famous-flex-autolayout/master/dist/index.html)
+[View the live demo here](https://rawgit.com/IjzerenHein/visualformat-editor/master/dist/index.html)
