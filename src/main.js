@@ -24,75 +24,58 @@ define(function(require) {
     // import dependencies
     var Engine = require('famous/core/Engine');
     var LayoutController = require('famous-flex/LayoutController');
-    var TextareaSurface = require('famous/surfaces/TextareaSurface');
-    var Surface = require('famous/core/Surface');
     var c = require('cassowary/bin/c');
     window.c = c;
     var AutoLayout = require('autolayout.js/dist/autolayout');
-    var OutputView = require('./views/OutputView.es6');
+    var VflView = require('./views/VflView.es6');
+    var LayoutView = require('./views/LayoutView.es6');
+    var ParseView = require('./views/ParseView.es6');
+    var vflToLayout = require('./vflToLayout');
+    var Surface = require('famous/core/Surface');
 
     // create the main context and layout
     var mainContext = Engine.createContext();
     var mainLC = new LayoutController({
-        layout: function(context) {
-            context.set('vfl', {
-                size: [context.size[0] / 2, context.size[1] / 2]
-            });
-            context.set('constraints', {
-                size: [context.size[0] / 2, context.size[1] / 2],
-                translate: [0, context.size[1] / 2, 0]
-            });
-            context.set('output', {
-                size: [context.size[0] / 2, context.size[1]],
-                translate: [context.size[0] / 2, 0, 0]
-            });
-        }
+        layout: vflToLayout([
+            '|[banner]|\nV:[banner(100)]',
+            'V:|[banner][vfl(400)][parse]|',
+            'V:[banner][layout]|',
+            '|[vfl(400,==parse)][layout]|'
+        ])
     });
     mainContext.add(mainLC);
 
-    // Create input text-area for VFL
-    var vflText = new TextareaSurface({
-        placeholder: 'type your VFL here',
-        value: '|[green]|\nV:|[green]|\n'
+    // Create banner
+    var banner = new Surface({
+        classes: ['banner'],
+        content: '<div class="va">AUTOLAYOUT.JS</div>' +
+        //'<iframe src="https://ghbtns.com/github-btn.html?user=ijzerenhein&repo=autolayout.js&type=star&count=true&size=small" frameborder="0" scrolling="0" width="170px" height="30px"></iframe>'
+        '<a href="https://github.com/ijzerenhein/autolayout.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>'
     });
-    mainLC.insert('vfl', vflText);
+    mainLC.insert('banner', banner);
 
-    // Create constraints list
-    var constraintsSur = new Surface({
-        classes: ['constraints']
-    });
-    mainLC.insert('constraints', constraintsSur);
+    // Create vfl view
+    var vflView = new VflView();
+    mainLC.insert('vfl', vflView);
+    vflView.on('update', _update); //eslint-disable-line no-use-before-define
+
+    // Create parse view
+    var parseView = new ParseView();
+    mainLC.insert('parse', parseView);
 
     // Create output layout-controller for results
-    var outputView = new OutputView();
-    mainLC.insert('output', outputView);
+    var layoutView = new LayoutView();
+    mainLC.insert('layout', layoutView);
 
     // Update handling
-    var constraints = [];
     function _update() {
-        var vfl = vflText.getValue();
-
-        var view = new AutoLayout.View();
-        try {
-            constraints = AutoLayout.VisualFormat.parse(vfl);
-            //var raw = AutoLayout.VisualFormat.parse(vfl, undefined, {outFormat: 'raw'});
-            //var out = raw;
-            var out = constraints;
-            var csLines = '<ul>';
-            for (var i = 0; i < out.length; i++) {
-                csLines += '<li><code>' + JSON.stringify(out[i], undefined, 2) + '</code></li>';
-            }
-            csLines += '</ul>';
-            constraintsSur.setContent(csLines);
+        var vfl = vflView.getVisualFormat();
+        var constraints = parseView.parse(vfl);
+        if (constraints) {
+            var view = new AutoLayout.View();
             view.addConstraint(constraints);
-            outputView.setAutoLayoutView(view);
-            console.log('VFL compiled succesfully: ' + vfl); //eslint-disable-line no-console
-        }
-        catch (err) {
-            console.log(err); //eslint-disable-line no-console
+            layoutView.setAutoLayoutView(view);
         }
     }
-    vflText.on('change', _update);
-    vflText.on('keyup', _update);
     _update();
 });

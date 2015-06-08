@@ -30,10 +30,8 @@ var config = {
       { test: /\.css$/,             loader: 'style-loader!css-loader' },
       { test: /\.less$/,            loader: 'style-loader!css-loader!less-loader' },
       { test: /\.(png|jpg|gif)$/,   loader: 'url-loader?limit=5000&name=[path][name].[ext]&context=./src' },
-      { test: /\.eot$/,             loader: 'file-loader?name=[path][name].[ext]&context=./src' },
-      { test: /\.ttf$/,             loader: 'file-loader?name=[path][name].[ext]&context=./src' },
+      { test: /\.(eot|ttf|otf|woff)$/,loader: 'file-loader?name=[path][name].[ext]&context=./src' },
       { test: /\.svg$/,             loader: 'file-loader?name=[path][name].[ext]&context=./src' },
-      { test: /\.woff$/,            loader: 'file-loader?name=[path][name].[ext]&context=./src' },
       { test: /index\.html$/,       loader: 'file-loader?name=[path][name].[ext]&context=./src' }
     ]
   },

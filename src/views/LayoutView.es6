@@ -4,11 +4,15 @@ import Surface from 'famous/core/Surface';
 import LayoutController from 'famous-flex/LayoutController';
 import vflToLayout from '../vflToLayout';
 
-class OutputView extends View {
+class LayoutView extends View {
     constructor(options) {
         super(options);
 
         this.content = new LayoutController({
+            flow: true,
+            flowOptions: {
+                reflowOnResize: false
+            },
             layout: (context) => {
                 if (this.alView) {
                     this.alView.setSize(context.size[0], context.size[1]);
@@ -29,11 +33,13 @@ class OutputView extends View {
                 content: '<div class="va">Width:</div>'
             }),
             widthInput: new InputSurface({
+                placeholder: 'auto'
             }),
             heightText: new Surface({
                 content: '<div class="va">Height:</div>'
             }),
             heightInput: new InputSurface({
+                placeholder: 'auto'
             }),
             spacingText: new Surface({
                 content: '<div class="va">Spacing:</div>'
@@ -45,7 +51,7 @@ class OutputView extends View {
         };
         this.layout = new LayoutController({
             layout: vflToLayout([
-                '|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(50)]-[spacingInput(100)]',
+                '|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(60)]-[spacingInput(200)]',
                 'V:[widthText(30,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]',
                 '|-[content]-|',
                 'V:|-[widthText]-[content]-|',
@@ -96,4 +102,4 @@ class OutputView extends View {
     }
 }
 
-export {OutputView as default};
+export {LayoutView as default};

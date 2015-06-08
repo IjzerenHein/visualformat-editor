@@ -1,13 +1,63 @@
-body {
-  color: #555555;
-}
-textarea {
-  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;
-  font-size: 17px;
+@font-face {
+  font-family: 'Montserrat';
+  src: url('./fonts/montserrat/Montserrat-Hairline.otf');
+  font-weight: 100;
 }
 
-.constraints {
+@font-face {
+  font-family: 'Montserrat';
+  src: url('./fonts/montserrat/Montserrat-Light.otf');
+  font-weight: 200;
+}
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url('./fonts/montserrat/Montserrat-Regular.otf');
+  font-weight: 400;
+}
+
+body {
+  color: #555555;
+  font-family: 'Montserrat';
+  font-weight: 200;
+  font-size: 15px;
+}
+textarea, input {
+  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;
+  font-size: 17px;
+  border: 1px solid #DDDDDD;
+}
+textarea {
+  padding: 5px;
+}
+input {
+  text-align: center;
+}
+.banner {
+  font-weight: 100;
+  font-size: 60px;
+  text-align: center;
+  color: black;
+}
+.banner > iframe {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+}
+
+.ff-tabbar.selectedItemOverlay {
+  border-bottom: 4px solid #1185c3;
+}
+.ff-tabbar.item.selected {
+  color: #1185c3;
+  font-weight: bold;
+}
+.constraints, .log, .raw {
   overflow: scroll;
+  font-size: 17px;
+}
+.log {
+  padding: 5px;
 }
 
 .va {
@@ -24,5 +74,7 @@ textarea {
 
 .subView {
   border: 1px solid #DDDDDD;
+  border-radius: 5px;
+  background-color: #CCCCCC;
   text-align: center;
 }
