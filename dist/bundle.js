@@ -63,86 +63,69 @@
 	    __webpack_require__(/*! famous/core/famous.css */ 5);
 	    __webpack_require__(/*! famous-flex/widgets/styles.css */ 8);
 	    __webpack_require__(/*! ./styles.css */ 10);
-	    __webpack_require__(/*! ./index.html */ 12);
+	    __webpack_require__(/*! ./index.html */ 15);
 	    //</webpack>
 	
 	    // Fast-click
-	    var FastClick = __webpack_require__(/*! fastclick/lib/fastclick */ 13);
+	    var FastClick = __webpack_require__(/*! fastclick/lib/fastclick */ 16);
 	    FastClick.attach(document.body);
 	
 	    // import dependencies
-	    var Engine = __webpack_require__(/*! famous/core/Engine */ 14);
-	    var LayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 28);
-	    var TextareaSurface = __webpack_require__(/*! famous/surfaces/TextareaSurface */ 42);
-	    var Surface = __webpack_require__(/*! famous/core/Surface */ 43);
+	    var Engine = __webpack_require__(/*! famous/core/Engine */ 17);
+	    var LayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
 	    var c = __webpack_require__(/*! cassowary/bin/c */ 45);
 	    window.c = c;
 	    var AutoLayout = __webpack_require__(/*! autolayout.js/dist/autolayout */ 47);
-	    var OutputView = __webpack_require__(/*! ./views/OutputView.es6 */ 48);
+	    var VflView = __webpack_require__(/*! ./views/VflView.es6 */ 48);
+	    var LayoutView = __webpack_require__(/*! ./views/LayoutView.es6 */ 63);
+	    var ParseView = __webpack_require__(/*! ./views/ParseView.es6 */ 65);
+	    var vflToLayout = __webpack_require__(/*! ./vflToLayout */ 49);
+	    var Surface = __webpack_require__(/*! famous/core/Surface */ 51);
 	
 	    // create the main context and layout
 	    var mainContext = Engine.createContext();
 	    var mainLC = new LayoutController({
-	        layout: function(context) {
-	            context.set('vfl', {
-	                size: [context.size[0] / 2, context.size[1] / 2]
-	            });
-	            context.set('constraints', {
-	                size: [context.size[0] / 2, context.size[1] / 2],
-	                translate: [0, context.size[1] / 2, 0]
-	            });
-	            context.set('output', {
-	                size: [context.size[0] / 2, context.size[1]],
-	                translate: [context.size[0] / 2, 0, 0]
-	            });
-	        }
+	        layout: vflToLayout([
+	            '|[banner]|\nV:[banner(100)]',
+	            'V:|[banner][vfl(400)][parse]|',
+	            'V:[banner][layout]|',
+	            '|[vfl(400,==parse)][layout]|'
+	        ])
 	    });
 	    mainContext.add(mainLC);
 	
-	    // Create input text-area for VFL
-	    var vflText = new TextareaSurface({
-	        placeholder: 'type your VFL here',
-	        value: '|[green]|\nV:|[green]|\n'
+	    // Create banner
+	    var banner = new Surface({
+	        classes: ['banner'],
+	        content: '<div class="va">AUTOLAYOUT.JS</div>' +
+	        //'<iframe src="https://ghbtns.com/github-btn.html?user=ijzerenhein&repo=autolayout.js&type=star&count=true&size=small" frameborder="0" scrolling="0" width="170px" height="30px"></iframe>'
+	        '<a href="https://github.com/ijzerenhein/autolayout.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>'
 	    });
-	    mainLC.insert('vfl', vflText);
+	    mainLC.insert('banner', banner);
 	
-	    // Create constraints list
-	    var constraintsSur = new Surface({
-	        classes: ['constraints']
-	    });
-	    mainLC.insert('constraints', constraintsSur);
+	    // Create vfl view
+	    var vflView = new VflView();
+	    mainLC.insert('vfl', vflView);
+	    vflView.on('update', _update); //eslint-disable-line no-use-before-define
+	
+	    // Create parse view
+	    var parseView = new ParseView();
+	    mainLC.insert('parse', parseView);
 	
 	    // Create output layout-controller for results
-	    var outputView = new OutputView();
-	    mainLC.insert('output', outputView);
+	    var layoutView = new LayoutView();
+	    mainLC.insert('layout', layoutView);
 	
 	    // Update handling
-	    var constraints = [];
 	    function _update() {
-	        var vfl = vflText.getValue();
-	
-	        var view = new AutoLayout.View();
-	        try {
-	            constraints = AutoLayout.VisualFormat.parse(vfl);
-	            //var raw = AutoLayout.VisualFormat.parse(vfl, undefined, {outFormat: 'raw'});
-	            //var out = raw;
-	            var out = constraints;
-	            var csLines = '<ul>';
-	            for (var i = 0; i < out.length; i++) {
-	                csLines += '<li><code>' + JSON.stringify(out[i], undefined, 2) + '</code></li>';
-	            }
-	            csLines += '</ul>';
-	            constraintsSur.setContent(csLines);
+	        var vfl = vflView.getVisualFormat();
+	        var constraints = parseView.parse(vfl);
+	        if (constraints) {
+	            var view = new AutoLayout.View();
 	            view.addConstraint(constraints);
-	            outputView.setAutoLayoutView(view);
-	            console.log('VFL compiled succesfully: ' + vfl); //eslint-disable-line no-console
-	        }
-	        catch (err) {
-	            console.log(err); //eslint-disable-line no-console
+	            layoutView.setAutoLayoutView(view);
 	        }
 	    }
-	    vflText.on('change', _update);
-	    vflText.on('keyup', _update);
 	    _update();
 	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
@@ -468,10 +451,37 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports =
-		"body {\n  color: #555555;\n}\ntextarea {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n}\n\n.constraints {\n  overflow: scroll;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  text-align: center;\n}\n";
+		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 12)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 13)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Regular.otf */ 14)+");\n  font-weight: 400;\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n}\ntextarea {\n  padding: 5px;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 4px solid #1185c3;\n}\n.ff-tabbar.item.selected {\n  color: #1185c3;\n  font-weight: bold;\n}\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  background-color: #CCCCCC;\n  text-align: center;\n}\n";
 
 /***/ },
 /* 12 */
+/*!**************************************************!*\
+  !*** ./fonts/montserrat/Montserrat-Hairline.otf ***!
+  \**************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Hairline.otf"
+
+/***/ },
+/* 13 */
+/*!***********************************************!*\
+  !*** ./fonts/montserrat/Montserrat-Light.otf ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Light.otf"
+
+/***/ },
+/* 14 */
+/*!*************************************************!*\
+  !*** ./fonts/montserrat/Montserrat-Regular.otf ***!
+  \*************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Regular.otf"
+
+/***/ },
+/* 15 */
 /*!********************!*\
   !*** ./index.html ***!
   \********************/
@@ -480,7 +490,7 @@
 	module.exports = __webpack_require__.p + "index.html"
 
 /***/ },
-/* 13 */
+/* 16 */
 /*!***************************************!*\
   !*** ../~/fastclick/lib/fastclick.js ***!
   \***************************************/
@@ -1330,7 +1340,7 @@
 
 
 /***/ },
-/* 14 */
+/* 17 */
 /*!**********************************!*\
   !*** ../~/famous/core/Engine.js ***!
   \**********************************/
@@ -1343,9 +1353,9 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Context = __webpack_require__(/*! ./Context */ 15);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 20);
-	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 27);
+	var Context = __webpack_require__(/*! ./Context */ 18);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
+	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 30);
 	var Engine = {};
 	var contexts = [];
 	var nextTickQueue = [];
@@ -1516,7 +1526,7 @@
 	module.exports = Engine;
 
 /***/ },
-/* 15 */
+/* 18 */
 /*!***********************************!*\
   !*** ../~/famous/core/Context.js ***!
   \***********************************/
@@ -1529,11 +1539,11 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var RenderNode = __webpack_require__(/*! ./RenderNode */ 16);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 20);
-	var ElementAllocator = __webpack_require__(/*! ./ElementAllocator */ 22);
-	var Transform = __webpack_require__(/*! ./Transform */ 19);
-	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 23);
+	var RenderNode = __webpack_require__(/*! ./RenderNode */ 19);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
+	var ElementAllocator = __webpack_require__(/*! ./ElementAllocator */ 25);
+	var Transform = __webpack_require__(/*! ./Transform */ 22);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 26);
 	var _zeroZero = [
 	    0,
 	    0
@@ -1636,7 +1646,7 @@
 	module.exports = Context;
 
 /***/ },
-/* 16 */
+/* 19 */
 /*!**************************************!*\
   !*** ../~/famous/core/RenderNode.js ***!
   \**************************************/
@@ -1649,8 +1659,8 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Entity = __webpack_require__(/*! ./Entity */ 17);
-	var SpecParser = __webpack_require__(/*! ./SpecParser */ 18);
+	var Entity = __webpack_require__(/*! ./Entity */ 20);
+	var SpecParser = __webpack_require__(/*! ./SpecParser */ 21);
 	function RenderNode(object) {
 	    this._object = null;
 	    this._child = null;
@@ -1748,7 +1758,7 @@
 	module.exports = RenderNode;
 
 /***/ },
-/* 17 */
+/* 20 */
 /*!**********************************!*\
   !*** ../~/famous/core/Entity.js ***!
   \**********************************/
@@ -1784,7 +1794,7 @@
 	};
 
 /***/ },
-/* 18 */
+/* 21 */
 /*!**************************************!*\
   !*** ../~/famous/core/SpecParser.js ***!
   \**************************************/
@@ -1797,7 +1807,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Transform = __webpack_require__(/*! ./Transform */ 19);
+	var Transform = __webpack_require__(/*! ./Transform */ 22);
 	function SpecParser() {
 	    this.result = {};
 	}
@@ -1923,7 +1933,7 @@
 	module.exports = SpecParser;
 
 /***/ },
-/* 19 */
+/* 22 */
 /*!*************************************!*\
   !*** ../~/famous/core/Transform.js ***!
   \*************************************/
@@ -2635,7 +2645,7 @@
 	module.exports = Transform;
 
 /***/ },
-/* 20 */
+/* 23 */
 /*!****************************************!*\
   !*** ../~/famous/core/EventHandler.js ***!
   \****************************************/
@@ -2648,7 +2658,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var EventEmitter = __webpack_require__(/*! ./EventEmitter */ 21);
+	var EventEmitter = __webpack_require__(/*! ./EventEmitter */ 24);
 	function EventHandler() {
 	    EventEmitter.apply(this, arguments);
 	    this.downstream = [];
@@ -2750,7 +2760,7 @@
 	module.exports = EventHandler;
 
 /***/ },
-/* 21 */
+/* 24 */
 /*!****************************************!*\
   !*** ../~/famous/core/EventEmitter.js ***!
   \****************************************/
@@ -2800,7 +2810,7 @@
 	module.exports = EventEmitter;
 
 /***/ },
-/* 22 */
+/* 25 */
 /*!********************************************!*\
   !*** ../~/famous/core/ElementAllocator.js ***!
   \********************************************/
@@ -2860,7 +2870,7 @@
 	module.exports = ElementAllocator;
 
 /***/ },
-/* 23 */
+/* 26 */
 /*!*************************************************!*\
   !*** ../~/famous/transitions/Transitionable.js ***!
   \*************************************************/
@@ -2873,8 +2883,8 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var MultipleTransition = __webpack_require__(/*! ./MultipleTransition */ 24);
-	var TweenTransition = __webpack_require__(/*! ./TweenTransition */ 26);
+	var MultipleTransition = __webpack_require__(/*! ./MultipleTransition */ 27);
+	var TweenTransition = __webpack_require__(/*! ./TweenTransition */ 29);
 	function Transitionable(start) {
 	    this.currentAction = null;
 	    this.actionQueue = [];
@@ -3003,7 +3013,7 @@
 	module.exports = Transitionable;
 
 /***/ },
-/* 24 */
+/* 27 */
 /*!*****************************************************!*\
   !*** ../~/famous/transitions/MultipleTransition.js ***!
   \*****************************************************/
@@ -3016,7 +3026,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 25);
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 28);
 	function MultipleTransition(method) {
 	    this.method = method;
 	    this._instances = [];
@@ -3047,7 +3057,7 @@
 	module.exports = MultipleTransition;
 
 /***/ },
-/* 25 */
+/* 28 */
 /*!****************************************!*\
   !*** ../~/famous/utilities/Utility.js ***!
   \****************************************/
@@ -3119,7 +3129,7 @@
 	module.exports = Utility;
 
 /***/ },
-/* 26 */
+/* 29 */
 /*!**************************************************!*\
   !*** ../~/famous/transitions/TweenTransition.js ***!
   \**************************************************/
@@ -3372,7 +3382,7 @@
 	module.exports = TweenTransition;
 
 /***/ },
-/* 27 */
+/* 30 */
 /*!******************************************!*\
   !*** ../~/famous/core/OptionsManager.js ***!
   \******************************************/
@@ -3385,7 +3395,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 20);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
 	function OptionsManager(value) {
 	    this._value = value;
 	    this.eventOutput = null;
@@ -3461,7 +3471,7 @@
 	module.exports = OptionsManager;
 
 /***/ },
-/* 28 */
+/* 31 */
 /*!************************************************!*\
   !*** ../~/famous-flex/src/LayoutController.js ***!
   \************************************************/
@@ -3497,17 +3507,17 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 25);
-	    var Entity = __webpack_require__(/*! famous/core/Entity */ 17);
-	    var ViewSequence = __webpack_require__(/*! famous/core/ViewSequence */ 29);
-	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 27);
-	    var EventHandler = __webpack_require__(/*! famous/core/EventHandler */ 20);
-	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 30);
-	    var LayoutNodeManager = __webpack_require__(/*! ./LayoutNodeManager */ 31);
-	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 33);
-	    var FlowLayoutNode = __webpack_require__(/*! ./FlowLayoutNode */ 34);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 19);
-	    __webpack_require__(/*! ./helpers/LayoutDockHelper */ 41);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 28);
+	    var Entity = __webpack_require__(/*! famous/core/Entity */ 20);
+	    var ViewSequence = __webpack_require__(/*! famous/core/ViewSequence */ 32);
+	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 30);
+	    var EventHandler = __webpack_require__(/*! famous/core/EventHandler */ 23);
+	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 33);
+	    var LayoutNodeManager = __webpack_require__(/*! ./LayoutNodeManager */ 34);
+	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 36);
+	    var FlowLayoutNode = __webpack_require__(/*! ./FlowLayoutNode */ 37);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
+	    __webpack_require__(/*! ./helpers/LayoutDockHelper */ 44);
 	
 	    /**
 	     * @class
@@ -4590,7 +4600,7 @@
 
 
 /***/ },
-/* 29 */
+/* 32 */
 /*!****************************************!*\
   !*** ../~/famous/core/ViewSequence.js ***!
   \****************************************/
@@ -4846,7 +4856,7 @@
 	module.exports = ViewSequence;
 
 /***/ },
-/* 30 */
+/* 33 */
 /*!*********************************************!*\
   !*** ../~/famous-flex/src/LayoutUtility.js ***!
   \*********************************************/
@@ -4873,7 +4883,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 25);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 28);
 	
 	    /**
 	     * @class
@@ -5144,7 +5154,7 @@
 
 
 /***/ },
-/* 31 */
+/* 34 */
 /*!*************************************************!*\
   !*** ../~/famous-flex/src/LayoutNodeManager.js ***!
   \*************************************************/
@@ -5177,8 +5187,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutContext = __webpack_require__(/*! ./LayoutContext */ 32);
-	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 30);
+	    var LayoutContext = __webpack_require__(/*! ./LayoutContext */ 35);
+	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 33);
 	
 	    var MAX_POOL_SIZE = 100;
 	
@@ -5911,7 +5921,7 @@
 
 
 /***/ },
-/* 32 */
+/* 35 */
 /*!*********************************************!*\
   !*** ../~/famous-flex/src/LayoutContext.js ***!
   \*********************************************/
@@ -6182,7 +6192,7 @@
 
 
 /***/ },
-/* 33 */
+/* 36 */
 /*!******************************************!*\
   !*** ../~/famous-flex/src/LayoutNode.js ***!
   \******************************************/
@@ -6206,8 +6216,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 19);
-	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 30);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
+	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 33);
 	
 	    /**
 	     * @class
@@ -6391,7 +6401,7 @@
 
 
 /***/ },
-/* 34 */
+/* 37 */
 /*!**********************************************!*\
   !*** ../~/famous-flex/src/FlowLayoutNode.js ***!
   \**********************************************/
@@ -6415,14 +6425,14 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 27);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 19);
-	    var Vector = __webpack_require__(/*! famous/math/Vector */ 37);
-	    var Particle = __webpack_require__(/*! famous/physics/bodies/Particle */ 38);
-	    var Spring = __webpack_require__(/*! famous/physics/forces/Spring */ 35);
-	    var PhysicsEngine = __webpack_require__(/*! famous/physics/PhysicsEngine */ 40);
-	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 33);
-	    var Transitionable = __webpack_require__(/*! famous/transitions/Transitionable */ 23);
+	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 30);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
+	    var Vector = __webpack_require__(/*! famous/math/Vector */ 40);
+	    var Particle = __webpack_require__(/*! famous/physics/bodies/Particle */ 41);
+	    var Spring = __webpack_require__(/*! famous/physics/forces/Spring */ 38);
+	    var PhysicsEngine = __webpack_require__(/*! famous/physics/PhysicsEngine */ 43);
+	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 36);
+	    var Transitionable = __webpack_require__(/*! famous/transitions/Transitionable */ 26);
 	
 	    /**
 	     * @class
@@ -6959,7 +6969,7 @@
 
 
 /***/ },
-/* 35 */
+/* 38 */
 /*!********************************************!*\
   !*** ../~/famous/physics/forces/Spring.js ***!
   \********************************************/
@@ -6972,8 +6982,8 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Force = __webpack_require__(/*! ./Force */ 36);
-	var Vector = __webpack_require__(/*! ../../math/Vector */ 37);
+	var Force = __webpack_require__(/*! ./Force */ 39);
+	var Vector = __webpack_require__(/*! ../../math/Vector */ 40);
 	function Spring(options) {
 	    Force.call(this);
 	    this.options = Object.create(this.constructor.DEFAULT_OPTIONS);
@@ -7097,7 +7107,7 @@
 	module.exports = Spring;
 
 /***/ },
-/* 36 */
+/* 39 */
 /*!*******************************************!*\
   !*** ../~/famous/physics/forces/Force.js ***!
   \*******************************************/
@@ -7110,8 +7120,8 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Vector = __webpack_require__(/*! ../../math/Vector */ 37);
-	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 20);
+	var Vector = __webpack_require__(/*! ../../math/Vector */ 40);
+	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 23);
 	function Force(force) {
 	    this.force = new Vector(force);
 	    this._eventOutput = new EventHandler();
@@ -7132,7 +7142,7 @@
 	module.exports = Force;
 
 /***/ },
-/* 37 */
+/* 40 */
 /*!**********************************!*\
   !*** ../~/famous/math/Vector.js ***!
   \**********************************/
@@ -7294,7 +7304,7 @@
 	module.exports = Vector;
 
 /***/ },
-/* 38 */
+/* 41 */
 /*!**********************************************!*\
   !*** ../~/famous/physics/bodies/Particle.js ***!
   \**********************************************/
@@ -7307,10 +7317,10 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Vector = __webpack_require__(/*! ../../math/Vector */ 37);
-	var Transform = __webpack_require__(/*! ../../core/Transform */ 19);
-	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 20);
-	var Integrator = __webpack_require__(/*! ../integrators/SymplecticEuler */ 39);
+	var Vector = __webpack_require__(/*! ../../math/Vector */ 40);
+	var Transform = __webpack_require__(/*! ../../core/Transform */ 22);
+	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 23);
+	var Integrator = __webpack_require__(/*! ../integrators/SymplecticEuler */ 42);
 	function Particle(options) {
 	    options = options || {};
 	    var defaults = Particle.DEFAULT_OPTIONS;
@@ -7505,7 +7515,7 @@
 	module.exports = Particle;
 
 /***/ },
-/* 39 */
+/* 42 */
 /*!**********************************************************!*\
   !*** ../~/famous/physics/integrators/SymplecticEuler.js ***!
   \**********************************************************/
@@ -7551,7 +7561,7 @@
 	module.exports = SymplecticEuler;
 
 /***/ },
-/* 40 */
+/* 43 */
 /*!********************************************!*\
   !*** ../~/famous/physics/PhysicsEngine.js ***!
   \********************************************/
@@ -7564,7 +7574,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var EventHandler = __webpack_require__(/*! ../core/EventHandler */ 20);
+	var EventHandler = __webpack_require__(/*! ../core/EventHandler */ 23);
 	function PhysicsEngine(options) {
 	    this.options = Object.create(PhysicsEngine.DEFAULT_OPTIONS);
 	    if (options)
@@ -7833,7 +7843,7 @@
 	module.exports = PhysicsEngine;
 
 /***/ },
-/* 41 */
+/* 44 */
 /*!********************************************************!*\
   !*** ../~/famous-flex/src/helpers/LayoutDockHelper.js ***!
   \********************************************************/
@@ -7887,7 +7897,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 30);
+	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 33);
 	
 	    /**
 	     * @class
@@ -8107,608 +8117,6 @@
 
 
 /***/ },
-/* 42 */
-/*!***********************************************!*\
-  !*** ../~/famous/surfaces/TextareaSurface.js ***!
-  \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Surface = __webpack_require__(/*! ../core/Surface */ 43);
-	function TextareaSurface(options) {
-	    this._placeholder = options.placeholder || '';
-	    this._value = options.value || '';
-	    this._name = options.name || '';
-	    this._wrap = options.wrap || '';
-	    this._cols = options.cols || '';
-	    this._rows = options.rows || '';
-	    Surface.apply(this, arguments);
-	    this.on('click', this.focus.bind(this));
-	}
-	TextareaSurface.prototype = Object.create(Surface.prototype);
-	TextareaSurface.prototype.constructor = TextareaSurface;
-	TextareaSurface.prototype.elementType = 'textarea';
-	TextareaSurface.prototype.elementClass = 'famous-surface';
-	TextareaSurface.prototype.setPlaceholder = function setPlaceholder(str) {
-	    this._placeholder = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.focus = function focus() {
-	    if (this._currentTarget)
-	        this._currentTarget.focus();
-	    return this;
-	};
-	TextareaSurface.prototype.blur = function blur() {
-	    if (this._currentTarget)
-	        this._currentTarget.blur();
-	    return this;
-	};
-	TextareaSurface.prototype.setValue = function setValue(str) {
-	    this._value = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.getValue = function getValue() {
-	    if (this._currentTarget) {
-	        return this._currentTarget.value;
-	    } else {
-	        return this._value;
-	    }
-	};
-	TextareaSurface.prototype.setName = function setName(str) {
-	    this._name = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.getName = function getName() {
-	    return this._name;
-	};
-	TextareaSurface.prototype.setWrap = function setWrap(str) {
-	    this._wrap = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.setColumns = function setColumns(num) {
-	    this._cols = num;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.setRows = function setRows(num) {
-	    this._rows = num;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.deploy = function deploy(target) {
-	    if (this._placeholder !== '')
-	        target.placeholder = this._placeholder;
-	    if (this._value !== '')
-	        target.value = this._value;
-	    if (this._name !== '')
-	        target.name = this._name;
-	    if (this._wrap !== '')
-	        target.wrap = this._wrap;
-	    if (this._cols !== '')
-	        target.cols = this._cols;
-	    if (this._rows !== '')
-	        target.rows = this._rows;
-	};
-	module.exports = TextareaSurface;
-
-/***/ },
-/* 43 */
-/*!***********************************!*\
-  !*** ../~/famous/core/Surface.js ***!
-  \***********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var ElementOutput = __webpack_require__(/*! ./ElementOutput */ 44);
-	function Surface(options) {
-	    ElementOutput.call(this);
-	    this.options = {};
-	    this.properties = {};
-	    this.attributes = {};
-	    this.content = '';
-	    this.classList = [];
-	    this.size = null;
-	    this._classesDirty = true;
-	    this._stylesDirty = true;
-	    this._attributesDirty = true;
-	    this._sizeDirty = true;
-	    this._contentDirty = true;
-	    this._trueSizeCheck = true;
-	    this._dirtyClasses = [];
-	    if (options)
-	        this.setOptions(options);
-	    this._currentTarget = null;
-	}
-	Surface.prototype = Object.create(ElementOutput.prototype);
-	Surface.prototype.constructor = Surface;
-	Surface.prototype.elementType = 'div';
-	Surface.prototype.elementClass = 'famous-surface';
-	Surface.prototype.setAttributes = function setAttributes(attributes) {
-	    for (var n in attributes) {
-	        if (n === 'style')
-	            throw new Error('Cannot set styles via "setAttributes" as it will break Famo.us.  Use "setProperties" instead.');
-	        this.attributes[n] = attributes[n];
-	    }
-	    this._attributesDirty = true;
-	};
-	Surface.prototype.getAttributes = function getAttributes() {
-	    return this.attributes;
-	};
-	Surface.prototype.setProperties = function setProperties(properties) {
-	    for (var n in properties) {
-	        this.properties[n] = properties[n];
-	    }
-	    this._stylesDirty = true;
-	    return this;
-	};
-	Surface.prototype.getProperties = function getProperties() {
-	    return this.properties;
-	};
-	Surface.prototype.addClass = function addClass(className) {
-	    if (this.classList.indexOf(className) < 0) {
-	        this.classList.push(className);
-	        this._classesDirty = true;
-	    }
-	    return this;
-	};
-	Surface.prototype.removeClass = function removeClass(className) {
-	    var i = this.classList.indexOf(className);
-	    if (i >= 0) {
-	        this._dirtyClasses.push(this.classList.splice(i, 1)[0]);
-	        this._classesDirty = true;
-	    }
-	    return this;
-	};
-	Surface.prototype.toggleClass = function toggleClass(className) {
-	    var i = this.classList.indexOf(className);
-	    if (i >= 0) {
-	        this.removeClass(className);
-	    } else {
-	        this.addClass(className);
-	    }
-	    return this;
-	};
-	Surface.prototype.setClasses = function setClasses(classList) {
-	    var i = 0;
-	    var removal = [];
-	    for (i = 0; i < this.classList.length; i++) {
-	        if (classList.indexOf(this.classList[i]) < 0)
-	            removal.push(this.classList[i]);
-	    }
-	    for (i = 0; i < removal.length; i++)
-	        this.removeClass(removal[i]);
-	    for (i = 0; i < classList.length; i++)
-	        this.addClass(classList[i]);
-	    return this;
-	};
-	Surface.prototype.getClassList = function getClassList() {
-	    return this.classList;
-	};
-	Surface.prototype.setContent = function setContent(content) {
-	    if (this.content !== content) {
-	        this.content = content;
-	        this._contentDirty = true;
-	    }
-	    return this;
-	};
-	Surface.prototype.getContent = function getContent() {
-	    return this.content;
-	};
-	Surface.prototype.setOptions = function setOptions(options) {
-	    if (options.size)
-	        this.setSize(options.size);
-	    if (options.classes)
-	        this.setClasses(options.classes);
-	    if (options.properties)
-	        this.setProperties(options.properties);
-	    if (options.attributes)
-	        this.setAttributes(options.attributes);
-	    if (options.content)
-	        this.setContent(options.content);
-	    return this;
-	};
-	function _cleanupClasses(target) {
-	    for (var i = 0; i < this._dirtyClasses.length; i++)
-	        target.classList.remove(this._dirtyClasses[i]);
-	    this._dirtyClasses = [];
-	}
-	function _applyStyles(target) {
-	    for (var n in this.properties) {
-	        target.style[n] = this.properties[n];
-	    }
-	}
-	function _cleanupStyles(target) {
-	    for (var n in this.properties) {
-	        target.style[n] = '';
-	    }
-	}
-	function _applyAttributes(target) {
-	    for (var n in this.attributes) {
-	        target.setAttribute(n, this.attributes[n]);
-	    }
-	}
-	function _cleanupAttributes(target) {
-	    for (var n in this.attributes) {
-	        target.removeAttribute(n);
-	    }
-	}
-	function _xyNotEquals(a, b) {
-	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
-	}
-	Surface.prototype.setup = function setup(allocator) {
-	    var target = allocator.allocate(this.elementType);
-	    if (this.elementClass) {
-	        if (this.elementClass instanceof Array) {
-	            for (var i = 0; i < this.elementClass.length; i++) {
-	                target.classList.add(this.elementClass[i]);
-	            }
-	        } else {
-	            target.classList.add(this.elementClass);
-	        }
-	    }
-	    target.style.display = '';
-	    this.attach(target);
-	    this._opacity = null;
-	    this._currentTarget = target;
-	    this._stylesDirty = true;
-	    this._classesDirty = true;
-	    this._attributesDirty = true;
-	    this._sizeDirty = true;
-	    this._contentDirty = true;
-	    this._originDirty = true;
-	    this._transformDirty = true;
-	};
-	Surface.prototype.commit = function commit(context) {
-	    if (!this._currentTarget)
-	        this.setup(context.allocator);
-	    var target = this._currentTarget;
-	    var size = context.size;
-	    if (this._classesDirty) {
-	        _cleanupClasses.call(this, target);
-	        var classList = this.getClassList();
-	        for (var i = 0; i < classList.length; i++)
-	            target.classList.add(classList[i]);
-	        this._classesDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    if (this._stylesDirty) {
-	        _applyStyles.call(this, target);
-	        this._stylesDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    if (this._attributesDirty) {
-	        _applyAttributes.call(this, target);
-	        this._attributesDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    if (this.size) {
-	        var origSize = context.size;
-	        size = [
-	            this.size[0],
-	            this.size[1]
-	        ];
-	        if (size[0] === undefined)
-	            size[0] = origSize[0];
-	        if (size[1] === undefined)
-	            size[1] = origSize[1];
-	        if (size[0] === true || size[1] === true) {
-	            if (size[0] === true) {
-	                if (this._trueSizeCheck || this._size[0] === 0) {
-	                    var width = target.offsetWidth;
-	                    if (this._size && this._size[0] !== width) {
-	                        this._size[0] = width;
-	                        this._sizeDirty = true;
-	                    }
-	                    size[0] = width;
-	                } else {
-	                    if (this._size)
-	                        size[0] = this._size[0];
-	                }
-	            }
-	            if (size[1] === true) {
-	                if (this._trueSizeCheck || this._size[1] === 0) {
-	                    var height = target.offsetHeight;
-	                    if (this._size && this._size[1] !== height) {
-	                        this._size[1] = height;
-	                        this._sizeDirty = true;
-	                    }
-	                    size[1] = height;
-	                } else {
-	                    if (this._size)
-	                        size[1] = this._size[1];
-	                }
-	            }
-	            this._trueSizeCheck = false;
-	        }
-	    }
-	    if (_xyNotEquals(this._size, size)) {
-	        if (!this._size)
-	            this._size = [
-	                0,
-	                0
-	            ];
-	        this._size[0] = size[0];
-	        this._size[1] = size[1];
-	        this._sizeDirty = true;
-	    }
-	    if (this._sizeDirty) {
-	        if (this._size) {
-	            target.style.width = this.size && this.size[0] === true ? '' : this._size[0] + 'px';
-	            target.style.height = this.size && this.size[1] === true ? '' : this._size[1] + 'px';
-	        }
-	        this._eventOutput.emit('resize');
-	    }
-	    if (this._contentDirty) {
-	        this.deploy(target);
-	        this._eventOutput.emit('deploy');
-	        this._contentDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    ElementOutput.prototype.commit.call(this, context);
-	};
-	Surface.prototype.cleanup = function cleanup(allocator) {
-	    var i = 0;
-	    var target = this._currentTarget;
-	    this._eventOutput.emit('recall');
-	    this.recall(target);
-	    target.style.display = 'none';
-	    target.style.opacity = '';
-	    target.style.width = '';
-	    target.style.height = '';
-	    _cleanupStyles.call(this, target);
-	    _cleanupAttributes.call(this, target);
-	    var classList = this.getClassList();
-	    _cleanupClasses.call(this, target);
-	    for (i = 0; i < classList.length; i++)
-	        target.classList.remove(classList[i]);
-	    if (this.elementClass) {
-	        if (this.elementClass instanceof Array) {
-	            for (i = 0; i < this.elementClass.length; i++) {
-	                target.classList.remove(this.elementClass[i]);
-	            }
-	        } else {
-	            target.classList.remove(this.elementClass);
-	        }
-	    }
-	    this.detach(target);
-	    this._currentTarget = null;
-	    allocator.deallocate(target);
-	};
-	Surface.prototype.deploy = function deploy(target) {
-	    var content = this.getContent();
-	    if (content instanceof Node) {
-	        while (target.hasChildNodes())
-	            target.removeChild(target.firstChild);
-	        target.appendChild(content);
-	    } else
-	        target.innerHTML = content;
-	};
-	Surface.prototype.recall = function recall(target) {
-	    var df = document.createDocumentFragment();
-	    while (target.hasChildNodes())
-	        df.appendChild(target.firstChild);
-	    this.setContent(df);
-	};
-	Surface.prototype.getSize = function getSize() {
-	    return this._size ? this._size : this.size;
-	};
-	Surface.prototype.setSize = function setSize(size) {
-	    this.size = size ? [
-	        size[0],
-	        size[1]
-	    ] : null;
-	    this._sizeDirty = true;
-	    return this;
-	};
-	module.exports = Surface;
-
-/***/ },
-/* 44 */
-/*!*****************************************!*\
-  !*** ../~/famous/core/ElementOutput.js ***!
-  \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Entity = __webpack_require__(/*! ./Entity */ 17);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 20);
-	var Transform = __webpack_require__(/*! ./Transform */ 19);
-	var usePrefix = !('transform' in document.documentElement.style);
-	var devicePixelRatio = window.devicePixelRatio || 1;
-	function ElementOutput(element) {
-	    this._matrix = null;
-	    this._opacity = 1;
-	    this._origin = null;
-	    this._size = null;
-	    this._eventOutput = new EventHandler();
-	    this._eventOutput.bindThis(this);
-	    this.eventForwarder = function eventForwarder(event) {
-	        this._eventOutput.emit(event.type, event);
-	    }.bind(this);
-	    this.id = Entity.register(this);
-	    this._element = null;
-	    this._sizeDirty = false;
-	    this._originDirty = false;
-	    this._transformDirty = false;
-	    this._invisible = false;
-	    if (element)
-	        this.attach(element);
-	}
-	ElementOutput.prototype.on = function on(type, fn) {
-	    if (this._element)
-	        this._element.addEventListener(type, this.eventForwarder);
-	    this._eventOutput.on(type, fn);
-	};
-	ElementOutput.prototype.removeListener = function removeListener(type, fn) {
-	    this._eventOutput.removeListener(type, fn);
-	};
-	ElementOutput.prototype.emit = function emit(type, event) {
-	    if (event && !event.origin)
-	        event.origin = this;
-	    var handled = this._eventOutput.emit(type, event);
-	    if (handled && event && event.stopPropagation)
-	        event.stopPropagation();
-	    return handled;
-	};
-	ElementOutput.prototype.pipe = function pipe(target) {
-	    return this._eventOutput.pipe(target);
-	};
-	ElementOutput.prototype.unpipe = function unpipe(target) {
-	    return this._eventOutput.unpipe(target);
-	};
-	ElementOutput.prototype.render = function render() {
-	    return this.id;
-	};
-	function _addEventListeners(target) {
-	    for (var i in this._eventOutput.listeners) {
-	        target.addEventListener(i, this.eventForwarder);
-	    }
-	}
-	function _removeEventListeners(target) {
-	    for (var i in this._eventOutput.listeners) {
-	        target.removeEventListener(i, this.eventForwarder);
-	    }
-	}
-	function _formatCSSTransform(m) {
-	    m[12] = Math.round(m[12] * devicePixelRatio) / devicePixelRatio;
-	    m[13] = Math.round(m[13] * devicePixelRatio) / devicePixelRatio;
-	    var result = 'matrix3d(';
-	    for (var i = 0; i < 15; i++) {
-	        result += m[i] < 0.000001 && m[i] > -0.000001 ? '0,' : m[i] + ',';
-	    }
-	    result += m[15] + ')';
-	    return result;
-	}
-	var _setMatrix;
-	if (usePrefix) {
-	    _setMatrix = function (element, matrix) {
-	        element.style.webkitTransform = _formatCSSTransform(matrix);
-	    };
-	} else {
-	    _setMatrix = function (element, matrix) {
-	        element.style.transform = _formatCSSTransform(matrix);
-	    };
-	}
-	function _formatCSSOrigin(origin) {
-	    return 100 * origin[0] + '% ' + 100 * origin[1] + '%';
-	}
-	var _setOrigin = usePrefix ? function (element, origin) {
-	    element.style.webkitTransformOrigin = _formatCSSOrigin(origin);
-	} : function (element, origin) {
-	    element.style.transformOrigin = _formatCSSOrigin(origin);
-	};
-	var _setInvisible = usePrefix ? function (element) {
-	    element.style.webkitTransform = 'scale3d(0.0001,0.0001,0.0001)';
-	    element.style.opacity = 0;
-	} : function (element) {
-	    element.style.transform = 'scale3d(0.0001,0.0001,0.0001)';
-	    element.style.opacity = 0;
-	};
-	function _xyNotEquals(a, b) {
-	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
-	}
-	ElementOutput.prototype.commit = function commit(context) {
-	    var target = this._element;
-	    if (!target)
-	        return;
-	    var matrix = context.transform;
-	    var opacity = context.opacity;
-	    var origin = context.origin;
-	    var size = context.size;
-	    if (!matrix && this._matrix) {
-	        this._matrix = null;
-	        this._opacity = 0;
-	        _setInvisible(target);
-	        return;
-	    }
-	    if (_xyNotEquals(this._origin, origin))
-	        this._originDirty = true;
-	    if (Transform.notEquals(this._matrix, matrix))
-	        this._transformDirty = true;
-	    if (this._invisible) {
-	        this._invisible = false;
-	        this._element.style.display = '';
-	    }
-	    if (this._opacity !== opacity) {
-	        this._opacity = opacity;
-	        target.style.opacity = opacity >= 1 ? '0.999999' : opacity;
-	    }
-	    if (this._transformDirty || this._originDirty || this._sizeDirty) {
-	        if (this._sizeDirty)
-	            this._sizeDirty = false;
-	        if (this._originDirty) {
-	            if (origin) {
-	                if (!this._origin)
-	                    this._origin = [
-	                        0,
-	                        0
-	                    ];
-	                this._origin[0] = origin[0];
-	                this._origin[1] = origin[1];
-	            } else
-	                this._origin = null;
-	            _setOrigin(target, this._origin);
-	            this._originDirty = false;
-	        }
-	        if (!matrix)
-	            matrix = Transform.identity;
-	        this._matrix = matrix;
-	        var aaMatrix = this._size ? Transform.thenMove(matrix, [
-	            -this._size[0] * origin[0],
-	            -this._size[1] * origin[1],
-	            0
-	        ]) : matrix;
-	        _setMatrix(target, aaMatrix);
-	        this._transformDirty = false;
-	    }
-	};
-	ElementOutput.prototype.cleanup = function cleanup() {
-	    if (this._element) {
-	        this._invisible = true;
-	        this._element.style.display = 'none';
-	    }
-	};
-	ElementOutput.prototype.attach = function attach(target) {
-	    this._element = target;
-	    _addEventListeners.call(this, target);
-	};
-	ElementOutput.prototype.detach = function detach() {
-	    var target = this._element;
-	    if (target) {
-	        _removeEventListeners.call(this, target);
-	        if (this._invisible) {
-	            this._invisible = false;
-	            this._element.style.display = '';
-	        }
-	    }
-	    this._element = null;
-	    return target;
-	};
-	module.exports = ElementOutput;
-
-/***/ },
 /* 45 */
 /*!*******************************!*\
   !*** ../~/cassowary/bin/c.js ***!
@@ -8776,7 +8184,7 @@
 	*
 	* @library autolayout.js
 	* @version 0.0.1
-	* @generated 07-06-2015
+	* @generated 08-06-2015
 	*/
 	(function(f){if(true){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.AutoLayout = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return require(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 	/**
@@ -9315,7 +8723,7 @@
 	            if (this._spacingVars) {
 	                for (var i = 0; i < this._spacingVars.length; i++) {
 	                    if (this._spacingVars[i]) {
-	                        this._solver.suggestValue(this._spacingVars[i], this._spacing[i]);break;
+	                        this._solver.suggestValue(this._spacingVars[i], this._spacing[i]);
 	                    }
 	                }
 	                this._solver.resolve();
@@ -9498,14 +8906,20 @@
 	         * Parses one or more visual format strings into an array of constraint definitions.
 	         *
 	         * @param {String|Array} visualFormat One or more visual format strings.
-	         * @param {String} [lineSeperator] String that defines the end of a line (default `\n`).
 	         * @param {Object} [options] Configuration options.
+	         * @param {String} [options.lineSeperator] String that defines the end of a line (default `\n`).
+	         * @param {String} [options.outFormat] Output format ('constraints' or 'raw') (default: 'constraints').
 	         * @return {Array} Array of constraint definitions.
 	         */
-	        value: function parse(visualFormat, lineSeperator, options) {
-	            lineSeperator = lineSeperator || '\n';
+	        value: function parse(visualFormat, options) {
+	            var lineSeperator = options && options.lineSeperator ? options.lineSeperator : '\n';
 	            if (!Array.isArray(visualFormat) && visualFormat.indexOf(lineSeperator) < 0) {
-	                return this.parseLine(visualFormat, options);
+	                try {
+	                    return this.parseLine(visualFormat, options);
+	                } catch (err) {
+	                    err.source = visualFormat;
+	                    throw err;
+	                }
 	            }
 	
 	            // Decompose visual-format into an array of strings, and within those strings
@@ -9513,11 +8927,21 @@
 	            visualFormat = Array.isArray(visualFormat) ? visualFormat : [visualFormat];
 	            var lines = undefined;
 	            var constraints = [];
-	            for (var i = 0; i < visualFormat.length; i++) {
-	                lines = visualFormat[i].split(lineSeperator);
-	                for (var j = 0; j < lines.length; j++) {
-	                    constraints = constraints.concat(this.parseLine(lines[j], options));
+	            var lineIndex = 0;
+	            var line = undefined;
+	            try {
+	                for (var i = 0; i < visualFormat.length; i++) {
+	                    lines = visualFormat[i].split(lineSeperator);
+	                    for (var j = 0; j < lines.length; j++) {
+	                        line = lines[j];
+	                        lineIndex++;
+	                        constraints = constraints.concat(this.parseLine(line, options));
+	                    }
 	                }
+	            } catch (err) {
+	                err.source = line;
+	                err.line = lineIndex;
+	                throw err;
 	            }
 	            return constraints;
 	        }
@@ -10519,9 +9943,9 @@
 
 /***/ },
 /* 48 */
-/*!******************************!*\
-  !*** ./views/OutputView.es6 ***!
-  \******************************/
+/*!***************************!*\
+  !*** ./views/VflView.es6 ***!
+  \***************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -10540,122 +9964,123 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 49);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 50);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
-	var _famousSurfacesInputSurface = __webpack_require__(/*! famous/surfaces/InputSurface */ 50);
-	
-	var _famousSurfacesInputSurface2 = _interopRequireDefault(_famousSurfacesInputSurface);
-	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 43);
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 51);
 	
 	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
 	
-	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 28);
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 51);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 49);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
-	var OutputView = (function (_View) {
-	    function OutputView(options) {
+	var _famousSurfacesTextareaSurface = __webpack_require__(/*! famous/surfaces/TextareaSurface */ 53);
+	
+	var _famousSurfacesTextareaSurface2 = _interopRequireDefault(_famousSurfacesTextareaSurface);
+	
+	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 54);
+	
+	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
+	
+	var VflView = (function (_View) {
+	    function VflView(options) {
 	        var _this = this;
 	
-	        _classCallCheck(this, OutputView);
+	        _classCallCheck(this, VflView);
 	
-	        _get(Object.getPrototypeOf(OutputView.prototype), 'constructor', this).call(this, options);
+	        _get(Object.getPrototypeOf(VflView.prototype), 'constructor', this).call(this, options);
 	
-	        this.content = new _famousFlexLayoutController2['default']({
-	            layout: function layout(context) {
-	                if (_this.alView) {
-	                    _this.alView.setSize(context.size[0], context.size[1]);
-	                    var subView;
-	                    for (var key in _this.alView.subViews) {
-	                        subView = _this.alView.subViews[key];
-	                        context.set(subView.name, {
-	                            size: [subView.width, subView.height],
-	                            translate: [subView.left, subView.top, 0]
-	                        });
-	                    }
+	        this.tabBarController = new _famousFlexWidgetsTabBarController2['default']({
+	            tabBarSize: 44,
+	            tabBarPosition: _famousFlexWidgetsTabBarController2['default'].Position.TOP,
+	            tabBar: {
+	                createRenderables: {
+	                    selectedItemOverlay: true
 	                }
 	            }
 	        });
 	
-	        this.renderables = {
-	            widthText: new _famousCoreSurface2['default']({
-	                content: '<div class="va">Width:</div>'
-	            }),
-	            widthInput: new _famousSurfacesInputSurface2['default']({}),
-	            heightText: new _famousCoreSurface2['default']({
-	                content: '<div class="va">Height:</div>'
-	            }),
-	            heightInput: new _famousSurfacesInputSurface2['default']({}),
-	            spacingText: new _famousCoreSurface2['default']({
-	                content: '<div class="va">Spacing:</div>'
-	            }),
-	            spacingInput: new _famousSurfacesInputSurface2['default']({
-	                value: '8'
-	            }),
-	            content: this.content
-	        };
+	        this.textArea = new _famousSurfacesTextareaSurface2['default']({
+	            value: '|-[child]-|\nV:|-[child]-|\n'
+	        });
+	        this.textArea.on('change', function () {
+	            return _this._eventOutput.emit('update');
+	        });
+	        this.textArea.on('keyup', function () {
+	            return _this._eventOutput.emit('update');
+	        });
+	
+	        this.examples = new _famousCoreSurface2['default']();
+	
+	        this.tabBarController.setItems([{ tabItem: 'Visual Format', view: this.textArea }, { tabItem: 'Examples', view: this.examples }]);
+	
 	        this.layout = new _famousFlexLayoutController2['default']({
-	            layout: (0, _vflToLayout2['default'])(['|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(50)]-[spacingInput(100)]', 'V:[widthText(30,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]', '|-[content]-|', 'V:|-[widthText]-[content]-|', 'V:|-[widthInput]', 'V:|-[heightText]', 'V:|-[heightInput]', 'V:|-[spacingText]', 'V:|-[spacingInput]']),
-	            dataSource: this.renderables
+	            layout: (0, _vflToLayout2['default'])(['|-[content]-|', 'V:|-[content]-|']),
+	            dataSource: {
+	                content: this.tabBarController
+	            }
 	        });
 	        this.add(this.layout);
-	        this.renderables.spacingInput.on('change', this._updateSpacing.bind(this));
-	        this.renderables.spacingInput.on('keyup', this._updateSpacing.bind(this));
 	    }
 	
-	    _inherits(OutputView, _View);
+	    _inherits(VflView, _View);
 	
-	    _createClass(OutputView, [{
-	        key: '_updateSpacing',
-	        value: function _updateSpacing() {
-	            try {
-	                var spacing = JSON.parse(this.renderables.spacingInput.getValue());
-	                if (this.alView) {
-	                    this.alView.setSpacing(spacing);
-	                    this.content.reflowLayout();
-	                }
-	            } catch (err) {}
-	        }
-	    }, {
-	        key: 'setAutoLayoutView',
-	        value: function setAutoLayoutView(alView) {
-	            this.alView = alView;
-	            this.contentRenderables = this.contentRenderables || {};
-	            this.contentPool = this.contentPool || {};
-	            for (var key in this.contentRenderables) {
-	                this.contentPool[key] = this.contentRenderables[key];
-	            }
-	            this.contentRenderables = {};
-	            if (this.alView) {
-	                for (var subView in this.alView.subViews) {
-	                    this.contentRenderables[subView] = this.contentRenderables[key] || new _famousCoreSurface2['default']({
-	                        content: '<div class="va">' + subView + '</div>',
-	                        classes: ['subView']
-	                    });
-	                }
-	            }
-	            this._updateSpacing();
-	            this.content.setDataSource(this.contentRenderables);
+	    _createClass(VflView, [{
+	        key: 'getVisualFormat',
+	        value: function getVisualFormat() {
+	            return this.textArea.getValue();
 	        }
 	    }]);
 	
-	    return OutputView;
+	    return VflView;
 	})(_famousCoreView2['default']);
 	
-	exports['default'] = OutputView;
+	exports['default'] = VflView;
 	module.exports = exports['default'];
-
-	//
 
 /***/ },
 /* 49 */
+/*!************************!*\
+  !*** ./vflToLayout.js ***!
+  \************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	var c = __webpack_require__(/*! cassowary/bin/c */ 45);
+	window.c = c;
+	var AutoLayout = __webpack_require__(/*! autolayout.js/dist/autolayout */ 47);
+	
+	function _layout(view, context) {
+	    view.setSize(context.size[0], context.size[1]);
+	    var subView;
+	    for (var key in view.subViews) {
+	        subView = view.subViews[key];
+	        context.set(subView.name, {
+	            size: [subView.width, subView.height],
+	            translate: [subView.left, subView.top, 0]
+	        });
+	    }
+	}
+	
+	module.exports = function(visualFormat) {
+	    var view = new AutoLayout.View();
+	    try {
+	        view.addVisualFormat(visualFormat);
+	        return _layout.bind(view, view);
+	    }
+	    catch (err) {
+	        console.log(err); //eslint-disable-line no-console
+	    }
+	};
+
+
+/***/ },
+/* 50 */
 /*!********************************!*\
   !*** ../~/famous/core/View.js ***!
   \********************************/
@@ -10668,10 +10093,10 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 20);
-	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 27);
-	var RenderNode = __webpack_require__(/*! ./RenderNode */ 16);
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 25);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
+	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 30);
+	var RenderNode = __webpack_require__(/*! ./RenderNode */ 19);
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 28);
 	function View(options) {
 	    this._node = new RenderNode();
 	    this._eventInput = new EventHandler();
@@ -10706,7 +10131,3041 @@
 	module.exports = View;
 
 /***/ },
-/* 50 */
+/* 51 */
+/*!***********************************!*\
+  !*** ../~/famous/core/Surface.js ***!
+  \***********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var ElementOutput = __webpack_require__(/*! ./ElementOutput */ 52);
+	function Surface(options) {
+	    ElementOutput.call(this);
+	    this.options = {};
+	    this.properties = {};
+	    this.attributes = {};
+	    this.content = '';
+	    this.classList = [];
+	    this.size = null;
+	    this._classesDirty = true;
+	    this._stylesDirty = true;
+	    this._attributesDirty = true;
+	    this._sizeDirty = true;
+	    this._contentDirty = true;
+	    this._trueSizeCheck = true;
+	    this._dirtyClasses = [];
+	    if (options)
+	        this.setOptions(options);
+	    this._currentTarget = null;
+	}
+	Surface.prototype = Object.create(ElementOutput.prototype);
+	Surface.prototype.constructor = Surface;
+	Surface.prototype.elementType = 'div';
+	Surface.prototype.elementClass = 'famous-surface';
+	Surface.prototype.setAttributes = function setAttributes(attributes) {
+	    for (var n in attributes) {
+	        if (n === 'style')
+	            throw new Error('Cannot set styles via "setAttributes" as it will break Famo.us.  Use "setProperties" instead.');
+	        this.attributes[n] = attributes[n];
+	    }
+	    this._attributesDirty = true;
+	};
+	Surface.prototype.getAttributes = function getAttributes() {
+	    return this.attributes;
+	};
+	Surface.prototype.setProperties = function setProperties(properties) {
+	    for (var n in properties) {
+	        this.properties[n] = properties[n];
+	    }
+	    this._stylesDirty = true;
+	    return this;
+	};
+	Surface.prototype.getProperties = function getProperties() {
+	    return this.properties;
+	};
+	Surface.prototype.addClass = function addClass(className) {
+	    if (this.classList.indexOf(className) < 0) {
+	        this.classList.push(className);
+	        this._classesDirty = true;
+	    }
+	    return this;
+	};
+	Surface.prototype.removeClass = function removeClass(className) {
+	    var i = this.classList.indexOf(className);
+	    if (i >= 0) {
+	        this._dirtyClasses.push(this.classList.splice(i, 1)[0]);
+	        this._classesDirty = true;
+	    }
+	    return this;
+	};
+	Surface.prototype.toggleClass = function toggleClass(className) {
+	    var i = this.classList.indexOf(className);
+	    if (i >= 0) {
+	        this.removeClass(className);
+	    } else {
+	        this.addClass(className);
+	    }
+	    return this;
+	};
+	Surface.prototype.setClasses = function setClasses(classList) {
+	    var i = 0;
+	    var removal = [];
+	    for (i = 0; i < this.classList.length; i++) {
+	        if (classList.indexOf(this.classList[i]) < 0)
+	            removal.push(this.classList[i]);
+	    }
+	    for (i = 0; i < removal.length; i++)
+	        this.removeClass(removal[i]);
+	    for (i = 0; i < classList.length; i++)
+	        this.addClass(classList[i]);
+	    return this;
+	};
+	Surface.prototype.getClassList = function getClassList() {
+	    return this.classList;
+	};
+	Surface.prototype.setContent = function setContent(content) {
+	    if (this.content !== content) {
+	        this.content = content;
+	        this._contentDirty = true;
+	    }
+	    return this;
+	};
+	Surface.prototype.getContent = function getContent() {
+	    return this.content;
+	};
+	Surface.prototype.setOptions = function setOptions(options) {
+	    if (options.size)
+	        this.setSize(options.size);
+	    if (options.classes)
+	        this.setClasses(options.classes);
+	    if (options.properties)
+	        this.setProperties(options.properties);
+	    if (options.attributes)
+	        this.setAttributes(options.attributes);
+	    if (options.content)
+	        this.setContent(options.content);
+	    return this;
+	};
+	function _cleanupClasses(target) {
+	    for (var i = 0; i < this._dirtyClasses.length; i++)
+	        target.classList.remove(this._dirtyClasses[i]);
+	    this._dirtyClasses = [];
+	}
+	function _applyStyles(target) {
+	    for (var n in this.properties) {
+	        target.style[n] = this.properties[n];
+	    }
+	}
+	function _cleanupStyles(target) {
+	    for (var n in this.properties) {
+	        target.style[n] = '';
+	    }
+	}
+	function _applyAttributes(target) {
+	    for (var n in this.attributes) {
+	        target.setAttribute(n, this.attributes[n]);
+	    }
+	}
+	function _cleanupAttributes(target) {
+	    for (var n in this.attributes) {
+	        target.removeAttribute(n);
+	    }
+	}
+	function _xyNotEquals(a, b) {
+	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
+	}
+	Surface.prototype.setup = function setup(allocator) {
+	    var target = allocator.allocate(this.elementType);
+	    if (this.elementClass) {
+	        if (this.elementClass instanceof Array) {
+	            for (var i = 0; i < this.elementClass.length; i++) {
+	                target.classList.add(this.elementClass[i]);
+	            }
+	        } else {
+	            target.classList.add(this.elementClass);
+	        }
+	    }
+	    target.style.display = '';
+	    this.attach(target);
+	    this._opacity = null;
+	    this._currentTarget = target;
+	    this._stylesDirty = true;
+	    this._classesDirty = true;
+	    this._attributesDirty = true;
+	    this._sizeDirty = true;
+	    this._contentDirty = true;
+	    this._originDirty = true;
+	    this._transformDirty = true;
+	};
+	Surface.prototype.commit = function commit(context) {
+	    if (!this._currentTarget)
+	        this.setup(context.allocator);
+	    var target = this._currentTarget;
+	    var size = context.size;
+	    if (this._classesDirty) {
+	        _cleanupClasses.call(this, target);
+	        var classList = this.getClassList();
+	        for (var i = 0; i < classList.length; i++)
+	            target.classList.add(classList[i]);
+	        this._classesDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    if (this._stylesDirty) {
+	        _applyStyles.call(this, target);
+	        this._stylesDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    if (this._attributesDirty) {
+	        _applyAttributes.call(this, target);
+	        this._attributesDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    if (this.size) {
+	        var origSize = context.size;
+	        size = [
+	            this.size[0],
+	            this.size[1]
+	        ];
+	        if (size[0] === undefined)
+	            size[0] = origSize[0];
+	        if (size[1] === undefined)
+	            size[1] = origSize[1];
+	        if (size[0] === true || size[1] === true) {
+	            if (size[0] === true) {
+	                if (this._trueSizeCheck || this._size[0] === 0) {
+	                    var width = target.offsetWidth;
+	                    if (this._size && this._size[0] !== width) {
+	                        this._size[0] = width;
+	                        this._sizeDirty = true;
+	                    }
+	                    size[0] = width;
+	                } else {
+	                    if (this._size)
+	                        size[0] = this._size[0];
+	                }
+	            }
+	            if (size[1] === true) {
+	                if (this._trueSizeCheck || this._size[1] === 0) {
+	                    var height = target.offsetHeight;
+	                    if (this._size && this._size[1] !== height) {
+	                        this._size[1] = height;
+	                        this._sizeDirty = true;
+	                    }
+	                    size[1] = height;
+	                } else {
+	                    if (this._size)
+	                        size[1] = this._size[1];
+	                }
+	            }
+	            this._trueSizeCheck = false;
+	        }
+	    }
+	    if (_xyNotEquals(this._size, size)) {
+	        if (!this._size)
+	            this._size = [
+	                0,
+	                0
+	            ];
+	        this._size[0] = size[0];
+	        this._size[1] = size[1];
+	        this._sizeDirty = true;
+	    }
+	    if (this._sizeDirty) {
+	        if (this._size) {
+	            target.style.width = this.size && this.size[0] === true ? '' : this._size[0] + 'px';
+	            target.style.height = this.size && this.size[1] === true ? '' : this._size[1] + 'px';
+	        }
+	        this._eventOutput.emit('resize');
+	    }
+	    if (this._contentDirty) {
+	        this.deploy(target);
+	        this._eventOutput.emit('deploy');
+	        this._contentDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    ElementOutput.prototype.commit.call(this, context);
+	};
+	Surface.prototype.cleanup = function cleanup(allocator) {
+	    var i = 0;
+	    var target = this._currentTarget;
+	    this._eventOutput.emit('recall');
+	    this.recall(target);
+	    target.style.display = 'none';
+	    target.style.opacity = '';
+	    target.style.width = '';
+	    target.style.height = '';
+	    _cleanupStyles.call(this, target);
+	    _cleanupAttributes.call(this, target);
+	    var classList = this.getClassList();
+	    _cleanupClasses.call(this, target);
+	    for (i = 0; i < classList.length; i++)
+	        target.classList.remove(classList[i]);
+	    if (this.elementClass) {
+	        if (this.elementClass instanceof Array) {
+	            for (i = 0; i < this.elementClass.length; i++) {
+	                target.classList.remove(this.elementClass[i]);
+	            }
+	        } else {
+	            target.classList.remove(this.elementClass);
+	        }
+	    }
+	    this.detach(target);
+	    this._currentTarget = null;
+	    allocator.deallocate(target);
+	};
+	Surface.prototype.deploy = function deploy(target) {
+	    var content = this.getContent();
+	    if (content instanceof Node) {
+	        while (target.hasChildNodes())
+	            target.removeChild(target.firstChild);
+	        target.appendChild(content);
+	    } else
+	        target.innerHTML = content;
+	};
+	Surface.prototype.recall = function recall(target) {
+	    var df = document.createDocumentFragment();
+	    while (target.hasChildNodes())
+	        df.appendChild(target.firstChild);
+	    this.setContent(df);
+	};
+	Surface.prototype.getSize = function getSize() {
+	    return this._size ? this._size : this.size;
+	};
+	Surface.prototype.setSize = function setSize(size) {
+	    this.size = size ? [
+	        size[0],
+	        size[1]
+	    ] : null;
+	    this._sizeDirty = true;
+	    return this;
+	};
+	module.exports = Surface;
+
+/***/ },
+/* 52 */
+/*!*****************************************!*\
+  !*** ../~/famous/core/ElementOutput.js ***!
+  \*****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Entity = __webpack_require__(/*! ./Entity */ 20);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
+	var Transform = __webpack_require__(/*! ./Transform */ 22);
+	var usePrefix = !('transform' in document.documentElement.style);
+	var devicePixelRatio = window.devicePixelRatio || 1;
+	function ElementOutput(element) {
+	    this._matrix = null;
+	    this._opacity = 1;
+	    this._origin = null;
+	    this._size = null;
+	    this._eventOutput = new EventHandler();
+	    this._eventOutput.bindThis(this);
+	    this.eventForwarder = function eventForwarder(event) {
+	        this._eventOutput.emit(event.type, event);
+	    }.bind(this);
+	    this.id = Entity.register(this);
+	    this._element = null;
+	    this._sizeDirty = false;
+	    this._originDirty = false;
+	    this._transformDirty = false;
+	    this._invisible = false;
+	    if (element)
+	        this.attach(element);
+	}
+	ElementOutput.prototype.on = function on(type, fn) {
+	    if (this._element)
+	        this._element.addEventListener(type, this.eventForwarder);
+	    this._eventOutput.on(type, fn);
+	};
+	ElementOutput.prototype.removeListener = function removeListener(type, fn) {
+	    this._eventOutput.removeListener(type, fn);
+	};
+	ElementOutput.prototype.emit = function emit(type, event) {
+	    if (event && !event.origin)
+	        event.origin = this;
+	    var handled = this._eventOutput.emit(type, event);
+	    if (handled && event && event.stopPropagation)
+	        event.stopPropagation();
+	    return handled;
+	};
+	ElementOutput.prototype.pipe = function pipe(target) {
+	    return this._eventOutput.pipe(target);
+	};
+	ElementOutput.prototype.unpipe = function unpipe(target) {
+	    return this._eventOutput.unpipe(target);
+	};
+	ElementOutput.prototype.render = function render() {
+	    return this.id;
+	};
+	function _addEventListeners(target) {
+	    for (var i in this._eventOutput.listeners) {
+	        target.addEventListener(i, this.eventForwarder);
+	    }
+	}
+	function _removeEventListeners(target) {
+	    for (var i in this._eventOutput.listeners) {
+	        target.removeEventListener(i, this.eventForwarder);
+	    }
+	}
+	function _formatCSSTransform(m) {
+	    m[12] = Math.round(m[12] * devicePixelRatio) / devicePixelRatio;
+	    m[13] = Math.round(m[13] * devicePixelRatio) / devicePixelRatio;
+	    var result = 'matrix3d(';
+	    for (var i = 0; i < 15; i++) {
+	        result += m[i] < 0.000001 && m[i] > -0.000001 ? '0,' : m[i] + ',';
+	    }
+	    result += m[15] + ')';
+	    return result;
+	}
+	var _setMatrix;
+	if (usePrefix) {
+	    _setMatrix = function (element, matrix) {
+	        element.style.webkitTransform = _formatCSSTransform(matrix);
+	    };
+	} else {
+	    _setMatrix = function (element, matrix) {
+	        element.style.transform = _formatCSSTransform(matrix);
+	    };
+	}
+	function _formatCSSOrigin(origin) {
+	    return 100 * origin[0] + '% ' + 100 * origin[1] + '%';
+	}
+	var _setOrigin = usePrefix ? function (element, origin) {
+	    element.style.webkitTransformOrigin = _formatCSSOrigin(origin);
+	} : function (element, origin) {
+	    element.style.transformOrigin = _formatCSSOrigin(origin);
+	};
+	var _setInvisible = usePrefix ? function (element) {
+	    element.style.webkitTransform = 'scale3d(0.0001,0.0001,0.0001)';
+	    element.style.opacity = 0;
+	} : function (element) {
+	    element.style.transform = 'scale3d(0.0001,0.0001,0.0001)';
+	    element.style.opacity = 0;
+	};
+	function _xyNotEquals(a, b) {
+	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
+	}
+	ElementOutput.prototype.commit = function commit(context) {
+	    var target = this._element;
+	    if (!target)
+	        return;
+	    var matrix = context.transform;
+	    var opacity = context.opacity;
+	    var origin = context.origin;
+	    var size = context.size;
+	    if (!matrix && this._matrix) {
+	        this._matrix = null;
+	        this._opacity = 0;
+	        _setInvisible(target);
+	        return;
+	    }
+	    if (_xyNotEquals(this._origin, origin))
+	        this._originDirty = true;
+	    if (Transform.notEquals(this._matrix, matrix))
+	        this._transformDirty = true;
+	    if (this._invisible) {
+	        this._invisible = false;
+	        this._element.style.display = '';
+	    }
+	    if (this._opacity !== opacity) {
+	        this._opacity = opacity;
+	        target.style.opacity = opacity >= 1 ? '0.999999' : opacity;
+	    }
+	    if (this._transformDirty || this._originDirty || this._sizeDirty) {
+	        if (this._sizeDirty)
+	            this._sizeDirty = false;
+	        if (this._originDirty) {
+	            if (origin) {
+	                if (!this._origin)
+	                    this._origin = [
+	                        0,
+	                        0
+	                    ];
+	                this._origin[0] = origin[0];
+	                this._origin[1] = origin[1];
+	            } else
+	                this._origin = null;
+	            _setOrigin(target, this._origin);
+	            this._originDirty = false;
+	        }
+	        if (!matrix)
+	            matrix = Transform.identity;
+	        this._matrix = matrix;
+	        var aaMatrix = this._size ? Transform.thenMove(matrix, [
+	            -this._size[0] * origin[0],
+	            -this._size[1] * origin[1],
+	            0
+	        ]) : matrix;
+	        _setMatrix(target, aaMatrix);
+	        this._transformDirty = false;
+	    }
+	};
+	ElementOutput.prototype.cleanup = function cleanup() {
+	    if (this._element) {
+	        this._invisible = true;
+	        this._element.style.display = 'none';
+	    }
+	};
+	ElementOutput.prototype.attach = function attach(target) {
+	    this._element = target;
+	    _addEventListeners.call(this, target);
+	};
+	ElementOutput.prototype.detach = function detach() {
+	    var target = this._element;
+	    if (target) {
+	        _removeEventListeners.call(this, target);
+	        if (this._invisible) {
+	            this._invisible = false;
+	            this._element.style.display = '';
+	        }
+	    }
+	    this._element = null;
+	    return target;
+	};
+	module.exports = ElementOutput;
+
+/***/ },
+/* 53 */
+/*!***********************************************!*\
+  !*** ../~/famous/surfaces/TextareaSurface.js ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Surface = __webpack_require__(/*! ../core/Surface */ 51);
+	function TextareaSurface(options) {
+	    this._placeholder = options.placeholder || '';
+	    this._value = options.value || '';
+	    this._name = options.name || '';
+	    this._wrap = options.wrap || '';
+	    this._cols = options.cols || '';
+	    this._rows = options.rows || '';
+	    Surface.apply(this, arguments);
+	    this.on('click', this.focus.bind(this));
+	}
+	TextareaSurface.prototype = Object.create(Surface.prototype);
+	TextareaSurface.prototype.constructor = TextareaSurface;
+	TextareaSurface.prototype.elementType = 'textarea';
+	TextareaSurface.prototype.elementClass = 'famous-surface';
+	TextareaSurface.prototype.setPlaceholder = function setPlaceholder(str) {
+	    this._placeholder = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.focus = function focus() {
+	    if (this._currentTarget)
+	        this._currentTarget.focus();
+	    return this;
+	};
+	TextareaSurface.prototype.blur = function blur() {
+	    if (this._currentTarget)
+	        this._currentTarget.blur();
+	    return this;
+	};
+	TextareaSurface.prototype.setValue = function setValue(str) {
+	    this._value = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.getValue = function getValue() {
+	    if (this._currentTarget) {
+	        return this._currentTarget.value;
+	    } else {
+	        return this._value;
+	    }
+	};
+	TextareaSurface.prototype.setName = function setName(str) {
+	    this._name = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.getName = function getName() {
+	    return this._name;
+	};
+	TextareaSurface.prototype.setWrap = function setWrap(str) {
+	    this._wrap = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.setColumns = function setColumns(num) {
+	    this._cols = num;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.setRows = function setRows(num) {
+	    this._rows = num;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.deploy = function deploy(target) {
+	    if (this._placeholder !== '')
+	        target.placeholder = this._placeholder;
+	    if (this._value !== '')
+	        target.value = this._value;
+	    if (this._name !== '')
+	        target.name = this._name;
+	    if (this._wrap !== '')
+	        target.wrap = this._wrap;
+	    if (this._cols !== '')
+	        target.cols = this._cols;
+	    if (this._rows !== '')
+	        target.rows = this._rows;
+	};
+	module.exports = TextareaSurface;
+
+/***/ },
+/* 54 */
+/*!********************************************************!*\
+  !*** ../~/famous-flex/src/widgets/TabBarController.js ***!
+  \********************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/**
+	 * This Source Code is licensed under the MIT license. If a copy of the
+	 * MIT-license was not distributed with this file, You can obtain one at:
+	 * http://opensource.org/licenses/mit-license.html.
+	 *
+	 * @author: Hein Rutjes (IjzerenHein)
+	 * @license MIT
+	 * @copyright Gloey Apps, 2015
+	 */
+	
+	/**
+	 * TabBarController.
+	 *
+	 * @module
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    // import dependencies
+	    var View = __webpack_require__(/*! famous/core/View */ 50);
+	    var AnimationController = __webpack_require__(/*! ../AnimationController */ 55);
+	    var TabBar = __webpack_require__(/*! ./TabBar */ 61);
+	    var LayoutDockHelper = __webpack_require__(/*! ../helpers/LayoutDockHelper */ 44);
+	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 31);
+	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 60);
+	
+	    /**
+	     * @class
+	     * @param {Object} options Configurable options.
+	     * @param {TabBarController.Position} [options.tabBarPosition] Position (default: BOTTOM).
+	     * @param {Number} [options.tabBarSize] Size of the tabBar (default: 50).
+	     * @param {Number} [options.tabBarZIndex] Z-index the tabBar is put above the content (AnimationController) (default: 10).
+	     * @param {Object} [options.tabBar] Options that are passed to the TabBar.
+	     * @param {Object} [options.animationController] Options that are passed to the AnimationController.
+	     * @alias module:TabBarController
+	     */
+	    function TabBarController(options) {
+	        View.apply(this, arguments);
+	
+	        _createRenderables.call(this);
+	        _createLayout.call(this);
+	        _setListeners.call(this);
+	
+	        this.tabBar.setOptions({
+	            layoutController: {
+	                direction: ((this.options.tabBarPosition === TabBarController.Position.TOP) || (this.options.tabBarPosition === TabBarController.Position.BOTTOM)) ? 0 : 1
+	            }
+	        });
+	    }
+	    TabBarController.prototype = Object.create(View.prototype);
+	    TabBarController.prototype.constructor = TabBarController;
+	
+	    TabBarController.Position = {
+	        TOP: 0,
+	        BOTTOM: 1,
+	        LEFT: 2,
+	        RIGHT: 3
+	    };
+	
+	    /**
+	     * Default layout-function for the TabBarController. Supports simple
+	     * docking to any of the four edges.
+	     */
+	    TabBarController.DEFAULT_LAYOUT = function(context, options) {
+	        var dock = new LayoutDockHelper(context, options);
+	        switch (this.options.tabBarPosition) {
+	            case TabBarController.Position.TOP:
+	                dock.top('tabBar', this.options.tabBarSize, this.options.tabBarZIndex);
+	                break;
+	            case TabBarController.Position.BOTTOM:
+	                dock.bottom('tabBar', this.options.tabBarSize, this.options.tabBarZIndex);
+	                break;
+	            case TabBarController.Position.LEFT:
+	                dock.left('tabBar', this.options.tabBarSize, this.options.tabBarZIndex);
+	                break;
+	            case TabBarController.Position.RIGHT:
+	                dock.right('tabBar', this.options.tabBarSize, this.options.tabBarZIndex);
+	                break;
+	        }
+	        dock.fill('content');
+	    };
+	
+	    TabBarController.DEFAULT_OPTIONS = {
+	        tabBarPosition: TabBarController.Position.BOTTOM,
+	        tabBarSize: 50,
+	        tabBarZIndex: 10,
+	        tabBar: {
+	            createRenderables: {
+	                background: true
+	            }
+	        },
+	        animationController: {
+	            transition: {duration: 300, curve: Easing.inOutQuad},
+	            animation: AnimationController.Animation.FadedZoom
+	        }
+	    };
+	
+	    /**
+	     * Creates the renderables (tabBar, animationController).
+	     */
+	    function _createRenderables() {
+	        this.tabBar = new TabBar(this.options.tabBar);
+	        this.animationController = new AnimationController(this.options.animationController);
+	        this._renderables = {
+	            tabBar: this.tabBar,
+	            content: this.animationController
+	        };
+	    }
+	
+	    /**
+	     * Creates the outer (header-footer) layout.
+	     */
+	    function _createLayout() {
+	        this.layout = new LayoutController(this.options.layoutController);
+	        this.layout.setLayout(TabBarController.DEFAULT_LAYOUT.bind(this));
+	        this.layout.setDataSource(this._renderables);
+	        this.add(this.layout);
+	    }
+	
+	    /**
+	     * Sets the listeners.
+	     */
+	    function _setListeners() {
+	        this.tabBar.on('tabchange', function(event) {
+	            _updateView.call(this, event);
+	            this._eventOutput.emit('tabchange', {
+	                target: this,
+	                index: event.index,
+	                oldIndex: event.oldIndex,
+	                item: this._items[event.index],
+	                oldItem: ((event.oldIndex >= 0) && (event.oldIndex < this._items.length)) ? this._items[event.oldIndex] : undefined
+	            });
+	        }.bind(this));
+	    }
+	
+	    /**
+	     * Updates the view-container with the selected view.
+	     */
+	    function _updateView(event) {
+	        var index = this.tabBar.getSelectedItemIndex();
+	        this.animationController.halt();
+	        if (index >= 0) {
+	            this.animationController.show(this._items[index].view);
+	        }
+	        else {
+	            this.animationController.hide();
+	        }
+	    }
+	
+	    /**
+	     * Patches the TabBarController instance's options with the passed-in ones.
+	     *
+	     * @param {Object} options Configurable options.
+	     * @param {TabBarController.Position} [options.tabBarPosition] Position (default: BOTTOM).
+	     * @param {Number} [options.tabBarSize] Size of the tabBar (default: 50).
+	     * @param {Number} [options.tabBarZIndex] Z-index the tabBar is put above the content (AnimationController) (default: 10).
+	     * @param {Object} [options.tabBar] Options that are passed to the TabBar.
+	     * @param {Object} [options.animationController] Options that are passed to the AnimationController.
+	     * @return {TabBarController} this
+	     */
+	    TabBarController.prototype.setOptions = function(options) {
+	        View.prototype.setOptions.call(this, options);
+	        if (this.layout && options.layoutController) {
+	            this.layout.setOptions(options.layoutController);
+	        }
+	        if (this.tabBar && options.tabBar) {
+	            this.tabBar.setOptions(options.tabBar);
+	        }
+	        if (this.animationController && options.animationController) {
+	            this.animationController(options.animationController);
+	        }
+	        if (this.layout && (options.tabBarPosition !== undefined)) {
+	            this.tabBar.setOptions({
+	                layoutController: {
+	                    direction: ((options.tabBarPosition === TabBarController.Position.TOP) || (options.tabBarPosition === TabBarController.Position.BOTTOM)) ? 0 : 1
+	                }
+	            });
+	        }
+	        if (this.layout) {
+	            this.layout.reflowLayout();
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Sets the items for the tab-bar controller.
+	     *
+	     * Example 1:
+	     *
+	     * ```javascript
+	     * var tabBarController = new TabBarController();
+	     * tabBarController.setItems([
+	     *   {tabItem: 'Profile', view: new ProfileView()},
+	     *   {tabItem: 'Map', view: new MapView()},
+	     *   {tabItem: 'Login', view: new LoginView()}
+	     *   {tabItem: 'Settings', view: new SettingsView()}
+	     * ]);
+	     *```
+	     *
+	     * @param {Array} items Array of tab-bar controller items.
+	     * @return {TabBarController} this
+	     */
+	    TabBarController.prototype.setItems = function(items) {
+	        this._items = items;
+	        var tabItems = [];
+	        for (var i = 0; i < items.length; i++) {
+	            tabItems.push(items[i].tabItem);
+	        }
+	        this.tabBar.setItems(tabItems);
+	        _updateView.call(this);
+	        return this;
+	    };
+	
+	    /**
+	     * Get the tab-items (also see `setItems`).
+	     *
+	     * @return {Array} tab-items
+	     */
+	    TabBarController.prototype.getItems = function() {
+	        return this._items;
+	    };
+	
+	    /**
+	     * Sets the index of the selected tab.
+	     *
+	     * @param {Number} index selected index.
+	     * @return {TabBar} this
+	     */
+	    TabBarController.prototype.setSelectedItemIndex = function(index) {
+	        this.tabBar.setSelectedItemIndex(index);
+	        return this;
+	    };
+	
+	    /**
+	     * Get the index of the selected tab-item.
+	     *
+	     * @return {Number} selected index
+	     */
+	    TabBarController.prototype.getSelectedItemIndex = function() {
+	        return this.tabBar.getSelectedItemIndex();
+	    };
+	
+	    module.exports = TabBarController;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 55 */
+/*!***************************************************!*\
+  !*** ../~/famous-flex/src/AnimationController.js ***!
+  \***************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/**
+	 * This Source Code is licensed under the MIT license. If a copy of the
+	 * MIT-license was not distributed with this file, You can obtain one at:
+	 * http://opensource.org/licenses/mit-license.html.
+	 *
+	 * @author: Hein Rutjes (IjzerenHein)
+	 * @license MIT
+	 * @copyright Gloey Apps, 2015
+	 */
+	
+	/**
+	 * Animating between famo.us views in awesome ways.
+	 *
+	 * @module
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    // import dependencies
+	    var View = __webpack_require__(/*! famous/core/View */ 50);
+	    var LayoutController = __webpack_require__(/*! ./LayoutController */ 31);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
+	    var Modifier = __webpack_require__(/*! famous/core/Modifier */ 57);
+	    var StateModifier = __webpack_require__(/*! famous/modifiers/StateModifier */ 56);
+	    var RenderNode = __webpack_require__(/*! famous/core/RenderNode */ 19);
+	    var Timer = __webpack_require__(/*! famous/utilities/Timer */ 59);
+	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 60);
+	
+	    /**
+	     * @class
+	     * @param {Object} [options] Configurable options.
+	     * @param {Object} [options.transition] Transition options (default: `{duration: 400, curve: Easing.inOutQuad}`).
+	     * @param {Function} [options.animation] Animation function (default: `AnimationController.Animation.Slide.Left`).
+	     * @param {Number} [options.zIndexOffset] Optional z-index difference between the hiding & showing renderable (default: 0).
+	     * @param {Object} [options.show] Show specific options.
+	     * @param {Object} [options.show.transition] Show specific transition options.
+	     * @param {Function} [options.show.animation] Show specific animation function.
+	     * @param {Object} [options.hide] Hide specific options.
+	     * @param {Object} [options.hide.transition] Hide specific transition options.
+	     * @param {Function} [options.hide.animation] Hide specific animation function.
+	     * @param {Object} [options.transfer] Transfer options.
+	     * @param {Object} [options.transfer.transition] Transfer specific transition options.
+	     * @param {Number} [options.transfer.zIndex] Z-index the tranferables are moved on top while animating (default: 10).
+	     * @param {Bool} [options.transfer.fastResize] When enabled, scales the renderable i.s.o. resizing when doing the transfer animation (default: true).
+	     * @param {Array} [options.transfer.items] Ids (key/value) pairs (source-id/target-id) of the renderables that should be transferred.
+	     * @alias module:AnimationController
+	     */
+	    function AnimationController(options) {
+	        View.apply(this, arguments);
+	
+	        _createLayout.call(this);
+	
+	        if (options) {
+	            this.setOptions(options);
+	        }
+	    }
+	    AnimationController.prototype = Object.create(View.prototype);
+	    AnimationController.prototype.constructor = AnimationController;
+	
+	    /**
+	     * Out of the box supported animations.
+	     */
+	    AnimationController.Animation = {
+	        Slide: {
+	            Left: function(show, size) {
+	                return {transform: Transform.translate(show ? size[0] : -size[0], 0, 0)};
+	            },
+	            Right: function(show, size) {
+	                return {transform: Transform.translate(show ? -size[0] : size[0], 0, 0)};
+	            },
+	            Up: function(show, size) {
+	                return {transform: Transform.translate(0, show ? size[1] : -size[1], 0)};
+	            },
+	            Down: function(show, size) {
+	                return {transform: Transform.translate(0, show ? -size[1] : size[1], 0)};
+	            }
+	        },
+	        Fade: function(show, size) {
+	            return {
+	                opacity: (this && (this.opacity !== undefined)) ? this.opacity : 0
+	            };
+	        },
+	        Zoom: function(show, size) {
+	            var scale = (this && (this.scale !== undefined)) ? this.scale : 0.5;
+	            return {
+	                transform: Transform.scale(scale, scale, 1),
+	                align: [0.5, 0.5],
+	                origin: [0.5, 0.5]
+	            };
+	        },
+	        FadedZoom: function(show, size) {
+	            var scale = show ? ((this && (this.showScale !== undefined)) ? this.showScale : 0.9) : ((this && (this.hideScale !== undefined)) ? this.hideScale : 1.1);
+	            return {
+	                opacity: (this && (this.opacity !== undefined)) ? this.opacity : 0,
+	                transform: Transform.scale(scale, scale, 1),
+	                align: [0.5, 0.5],
+	                origin: [0.5, 0.5]
+	            };
+	        }
+	        /*,
+	        Flip: {
+	            Left: function(show, size) {
+	                return {transform: Transform.rotate(0, show ? Math.PI : -Math.PI, 0)};
+	            },
+	            Right: function(show, size) {
+	                return {transform: Transform.rotate(0, show ? -Math.PI : Math.PI, 0)};
+	            },
+	            Up: function(show, size) {
+	                return {transform: Transform.rotate(show ? Math.PI : -Math.PI, 0, 0)};
+	            },
+	            Down: function(show, size) {
+	                return {transform: Transform.rotate(show ? -Math.PI : Math.PI, 0, 0)};
+	            }
+	        }*/
+	    };
+	
+	    AnimationController.DEFAULT_OPTIONS = {
+	        transition: {duration: 400, curve: Easing.inOutQuad},
+	        animation: AnimationController.Animation.Fade,
+	        show: {
+	            // transition,
+	            // animation
+	        },
+	        hide: {
+	            // transition,
+	            // animation
+	        },
+	        transfer: {
+	            fastResize: true,
+	            zIndex: 10 // z-index offset the items are translated while transferring
+	            // transition,
+	            // items: {
+	            //   'image': 'image'
+	            //   'image': ['image', 'image2']
+	            // }
+	        },
+	        zIndexOffset: 0
+	    };
+	
+	    var ItemState = {
+	        NONE: 0,
+	        HIDE: 1,
+	        HIDING: 2,
+	        SHOW: 3,
+	        SHOWING: 4,
+	        VISIBLE: 5,
+	        QUEUED: 6
+	    };
+	
+	    /**
+	     * Stacks the renderables on top of each other
+	     * with a z-translation of this.options.zIndexOffset.
+	     */
+	    function ViewStackLayout(context, options) {
+	        var set = {
+	            size: context.size,
+	            translate: [0, 0, 0]
+	        };
+	        var views = context.get('views');
+	        var transferables = context.get('transferables');
+	        for (var i = 0; i < Math.min(views.length, 2); i++) {
+	            var item = this._viewStack[i];
+	            switch (item.state) {
+	                case ItemState.HIDE:
+	                case ItemState.HIDING:
+	                case ItemState.VISIBLE:
+	                case ItemState.SHOW:
+	                case ItemState.SHOWING:
+	
+	                    // Layout view
+	                    var view = views[i];
+	                    context.set(view, set);
+	
+	                    // Layout any transferables
+	                    for (var j = 0; j < transferables.length; j++) {
+	                        for (var k = 0; k < item.transferables.length; k++) {
+	                            if (transferables[j].renderNode === item.transferables[k].renderNode) {
+	                                context.set(transferables[j], {
+	                                    translate: [0, 0, set.translate[2]],
+	                                    size: [context.size[0], context.size[1]]
+	                                });
+	                            }
+	                        }
+	                    }
+	
+	                    // Increase z-index for next view
+	                    set.translate[2] += options.zIndexOffset;
+	                    break;
+	            }
+	        }
+	    }
+	
+	    /**
+	     * Creates the view-stack layout.
+	     */
+	    function _createLayout() {
+	        this._renderables = {
+	            views: [],
+	            transferables: []
+	        };
+	        this._viewStack = [];
+	        this.layout = new LayoutController({
+	            layout: ViewStackLayout.bind(this),
+	            layoutOptions: this.options,
+	            dataSource: this._renderables
+	        });
+	        this.add(this.layout);
+	        this.layout.on('layoutend', _startAnimations.bind(this));
+	    }
+	
+	    /**
+	     * Gets the spec from a spec.
+	     */
+	    function _getViewSpec(item, view, id, callback) {
+	        if (!item.view) {
+	            return;
+	        }
+	        var spec = view.getSpec(id);
+	        if (spec) {
+	            callback(spec);
+	        }
+	        else {
+	            Timer.after(_getViewSpec.bind(this, item, view, id, callback), 1);
+	        }
+	    }
+	
+	    /**
+	     * Gets the transferable delegate for the given id.
+	     */
+	    function _getTransferable(item, view, id) {
+	        // 1. If view supports getTransferable, use that
+	        if (view.getTransferable) {
+	            return view.getTransferable(id);
+	        }
+	        // 2. If view is derived from layoutcontroller, use that
+	        if (view.getSpec && view.get && view.replace) {
+	            if (view.get(id) !== undefined) {
+	                return {
+	                    get: function() {
+	                        return view.get(id);
+	                    },
+	                    show: function(renderable) {
+	                        view.replace(id, renderable);
+	                    },
+	                    getSpec: _getViewSpec.bind(this, item, view, id)
+	                };
+	            }
+	        }
+	        // 3. If view has an embedded layout, use that as fallback
+	        if (view.layout) {
+	            return _getTransferable.call(this, item, view.layout, id);
+	        }
+	    }
+	
+	    /**
+	     * Begins visual transfer or renderables from the previous item
+	     * to the new item.
+	     */
+	    function _startTransferableAnimations(item, prevItem) {
+	        for (var sourceId in item.options.transfer.items) {
+	            _startTransferableAnimation.call(this, item, prevItem, sourceId);
+	        }
+	    }
+	    function _startTransferableAnimation(item, prevItem, sourceId) {
+	        var target = item.options.transfer.items[sourceId];
+	        var transferable = {};
+	        transferable.source = _getTransferable.call(this, prevItem, prevItem.view, sourceId);
+	        if (Array.isArray(target)) {
+	            for (var i = 0; i < target.length; i++) {
+	                transferable.target = _getTransferable.call(this, item, item.view, target[i]);
+	                if (transferable.target) {
+	                    break;
+	                }
+	            }
+	        }
+	        else {
+	            transferable.target = _getTransferable.call(this, item, item.view, target);
+	        }
+	        if (transferable.source && transferable.target) {
+	            transferable.source.getSpec(function(sourceSpec) {
+	
+	                // Replace source & target renderables in the views
+	                // source: dummy-node
+	                // target: target-renderable with opacity: 0.
+	                transferable.originalSource = transferable.source.get();
+	                transferable.source.show(new RenderNode(new Modifier(sourceSpec)));
+	                transferable.originalTarget = transferable.target.get();
+	                var targetNode = new RenderNode(new Modifier({opacity: 0}));
+	                targetNode.add(transferable.originalTarget);
+	                transferable.target.show(targetNode);
+	
+	                // Take ownership of the source renderable.
+	                // This renderable will be layouted by the layout-function
+	                var zIndexMod = new Modifier({
+	                    transform: Transform.translate(0, 0, item.options.transfer.zIndex)
+	                });
+	                var mod = new StateModifier(sourceSpec);
+	                transferable.renderNode = new RenderNode(zIndexMod);
+	                transferable.renderNode.add(mod).add(transferable.originalSource);
+	                item.transferables.push(transferable);
+	                this._renderables.transferables.push(transferable.renderNode);
+	                this.layout.reflowLayout();
+	
+	                // Wait for the target spec to have settled. This may take a couple render
+	                // cycles if for instance, this involves a true-size renderable or the
+	                // renderable is affected by other true-size renderables around itsself.
+	                Timer.after(function() {
+	                    transferable.target.getSpec(function(targetSpec, transition) {
+	                        mod.halt();
+	                        if ((sourceSpec.opacity !== undefined) || (targetSpec.opacity !== undefined)) {
+	                            mod.setOpacity((targetSpec.opacity === undefined) ? 1 : targetSpec.opacity, transition|| item.options.transfer.transition);
+	                        }
+	                        if (item.options.transfer.fastResize) {
+	                            if (sourceSpec.transform || targetSpec.transform || sourceSpec.size || targetSpec.size) {
+	                                var transform = targetSpec.transform || Transform.identity;
+	                                if (sourceSpec.size && targetSpec.size) {
+	                                    transform = Transform.multiply(transform, Transform.scale(targetSpec.size[0] / sourceSpec.size[0], targetSpec.size[1] / sourceSpec.size[1], 1));
+	                                }
+	                                mod.setTransform(transform, transition || item.options.transfer.transition);
+	                            }
+	                        }
+	                        else {
+	                            if (sourceSpec.transform || targetSpec.transform) {
+	                                mod.setTransform(targetSpec.transform || Transform.identity, transition || item.options.transfer.transition);
+	                            }
+	                            if (sourceSpec.size || targetSpec.size) {
+	                                mod.setSize(targetSpec.size || sourceSpec.size, transition || item.options.transfer.transition);
+	                            }
+	                        }
+	                    }, true);
+	                }, 1);
+	            }.bind(this), false);
+	        }
+	    }
+	
+	    /**
+	     * Called whenever the view has been shown and the
+	     * transferable animations should be ended. This returns
+	     * the renderables to their original views.
+	     */
+	    function _endTransferableAnimations(item) {
+	        for (var j = 0; j < item.transferables.length; j++) {
+	            var transferable = item.transferables[j];
+	            for (var i = 0; i < this._renderables.transferables.length; i++) {
+	                if (this._renderables.transferables[i] === transferable.renderNode) {
+	                    this._renderables.transferables.splice(i, 1);
+	                    break;
+	                }
+	            }
+	            transferable.source.show(transferable.originalSource);
+	            transferable.target.show(transferable.originalTarget);
+	        }
+	        item.transferables = [];
+	        this.layout.reflowLayout();
+	    }
+	
+	    /**
+	     * Starts a show or hide animation.
+	     */
+	    function _startAnimations(event) {
+	        var prevItem;
+	        for (var i = 0; i < this._viewStack.length; i++) {
+	            var item = this._viewStack[i];
+	            switch (item.state) {
+	                case ItemState.HIDE:
+	                    item.state = ItemState.HIDING;
+	                    _startAnimation.call(this, item, prevItem, event.size, false);
+	                    _updateState.call(this);
+	                    break;
+	                case ItemState.SHOW:
+	                    item.state = ItemState.SHOWING;
+	                    _startAnimation.call(this, item, prevItem, event.size, true);
+	                    _updateState.call(this);
+	                    break;
+	            }
+	            prevItem = item;
+	        }
+	    }
+	
+	    /**
+	     * Starts the view animation.
+	     */
+	    function _startAnimation(item, prevItem, size, show) {
+	        var animation = show ? item.options.show.animation : item.options.hide.animation;
+	        var spec = animation ? animation.call(undefined, show, size) : {};
+	        item.mod.halt();
+	        var callback;
+	        if (show) {
+	            callback = item.showCallback;
+	            if (spec.transform) {
+	                item.mod.setTransform(spec.transform);
+	                item.mod.setTransform(Transform.identity, item.options.show.transition, callback);
+	                callback = undefined;
+	            }
+	            if (spec.opacity !== undefined) {
+	                item.mod.setOpacity(spec.opacity);
+	                item.mod.setOpacity(1, item.options.show.transition, callback);
+	                callback = undefined;
+	            }
+	            if (spec.align) {
+	                item.mod.setAlign(spec.align);
+	            }
+	            if (spec.origin) {
+	                item.mod.setOrigin(spec.origin);
+	            }
+	            if (prevItem) {
+	                _startTransferableAnimations.call(this, item, prevItem);
+	            }
+	            if (callback) {
+	                callback();
+	            }
+	        }
+	        else {
+	            callback = item.hideCallback;
+	            if (spec.transform) {
+	                item.mod.setTransform(spec.transform, item.options.hide.transition, callback);
+	                callback = undefined;
+	            }
+	            if (spec.opacity !== undefined) {
+	                item.mod.setOpacity(spec.opacity, item.options.hide.transition, callback);
+	                callback = undefined;
+	            }
+	            if (callback) {
+	                callback();
+	            }
+	        }
+	    }
+	
+	    /**
+	     * Sets the options for an item.
+	     */
+	    function _setItemOptions(item, options) {
+	        item.options = {
+	            show: {
+	                transition: this.options.show.transition || this.options.transition,
+	                animation: this.options.show.animation || this.options.animation
+	            },
+	            hide: {
+	                transition: this.options.hide.transition || this.options.transition,
+	                animation: this.options.hide.animation || this.options.animation
+	            },
+	            transfer: {
+	                transition: this.options.transfer.transition || this.options.transition,
+	                items: this.options.transfer.items || {},
+	                zIndex: this.options.transfer.zIndex,
+	                fastResize: this.options.transfer.fastResize
+	            }
+	        };
+	        if (options) {
+	            item.options.show.transition = (options.show ? options.show.transition : undefined) || options.transition || item.options.show.transition;
+	            if (options && options.show && (options.show.animation !== undefined)) {
+	                item.options.show.animation = options.show.animation;
+	            }
+	            else if (options && (options.animation !== undefined)) {
+	                item.options.show.animation = options.animation;
+	            }
+	            item.options.transfer.transition = (options.transfer ? options.transfer.transition : undefined) || options.transition || item.options.transfer.transition;
+	            item.options.transfer.items = (options.transfer ? options.transfer.items : undefined) || item.options.transfer.items;
+	            item.options.transfer.zIndex = (options.transfer && (options.transfer.zIndex !== undefined)) ? options.transfer.zIndex : item.options.transfer.zIndex;
+	            item.options.transfer.fastResize = (options.transfer && (options.transfer.fastResize !== undefined)) ? options.transfer.fastResize : item.options.transfer.fastResize;
+	        }
+	    }
+	
+	    /**
+	     * Updates the state.
+	     */
+	    function _updateState() {
+	        var prevItem;
+	        var invalidated = false;
+	        for (var i = 0; i < Math.min(this._viewStack.length, 2); i++) {
+	            var item = this._viewStack[i];
+	            if (item.state === ItemState.QUEUED) {
+	                if (!prevItem ||
+	                    (prevItem.state === ItemState.VISIBLE) ||
+	                    (prevItem.state === ItemState.HIDING)) {
+	                    if (prevItem && (prevItem.state === ItemState.VISIBLE)) {
+	                        prevItem.state = ItemState.HIDE;
+	                    }
+	                    item.state = ItemState.SHOW;
+	                    invalidated = true;
+	                }
+	                break;
+	            }
+	            else if ((item.state === ItemState.VISIBLE) && item.hide) {
+	                item.state = ItemState.HIDE;
+	            }
+	            if ((item.state === ItemState.SHOW) || (item.state === ItemState.HIDE)) {
+	                this.layout.reflowLayout();
+	            }
+	            prevItem = item;
+	        }
+	        if (invalidated) {
+	            _updateState.call(this);
+	            this.layout.reflowLayout();
+	        }
+	    }
+	
+	    /**
+	     * Shows a renderable using an animation and hides the old renderable.
+	     *
+	     * When multiple show operations are executed, they are queued and
+	     * shown in that sequence. Use `.halt` to cancel any pending show
+	     * operations from the queue.
+	     *
+	     * @param {Renderable} renderable View or surface to show
+	     * @param {Object} [options] Options.
+	     * @param {Object} [options.transition] Transition options for both show & hide.
+	     * @param {Function} [options.animation] Animation function for both show & hide.
+	     * @param {Object} [options.show] Show specific options.
+	     * @param {Object} [options.show.transition] Show specific transition options.
+	     * @param {Function} [options.show.animation] Show specific animation function.
+	     * @param {Object} [options.hide] Hide specific options.
+	     * @param {Object} [options.hide.transition] Hide specific transition options.
+	     * @param {Function} [options.hide.animation] Hide specific animation function.
+	     * @param {Object} [options.transfer] Transfer options.
+	     * @param {Object} [options.transfer.transition] Transfer specific transition options.
+	     * @param {Number} [options.transfer.zIndex] Z-index the tranferables are moved on top while animating.
+	     * @param {Array} [options.transfer.items] Ids (key/value) pairs (source-id/target-id) of the renderables that should be transferred.
+	     * @param {Function} [callback] Function that is called on completion.
+	     * @return {AnimationController} this
+	     */
+	    AnimationController.prototype.show = function(renderable, options, callback) {
+	        if (!renderable) {
+	            return this.hide(options, callback);
+	        }
+	        var item = this._viewStack.length ? this._viewStack[this._viewStack.length - 1] : undefined;
+	        if (item && (item.view === renderable)) {
+	            item.hide = false;
+	            if (item.state === ItemState.HIDE) {
+	                item.state = ItemState.QUEUED;
+	                _setItemOptions.call(this, item, options);
+	                _updateState.call(this);
+	            }
+	            return this;
+	        }
+	        if (item && (item.state !== ItemState.HIDING) && options) {
+	            item.options.hide.transition = (options.hide ? options.hide.transition : undefined) || options.transition || item.options.hide.transition;
+	            if (options && options.hide && (options.hide.animation !== undefined)) {
+	                item.options.hide.animation = options.hide.animation;
+	            }
+	            else if (options && (options.animation !== undefined)) {
+	                item.options.hide.animation = options.animation;
+	            }
+	        }
+	
+	        item = {
+	            view: renderable,
+	            mod: new StateModifier(),
+	            state: ItemState.QUEUED,
+	            callback: callback,
+	            transferables: [] // renderables currently being transfered
+	        };
+	        item.node = new RenderNode(item.mod);
+	        item.node.add(renderable);
+	        _setItemOptions.call(this, item, options);
+	        item.showCallback = function() {
+	            item.state = ItemState.VISIBLE;
+	            _updateState.call(this);
+	            _endTransferableAnimations.call(this, item);
+	            if (callback) {
+	                callback();
+	            }
+	        }.bind(this);
+	        item.hideCallback = function() {
+	            var index = this._viewStack.indexOf(item);
+	            this._renderables.views.splice(index, 1);
+	            this._viewStack.splice(index, 1);
+	            item.view = undefined;
+	            _updateState.call(this);
+	            this.layout.reflowLayout();
+	        }.bind(this);
+	        this._renderables.views.push(item.node);
+	        this._viewStack.push(item);
+	        _updateState.call(this);
+	        return this;
+	    };
+	
+	    /**
+	     * Hides the current view with an animation.
+	     *
+	     * @param {Object} [options] Hide options
+	     * @param {Object} [options.transition] Hide transition options.
+	     * @param {Function} [options.animation] Hide animation function.
+	     * @param {Function} [callback] Function that is called an completion.
+	     * @return {AnimationController} this
+	     */
+	    AnimationController.prototype.hide = function(options, callback) {
+	        var item = this._viewStack.length ? this._viewStack[this._viewStack.length - 1] : undefined;
+	        if (!item || (item.state === ItemState.HIDING)) {
+	            return this;
+	        }
+	        item.hide = true;
+	        if (options) {
+	            item.options.hide.transition = (options.hide ? options.hide.transition : undefined) || options.transition || item.options.hide.transition;
+	            if (options && options.hide && (options.hide.animation !== undefined)) {
+	                item.options.hide.animation = options.hide.animation;
+	            }
+	            else if (options && (options.animation !== undefined)) {
+	                item.options.hide.animation = options.animation;
+	            }
+	        }
+	        item.hideCallback = function() {
+	            var index = this._viewStack.indexOf(item);
+	            this._renderables.views.splice(index, 1);
+	            this._viewStack.splice(index, 1);
+	            item.view = undefined;
+	            _updateState.call(this);
+	            this.layout.reflowLayout();
+	            if (callback) {
+	                callback();
+	            }
+	        }.bind(this);
+	        _updateState.call(this);
+	        return this;
+	    };
+	
+	    /**
+	     * Clears the queue of any pending show animations.
+	     *
+	     * @return {AnimationController} this
+	     */
+	    AnimationController.prototype.halt = function() {
+	        for (var i = 0; i < this._viewStack.length; i++) {
+	            var item = this._viewStack[this._viewStack.length - 1];
+	            if ((item.state === ItemState.QUEUED) || (item.state === ItemState.SHOW)) {
+	                this._renderables.views.splice(this._viewStack.length - 1, 1);
+	                this._viewStack.splice(this._viewStack.length - 1, 1);
+	                item.view = undefined;
+	            }
+	            else {
+	                break;
+	            }
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Gets the currently visible or being shown renderable.
+	     *
+	     * @return {Renderable} currently visible view/surface
+	     */
+	    AnimationController.prototype.get = function() {
+	        for (var i = 0; i < this._viewStack.length; i++) {
+	            var item = this._viewStack[i];
+	            if ((item.state === ItemState.VISIBLE) ||
+	                (item.state === ItemState.SHOW) ||
+	                (item.state === ItemState.SHOWING)) {
+	                return item.view;
+	            }
+	        }
+	        return undefined;
+	    };
+	
+	    module.exports = AnimationController;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 56 */
+/*!**********************************************!*\
+  !*** ../~/famous/modifiers/StateModifier.js ***!
+  \**********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Modifier = __webpack_require__(/*! ../core/Modifier */ 57);
+	var Transform = __webpack_require__(/*! ../core/Transform */ 22);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 26);
+	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 58);
+	function StateModifier(options) {
+	    this._transformState = new TransitionableTransform(Transform.identity);
+	    this._opacityState = new Transitionable(1);
+	    this._originState = new Transitionable([
+	        0,
+	        0
+	    ]);
+	    this._alignState = new Transitionable([
+	        0,
+	        0
+	    ]);
+	    this._sizeState = new Transitionable([
+	        0,
+	        0
+	    ]);
+	    this._proportionsState = new Transitionable([
+	        0,
+	        0
+	    ]);
+	    this._modifier = new Modifier({
+	        transform: this._transformState,
+	        opacity: this._opacityState,
+	        origin: null,
+	        align: null,
+	        size: null,
+	        proportions: null
+	    });
+	    this._hasOrigin = false;
+	    this._hasAlign = false;
+	    this._hasSize = false;
+	    this._hasProportions = false;
+	    if (options) {
+	        if (options.transform)
+	            this.setTransform(options.transform);
+	        if (options.opacity !== undefined)
+	            this.setOpacity(options.opacity);
+	        if (options.origin)
+	            this.setOrigin(options.origin);
+	        if (options.align)
+	            this.setAlign(options.align);
+	        if (options.size)
+	            this.setSize(options.size);
+	        if (options.proportions)
+	            this.setProportions(options.proportions);
+	    }
+	}
+	StateModifier.prototype.setTransform = function setTransform(transform, transition, callback) {
+	    this._transformState.set(transform, transition, callback);
+	    return this;
+	};
+	StateModifier.prototype.setOpacity = function setOpacity(opacity, transition, callback) {
+	    this._opacityState.set(opacity, transition, callback);
+	    return this;
+	};
+	StateModifier.prototype.setOrigin = function setOrigin(origin, transition, callback) {
+	    if (origin === null) {
+	        if (this._hasOrigin) {
+	            this._modifier.originFrom(null);
+	            this._hasOrigin = false;
+	        }
+	        return this;
+	    } else if (!this._hasOrigin) {
+	        this._hasOrigin = true;
+	        this._modifier.originFrom(this._originState);
+	    }
+	    this._originState.set(origin, transition, callback);
+	    return this;
+	};
+	StateModifier.prototype.setAlign = function setOrigin(align, transition, callback) {
+	    if (align === null) {
+	        if (this._hasAlign) {
+	            this._modifier.alignFrom(null);
+	            this._hasAlign = false;
+	        }
+	        return this;
+	    } else if (!this._hasAlign) {
+	        this._hasAlign = true;
+	        this._modifier.alignFrom(this._alignState);
+	    }
+	    this._alignState.set(align, transition, callback);
+	    return this;
+	};
+	StateModifier.prototype.setSize = function setSize(size, transition, callback) {
+	    if (size === null) {
+	        if (this._hasSize) {
+	            this._modifier.sizeFrom(null);
+	            this._hasSize = false;
+	        }
+	        return this;
+	    } else if (!this._hasSize) {
+	        this._hasSize = true;
+	        this._modifier.sizeFrom(this._sizeState);
+	    }
+	    this._sizeState.set(size, transition, callback);
+	    return this;
+	};
+	StateModifier.prototype.setProportions = function setSize(proportions, transition, callback) {
+	    if (proportions === null) {
+	        if (this._hasProportions) {
+	            this._modifier.proportionsFrom(null);
+	            this._hasProportions = false;
+	        }
+	        return this;
+	    } else if (!this._hasProportions) {
+	        this._hasProportions = true;
+	        this._modifier.proportionsFrom(this._proportionsState);
+	    }
+	    this._proportionsState.set(proportions, transition, callback);
+	    return this;
+	};
+	StateModifier.prototype.halt = function halt() {
+	    this._transformState.halt();
+	    this._opacityState.halt();
+	    this._originState.halt();
+	    this._alignState.halt();
+	    this._sizeState.halt();
+	    this._proportionsState.halt();
+	};
+	StateModifier.prototype.getTransform = function getTransform() {
+	    return this._transformState.get();
+	};
+	StateModifier.prototype.getFinalTransform = function getFinalTransform() {
+	    return this._transformState.getFinal();
+	};
+	StateModifier.prototype.getOpacity = function getOpacity() {
+	    return this._opacityState.get();
+	};
+	StateModifier.prototype.getOrigin = function getOrigin() {
+	    return this._hasOrigin ? this._originState.get() : null;
+	};
+	StateModifier.prototype.getAlign = function getAlign() {
+	    return this._hasAlign ? this._alignState.get() : null;
+	};
+	StateModifier.prototype.getSize = function getSize() {
+	    return this._hasSize ? this._sizeState.get() : null;
+	};
+	StateModifier.prototype.getProportions = function getProportions() {
+	    return this._hasProportions ? this._proportionsState.get() : null;
+	};
+	StateModifier.prototype.modify = function modify(target) {
+	    return this._modifier.modify(target);
+	};
+	module.exports = StateModifier;
+
+/***/ },
+/* 57 */
+/*!************************************!*\
+  !*** ../~/famous/core/Modifier.js ***!
+  \************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Transform = __webpack_require__(/*! ./Transform */ 22);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 26);
+	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 58);
+	function Modifier(options) {
+	    this._transformGetter = null;
+	    this._opacityGetter = null;
+	    this._originGetter = null;
+	    this._alignGetter = null;
+	    this._sizeGetter = null;
+	    this._proportionGetter = null;
+	    this._legacyStates = {};
+	    this._output = {
+	        transform: Transform.identity,
+	        opacity: 1,
+	        origin: null,
+	        align: null,
+	        size: null,
+	        proportions: null,
+	        target: null
+	    };
+	    if (options) {
+	        if (options.transform)
+	            this.transformFrom(options.transform);
+	        if (options.opacity !== undefined)
+	            this.opacityFrom(options.opacity);
+	        if (options.origin)
+	            this.originFrom(options.origin);
+	        if (options.align)
+	            this.alignFrom(options.align);
+	        if (options.size)
+	            this.sizeFrom(options.size);
+	        if (options.proportions)
+	            this.proportionsFrom(options.proportions);
+	    }
+	}
+	Modifier.prototype.transformFrom = function transformFrom(transform) {
+	    if (transform instanceof Function)
+	        this._transformGetter = transform;
+	    else if (transform instanceof Object && transform.get)
+	        this._transformGetter = transform.get.bind(transform);
+	    else {
+	        this._transformGetter = null;
+	        this._output.transform = transform;
+	    }
+	    return this;
+	};
+	Modifier.prototype.opacityFrom = function opacityFrom(opacity) {
+	    if (opacity instanceof Function)
+	        this._opacityGetter = opacity;
+	    else if (opacity instanceof Object && opacity.get)
+	        this._opacityGetter = opacity.get.bind(opacity);
+	    else {
+	        this._opacityGetter = null;
+	        this._output.opacity = opacity;
+	    }
+	    return this;
+	};
+	Modifier.prototype.originFrom = function originFrom(origin) {
+	    if (origin instanceof Function)
+	        this._originGetter = origin;
+	    else if (origin instanceof Object && origin.get)
+	        this._originGetter = origin.get.bind(origin);
+	    else {
+	        this._originGetter = null;
+	        this._output.origin = origin;
+	    }
+	    return this;
+	};
+	Modifier.prototype.alignFrom = function alignFrom(align) {
+	    if (align instanceof Function)
+	        this._alignGetter = align;
+	    else if (align instanceof Object && align.get)
+	        this._alignGetter = align.get.bind(align);
+	    else {
+	        this._alignGetter = null;
+	        this._output.align = align;
+	    }
+	    return this;
+	};
+	Modifier.prototype.sizeFrom = function sizeFrom(size) {
+	    if (size instanceof Function)
+	        this._sizeGetter = size;
+	    else if (size instanceof Object && size.get)
+	        this._sizeGetter = size.get.bind(size);
+	    else {
+	        this._sizeGetter = null;
+	        this._output.size = size;
+	    }
+	    return this;
+	};
+	Modifier.prototype.proportionsFrom = function proportionsFrom(proportions) {
+	    if (proportions instanceof Function)
+	        this._proportionGetter = proportions;
+	    else if (proportions instanceof Object && proportions.get)
+	        this._proportionGetter = proportions.get.bind(proportions);
+	    else {
+	        this._proportionGetter = null;
+	        this._output.proportions = proportions;
+	    }
+	    return this;
+	};
+	Modifier.prototype.setTransform = function setTransform(transform, transition, callback) {
+	    if (transition || this._legacyStates.transform) {
+	        if (!this._legacyStates.transform) {
+	            this._legacyStates.transform = new TransitionableTransform(this._output.transform);
+	        }
+	        if (!this._transformGetter)
+	            this.transformFrom(this._legacyStates.transform);
+	        this._legacyStates.transform.set(transform, transition, callback);
+	        return this;
+	    } else
+	        return this.transformFrom(transform);
+	};
+	Modifier.prototype.setOpacity = function setOpacity(opacity, transition, callback) {
+	    if (transition || this._legacyStates.opacity) {
+	        if (!this._legacyStates.opacity) {
+	            this._legacyStates.opacity = new Transitionable(this._output.opacity);
+	        }
+	        if (!this._opacityGetter)
+	            this.opacityFrom(this._legacyStates.opacity);
+	        return this._legacyStates.opacity.set(opacity, transition, callback);
+	    } else
+	        return this.opacityFrom(opacity);
+	};
+	Modifier.prototype.setOrigin = function setOrigin(origin, transition, callback) {
+	    if (transition || this._legacyStates.origin) {
+	        if (!this._legacyStates.origin) {
+	            this._legacyStates.origin = new Transitionable(this._output.origin || [
+	                0,
+	                0
+	            ]);
+	        }
+	        if (!this._originGetter)
+	            this.originFrom(this._legacyStates.origin);
+	        this._legacyStates.origin.set(origin, transition, callback);
+	        return this;
+	    } else
+	        return this.originFrom(origin);
+	};
+	Modifier.prototype.setAlign = function setAlign(align, transition, callback) {
+	    if (transition || this._legacyStates.align) {
+	        if (!this._legacyStates.align) {
+	            this._legacyStates.align = new Transitionable(this._output.align || [
+	                0,
+	                0
+	            ]);
+	        }
+	        if (!this._alignGetter)
+	            this.alignFrom(this._legacyStates.align);
+	        this._legacyStates.align.set(align, transition, callback);
+	        return this;
+	    } else
+	        return this.alignFrom(align);
+	};
+	Modifier.prototype.setSize = function setSize(size, transition, callback) {
+	    if (size && (transition || this._legacyStates.size)) {
+	        if (!this._legacyStates.size) {
+	            this._legacyStates.size = new Transitionable(this._output.size || [
+	                0,
+	                0
+	            ]);
+	        }
+	        if (!this._sizeGetter)
+	            this.sizeFrom(this._legacyStates.size);
+	        this._legacyStates.size.set(size, transition, callback);
+	        return this;
+	    } else
+	        return this.sizeFrom(size);
+	};
+	Modifier.prototype.setProportions = function setProportions(proportions, transition, callback) {
+	    if (proportions && (transition || this._legacyStates.proportions)) {
+	        if (!this._legacyStates.proportions) {
+	            this._legacyStates.proportions = new Transitionable(this._output.proportions || [
+	                0,
+	                0
+	            ]);
+	        }
+	        if (!this._proportionGetter)
+	            this.proportionsFrom(this._legacyStates.proportions);
+	        this._legacyStates.proportions.set(proportions, transition, callback);
+	        return this;
+	    } else
+	        return this.proportionsFrom(proportions);
+	};
+	Modifier.prototype.halt = function halt() {
+	    if (this._legacyStates.transform)
+	        this._legacyStates.transform.halt();
+	    if (this._legacyStates.opacity)
+	        this._legacyStates.opacity.halt();
+	    if (this._legacyStates.origin)
+	        this._legacyStates.origin.halt();
+	    if (this._legacyStates.align)
+	        this._legacyStates.align.halt();
+	    if (this._legacyStates.size)
+	        this._legacyStates.size.halt();
+	    if (this._legacyStates.proportions)
+	        this._legacyStates.proportions.halt();
+	    this._transformGetter = null;
+	    this._opacityGetter = null;
+	    this._originGetter = null;
+	    this._alignGetter = null;
+	    this._sizeGetter = null;
+	    this._proportionGetter = null;
+	};
+	Modifier.prototype.getTransform = function getTransform() {
+	    return this._transformGetter();
+	};
+	Modifier.prototype.getFinalTransform = function getFinalTransform() {
+	    return this._legacyStates.transform ? this._legacyStates.transform.getFinal() : this._output.transform;
+	};
+	Modifier.prototype.getOpacity = function getOpacity() {
+	    return this._opacityGetter();
+	};
+	Modifier.prototype.getOrigin = function getOrigin() {
+	    return this._originGetter();
+	};
+	Modifier.prototype.getAlign = function getAlign() {
+	    return this._alignGetter();
+	};
+	Modifier.prototype.getSize = function getSize() {
+	    return this._sizeGetter ? this._sizeGetter() : this._output.size;
+	};
+	Modifier.prototype.getProportions = function getProportions() {
+	    return this._proportionGetter ? this._proportionGetter() : this._output.proportions;
+	};
+	function _update() {
+	    if (this._transformGetter)
+	        this._output.transform = this._transformGetter();
+	    if (this._opacityGetter)
+	        this._output.opacity = this._opacityGetter();
+	    if (this._originGetter)
+	        this._output.origin = this._originGetter();
+	    if (this._alignGetter)
+	        this._output.align = this._alignGetter();
+	    if (this._sizeGetter)
+	        this._output.size = this._sizeGetter();
+	    if (this._proportionGetter)
+	        this._output.proportions = this._proportionGetter();
+	}
+	Modifier.prototype.modify = function modify(target) {
+	    _update.call(this);
+	    this._output.target = target;
+	    return this._output;
+	};
+	module.exports = Modifier;
+
+/***/ },
+/* 58 */
+/*!**********************************************************!*\
+  !*** ../~/famous/transitions/TransitionableTransform.js ***!
+  \**********************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Transitionable = __webpack_require__(/*! ./Transitionable */ 26);
+	var Transform = __webpack_require__(/*! ../core/Transform */ 22);
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 28);
+	function TransitionableTransform(transform) {
+	    this._final = Transform.identity.slice();
+	    this._finalTranslate = [
+	        0,
+	        0,
+	        0
+	    ];
+	    this._finalRotate = [
+	        0,
+	        0,
+	        0
+	    ];
+	    this._finalSkew = [
+	        0,
+	        0,
+	        0
+	    ];
+	    this._finalScale = [
+	        1,
+	        1,
+	        1
+	    ];
+	    this.translate = new Transitionable(this._finalTranslate);
+	    this.rotate = new Transitionable(this._finalRotate);
+	    this.skew = new Transitionable(this._finalSkew);
+	    this.scale = new Transitionable(this._finalScale);
+	    if (transform)
+	        this.set(transform);
+	}
+	function _build() {
+	    return Transform.build({
+	        translate: this.translate.get(),
+	        rotate: this.rotate.get(),
+	        skew: this.skew.get(),
+	        scale: this.scale.get()
+	    });
+	}
+	function _buildFinal() {
+	    return Transform.build({
+	        translate: this._finalTranslate,
+	        rotate: this._finalRotate,
+	        skew: this._finalSkew,
+	        scale: this._finalScale
+	    });
+	}
+	TransitionableTransform.prototype.setTranslate = function setTranslate(translate, transition, callback) {
+	    this._finalTranslate = translate;
+	    this._final = _buildFinal.call(this);
+	    this.translate.set(translate, transition, callback);
+	    return this;
+	};
+	TransitionableTransform.prototype.setScale = function setScale(scale, transition, callback) {
+	    this._finalScale = scale;
+	    this._final = _buildFinal.call(this);
+	    this.scale.set(scale, transition, callback);
+	    return this;
+	};
+	TransitionableTransform.prototype.setRotate = function setRotate(eulerAngles, transition, callback) {
+	    this._finalRotate = eulerAngles;
+	    this._final = _buildFinal.call(this);
+	    this.rotate.set(eulerAngles, transition, callback);
+	    return this;
+	};
+	TransitionableTransform.prototype.setSkew = function setSkew(skewAngles, transition, callback) {
+	    this._finalSkew = skewAngles;
+	    this._final = _buildFinal.call(this);
+	    this.skew.set(skewAngles, transition, callback);
+	    return this;
+	};
+	TransitionableTransform.prototype.set = function set(transform, transition, callback) {
+	    var components = Transform.interpret(transform);
+	    this._finalTranslate = components.translate;
+	    this._finalRotate = components.rotate;
+	    this._finalSkew = components.skew;
+	    this._finalScale = components.scale;
+	    this._final = transform;
+	    var _callback = callback ? Utility.after(4, callback) : null;
+	    this.translate.set(components.translate, transition, _callback);
+	    this.rotate.set(components.rotate, transition, _callback);
+	    this.skew.set(components.skew, transition, _callback);
+	    this.scale.set(components.scale, transition, _callback);
+	    return this;
+	};
+	TransitionableTransform.prototype.setDefaultTransition = function setDefaultTransition(transition) {
+	    this.translate.setDefault(transition);
+	    this.rotate.setDefault(transition);
+	    this.skew.setDefault(transition);
+	    this.scale.setDefault(transition);
+	};
+	TransitionableTransform.prototype.get = function get() {
+	    if (this.isActive()) {
+	        return _build.call(this);
+	    } else
+	        return this._final;
+	};
+	TransitionableTransform.prototype.getFinal = function getFinal() {
+	    return this._final;
+	};
+	TransitionableTransform.prototype.isActive = function isActive() {
+	    return this.translate.isActive() || this.rotate.isActive() || this.scale.isActive() || this.skew.isActive();
+	};
+	TransitionableTransform.prototype.halt = function halt() {
+	    this.translate.halt();
+	    this.rotate.halt();
+	    this.skew.halt();
+	    this.scale.halt();
+	    this._final = this.get();
+	    this._finalTranslate = this.translate.get();
+	    this._finalRotate = this.rotate.get();
+	    this._finalSkew = this.skew.get();
+	    this._finalScale = this.scale.get();
+	    return this;
+	};
+	module.exports = TransitionableTransform;
+
+/***/ },
+/* 59 */
+/*!**************************************!*\
+  !*** ../~/famous/utilities/Timer.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var FamousEngine = __webpack_require__(/*! ../core/Engine */ 17);
+	var _event = 'prerender';
+	var getTime = window.performance && window.performance.now ? function () {
+	    return window.performance.now();
+	} : function () {
+	    return Date.now();
+	};
+	function addTimerFunction(fn) {
+	    FamousEngine.on(_event, fn);
+	    return fn;
+	}
+	function setTimeout(fn, duration) {
+	    var t = getTime();
+	    var callback = function () {
+	        var t2 = getTime();
+	        if (t2 - t >= duration) {
+	            fn.apply(this, arguments);
+	            FamousEngine.removeListener(_event, callback);
+	        }
+	    };
+	    return addTimerFunction(callback);
+	}
+	function setInterval(fn, duration) {
+	    var t = getTime();
+	    var callback = function () {
+	        var t2 = getTime();
+	        if (t2 - t >= duration) {
+	            fn.apply(this, arguments);
+	            t = getTime();
+	        }
+	    };
+	    return addTimerFunction(callback);
+	}
+	function after(fn, numTicks) {
+	    if (numTicks === undefined)
+	        return undefined;
+	    var callback = function () {
+	        numTicks--;
+	        if (numTicks <= 0) {
+	            fn.apply(this, arguments);
+	            clear(callback);
+	        }
+	    };
+	    return addTimerFunction(callback);
+	}
+	function every(fn, numTicks) {
+	    numTicks = numTicks || 1;
+	    var initial = numTicks;
+	    var callback = function () {
+	        numTicks--;
+	        if (numTicks <= 0) {
+	            fn.apply(this, arguments);
+	            numTicks = initial;
+	        }
+	    };
+	    return addTimerFunction(callback);
+	}
+	function clear(fn) {
+	    FamousEngine.removeListener(_event, fn);
+	}
+	function debounce(func, wait) {
+	    var timeout;
+	    var ctx;
+	    var timestamp;
+	    var result;
+	    var args;
+	    return function () {
+	        ctx = this;
+	        args = arguments;
+	        timestamp = getTime();
+	        var fn = function () {
+	            var last = getTime - timestamp;
+	            if (last < wait) {
+	                timeout = setTimeout(fn, wait - last);
+	            } else {
+	                timeout = null;
+	                result = func.apply(ctx, args);
+	            }
+	        };
+	        clear(timeout);
+	        timeout = setTimeout(fn, wait);
+	        return result;
+	    };
+	}
+	module.exports = {
+	    setTimeout: setTimeout,
+	    setInterval: setInterval,
+	    debounce: debounce,
+	    after: after,
+	    every: every,
+	    clear: clear
+	};
+
+/***/ },
+/* 60 */
+/*!*****************************************!*\
+  !*** ../~/famous/transitions/Easing.js ***!
+  \*****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Easing = {
+	    inQuad: function (t) {
+	        return t * t;
+	    },
+	    outQuad: function (t) {
+	        return -(t -= 1) * t + 1;
+	    },
+	    inOutQuad: function (t) {
+	        if ((t /= 0.5) < 1)
+	            return 0.5 * t * t;
+	        return -0.5 * (--t * (t - 2) - 1);
+	    },
+	    inCubic: function (t) {
+	        return t * t * t;
+	    },
+	    outCubic: function (t) {
+	        return --t * t * t + 1;
+	    },
+	    inOutCubic: function (t) {
+	        if ((t /= 0.5) < 1)
+	            return 0.5 * t * t * t;
+	        return 0.5 * ((t -= 2) * t * t + 2);
+	    },
+	    inQuart: function (t) {
+	        return t * t * t * t;
+	    },
+	    outQuart: function (t) {
+	        return -(--t * t * t * t - 1);
+	    },
+	    inOutQuart: function (t) {
+	        if ((t /= 0.5) < 1)
+	            return 0.5 * t * t * t * t;
+	        return -0.5 * ((t -= 2) * t * t * t - 2);
+	    },
+	    inQuint: function (t) {
+	        return t * t * t * t * t;
+	    },
+	    outQuint: function (t) {
+	        return --t * t * t * t * t + 1;
+	    },
+	    inOutQuint: function (t) {
+	        if ((t /= 0.5) < 1)
+	            return 0.5 * t * t * t * t * t;
+	        return 0.5 * ((t -= 2) * t * t * t * t + 2);
+	    },
+	    inSine: function (t) {
+	        return -1 * Math.cos(t * (Math.PI / 2)) + 1;
+	    },
+	    outSine: function (t) {
+	        return Math.sin(t * (Math.PI / 2));
+	    },
+	    inOutSine: function (t) {
+	        return -0.5 * (Math.cos(Math.PI * t) - 1);
+	    },
+	    inExpo: function (t) {
+	        return t === 0 ? 0 : Math.pow(2, 10 * (t - 1));
+	    },
+	    outExpo: function (t) {
+	        return t === 1 ? 1 : -Math.pow(2, -10 * t) + 1;
+	    },
+	    inOutExpo: function (t) {
+	        if (t === 0)
+	            return 0;
+	        if (t === 1)
+	            return 1;
+	        if ((t /= 0.5) < 1)
+	            return 0.5 * Math.pow(2, 10 * (t - 1));
+	        return 0.5 * (-Math.pow(2, -10 * --t) + 2);
+	    },
+	    inCirc: function (t) {
+	        return -(Math.sqrt(1 - t * t) - 1);
+	    },
+	    outCirc: function (t) {
+	        return Math.sqrt(1 - --t * t);
+	    },
+	    inOutCirc: function (t) {
+	        if ((t /= 0.5) < 1)
+	            return -0.5 * (Math.sqrt(1 - t * t) - 1);
+	        return 0.5 * (Math.sqrt(1 - (t -= 2) * t) + 1);
+	    },
+	    inElastic: function (t) {
+	        var s = 1.70158;
+	        var p = 0;
+	        var a = 1;
+	        if (t === 0)
+	            return 0;
+	        if (t === 1)
+	            return 1;
+	        if (!p)
+	            p = 0.3;
+	        s = p / (2 * Math.PI) * Math.asin(1 / a);
+	        return -(a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t - s) * (2 * Math.PI) / p));
+	    },
+	    outElastic: function (t) {
+	        var s = 1.70158;
+	        var p = 0;
+	        var a = 1;
+	        if (t === 0)
+	            return 0;
+	        if (t === 1)
+	            return 1;
+	        if (!p)
+	            p = 0.3;
+	        s = p / (2 * Math.PI) * Math.asin(1 / a);
+	        return a * Math.pow(2, -10 * t) * Math.sin((t - s) * (2 * Math.PI) / p) + 1;
+	    },
+	    inOutElastic: function (t) {
+	        var s = 1.70158;
+	        var p = 0;
+	        var a = 1;
+	        if (t === 0)
+	            return 0;
+	        if ((t /= 0.5) === 2)
+	            return 1;
+	        if (!p)
+	            p = 0.3 * 1.5;
+	        s = p / (2 * Math.PI) * Math.asin(1 / a);
+	        if (t < 1)
+	            return -0.5 * (a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t - s) * (2 * Math.PI) / p));
+	        return a * Math.pow(2, -10 * (t -= 1)) * Math.sin((t - s) * (2 * Math.PI) / p) * 0.5 + 1;
+	    },
+	    inBack: function (t, s) {
+	        if (s === undefined)
+	            s = 1.70158;
+	        return t * t * ((s + 1) * t - s);
+	    },
+	    outBack: function (t, s) {
+	        if (s === undefined)
+	            s = 1.70158;
+	        return --t * t * ((s + 1) * t + s) + 1;
+	    },
+	    inOutBack: function (t, s) {
+	        if (s === undefined)
+	            s = 1.70158;
+	        if ((t /= 0.5) < 1)
+	            return 0.5 * (t * t * (((s *= 1.525) + 1) * t - s));
+	        return 0.5 * ((t -= 2) * t * (((s *= 1.525) + 1) * t + s) + 2);
+	    },
+	    inBounce: function (t) {
+	        return 1 - Easing.outBounce(1 - t);
+	    },
+	    outBounce: function (t) {
+	        if (t < 1 / 2.75) {
+	            return 7.5625 * t * t;
+	        } else if (t < 2 / 2.75) {
+	            return 7.5625 * (t -= 1.5 / 2.75) * t + 0.75;
+	        } else if (t < 2.5 / 2.75) {
+	            return 7.5625 * (t -= 2.25 / 2.75) * t + 0.9375;
+	        } else {
+	            return 7.5625 * (t -= 2.625 / 2.75) * t + 0.984375;
+	        }
+	    },
+	    inOutBounce: function (t) {
+	        if (t < 0.5)
+	            return Easing.inBounce(t * 2) * 0.5;
+	        return Easing.outBounce(t * 2 - 1) * 0.5 + 0.5;
+	    }
+	};
+	module.exports = Easing;
+
+/***/ },
+/* 61 */
+/*!**********************************************!*\
+  !*** ../~/famous-flex/src/widgets/TabBar.js ***!
+  \**********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/**
+	 * This Source Code is licensed under the MIT license. If a copy of the
+	 * MIT-license was not distributed with this file, You can obtain one at:
+	 * http://opensource.org/licenses/mit-license.html.
+	 *
+	 * @author: Hein Rutjes (IjzerenHein)
+	 * @license MIT
+	 * @copyright Gloey Apps, 2015
+	 */
+	
+	/**
+	 * TabBar widget for famo.us.
+	 *
+	 * ```javascript
+	 * var TabBar = require('famous-flex/widgets/TabBar');
+	 *
+	 * var tabBar = new TabBar({
+	 *   classes: ['black'],
+	 *   createRenderables: {
+	 *     background: true,
+	 *     selectedItemOverlay: true,
+	 *     spacers: true
+	 *   }
+	 * });
+	 * tabBar.setItems([
+	 *   'one',
+	 *   'two',
+	 *   'three'
+	 * ]);
+	 * this.add(tabBar); // add to the render-tree
+	 *
+	 * tabBar.on('tabchange', function(event) {
+	 *   console.log('new tab selected: ' + event.index);
+	 * });
+	 * ```
+	 *
+	 * The surfaces that are created, use the the css-classes `ff-widget` and `ff-tabbar`.
+	 * You can add additional css-classes by using the `classes` option in the constructor.
+	 *
+	 * Example css styles for a black theme:
+	 *
+	 * ```css
+	 * .ff-tabbar.background.black {
+	 *   background-color: #101010;
+	 * }
+	 * .ff-tabbar.item.black {
+	 *   color: #f7f3f7;
+	 * }
+	 * .ff-tabbar.selectedItemOverlay.black {
+	 *   border-bottom: 6px solid #30b6e7;
+	 * }
+	 * .ff-tabbar.spacer.black:after {
+	 *   content: "";
+	 *   background-color: #333333;
+	 *   width: 100%;
+	 *   top: 10px;
+	 *   bottom: 10px;
+	 *   position: absolute;
+	 * }
+	 * ```
+	 *
+	 * @module
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    // import dependencies
+	    var Surface = __webpack_require__(/*! famous/core/Surface */ 51);
+	    var View = __webpack_require__(/*! famous/core/View */ 50);
+	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 31);
+	    var TabBarLayout = __webpack_require__(/*! ../layouts/TabBarLayout */ 62);
+	
+	    /**
+	     * @class
+	     * @extends View
+	     * @param {Object} options Configurable options.
+	     * @param {Object} [options.tabBarLayout] Layout-options that are passed to the TabBarLayout.
+	     * @param {Object} [options.layoutController] Options that are passed to the underlying layout-controller.
+	     * @param {Array.String} [options.classes] Css-classes that are added to the surfaces that are created.
+	     * @param {Object} [options.createRenderables] Options that specify which renderables should be created.
+	     * @alias module:TabBar
+	     */
+	    function TabBar(options) {
+	        View.apply(this, arguments);
+	
+	        // init
+	        this._selectedItemIndex = -1;
+	        options = options || {};
+	        this.classes = options.classes ? this.classes.concat(options.classes) : this.classes;
+	
+	        // create TabBar layout
+	        this.layout = new LayoutController(this.options.layoutController);
+	        this.add(this.layout);
+	        this.layout.pipe(this._eventOutput);
+	
+	        // create initial renderables
+	        this._renderables = {
+	            items: [],
+	            spacers: [],
+	            background: _createRenderable.call(this, 'background'),
+	            selectedItemOverlay: _createRenderable.call(this, 'selectedItemOverlay')
+	        };
+	
+	        this.setOptions(this.options);
+	    }
+	    TabBar.prototype = Object.create(View.prototype);
+	    TabBar.prototype.constructor = TabBar;
+	    TabBar.prototype.classes = ['ff-widget', 'ff-tabbar'];
+	
+	    TabBar.DEFAULT_OPTIONS = {
+	        tabBarLayout: {
+	            margins: [0, 0, 0, 0],
+	            spacing: 0
+	        },
+	        createRenderables: {
+	            item: true,
+	            background: false,
+	            selectedItemOverlay: false,
+	            spacer: false
+	        },
+	        layoutController: {
+	            autoPipeEvents: true,
+	            layout: TabBarLayout,
+	            flow: true,
+	            flowOptions: {
+	                reflowOnResize: false,
+	                spring: {
+	                    dampingRatio: 0.8,
+	                    period: 300
+	                }
+	            }
+	        }
+	    };
+	
+	    /**
+	     * Helper function that is called whenever a new item is selected
+	     */
+	    function _setSelectedItem(index) {
+	        if (index !== this._selectedItemIndex) {
+	            var oldIndex = this._selectedItemIndex;
+	            this._selectedItemIndex = index;
+	            this.layout.setLayoutOptions({
+	                selectedItemIndex: index
+	            });
+	            if ((oldIndex >= 0) && this._renderables.items[oldIndex].removeClass){
+	                this._renderables.items[oldIndex].removeClass('selected');
+	            }
+	            if (this._renderables.items[index].addClass) {
+	                this._renderables.items[index].addClass('selected');
+	            }
+	            if (oldIndex >= 0) {
+	                this._eventOutput.emit('tabchange', {
+	                    target: this,
+	                    index: index,
+	                    oldIndex: oldIndex,
+	                    item: this._renderables.items[index],
+	                    oldItem: ((oldIndex >= 0) && (oldIndex < this._renderables.items.length)) ? this._renderables.items[oldIndex] : undefined
+	                });
+	            }
+	        }
+	    }
+	
+	    /**
+	     * Creates a new renderable for the given renderable-id.
+	     *
+	     */
+	    function _createRenderable (id, data) {
+	        var option = this.options.createRenderables[id];
+	        if (option instanceof Function) {
+	            return option.call(this, id, data);
+	        }
+	        else if (!option) {
+	            return undefined;
+	        }
+	        if ((data !== undefined) && (data instanceof Object)) {
+	            return data;
+	        }
+	        var surface = new Surface({
+	            classes: this.classes,
+	            content: data ? ('<div>' + data + '</div>') : undefined
+	        });
+	        surface.addClass(id);
+	        if (id === 'item') {
+	            if (this.options.tabBarLayout && this.options.tabBarLayout.itemSize && (this.options.tabBarLayout.itemSize === true)) {
+	                surface.setSize(this.layout.getDirection() ? [undefined, true] : [true, undefined]);
+	            }
+	        }
+	        return surface;
+	    }
+	
+	    /**
+	     * Patches the TabBar instance's options with the passed-in ones.
+	     *
+	     * @param {Object} options Configurable options.
+	     * @param {Object} [options.tabBarLayout] Layout-options that are passed to the TabBarLayout.
+	     * @param {Object} [options.layoutController] Options that are passed to the underlying layout-controller.
+	     * @return {TabBar} this
+	     */
+	    TabBar.prototype.setOptions = function(options) {
+	        View.prototype.setOptions.call(this, options);
+	        if (!this.layout) {
+	            return this;
+	        }
+	        if (options.tabBarLayout !== undefined) {
+	            this.layout.setLayoutOptions(options.tabBarLayout);
+	        }
+	        if (options.layoutController) {
+	            this.layout.setOptions(options.layoutController);
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Sets the items for the tab-bar.
+	     *
+	     * Example 1:
+	     *
+	     * ```javascript
+	     * var tabBar = new TabBar();
+	     * tabBar.setItems([
+	     *   'one',
+	     *   'two',
+	     *   'three'
+	     * ]);
+	     *```
+	     *
+	     * Example using Ionic icons:
+	     *
+	     * ```javascript
+	     * var tabBar = new TabBar();
+	     * tabBar.setItems([
+	     *   '<div class="icon ion-flag"></div>Flag',
+	     *   '<div class="icon ion-map"></div>Map',
+	     *   '<div class="icon ion-gear-a"></div>Settings'
+	     * ]);
+	     *```
+	     *
+	     * CSS:
+	     *
+	     * ```css
+	     * .ff-tabbar.item {
+	     *   font-size: 12px;
+	     * }
+	     * .ff-tabbar.item .icon {
+	     *   font-size: 24px;
+	     * }
+	     * ```
+	     *
+	     * @param {Array} items Array of tab-item renderables.
+	     * @return {TabBar} this
+	     */
+	    TabBar.prototype.setItems = function(items) {
+	        var currentIndex = this._selectedItemIndex;
+	        this._selectedItemIndex = -1;
+	        this._renderables.items = [];
+	        this._renderables.spacers = [];
+	        if (items) {
+	            for (var i = 0; i < items.length; i++) {
+	                var item = _createRenderable.call(this, 'item', items[i]);
+	                if (item.on) {
+	                    item.on('click', _setSelectedItem.bind(this, i));
+	                }
+	                this._renderables.items.push(item);
+	                if ((i < (items.length - 1))) {
+	                    var spacer = _createRenderable.call(this, 'spacer', ' ');
+	                    if (spacer) {
+	                        this._renderables.spacers.push(spacer);
+	                    }
+	                }
+	            }
+	        }
+	        this.layout.setDataSource(this._renderables);
+	        if (this._renderables.items.length) {
+	            _setSelectedItem.call(this, Math.max(Math.min(currentIndex, this._renderables.items.length - 1), 0));
+	        }
+	        return this;
+	    };
+	
+	    /**
+	     * Get the tab-item renderables for the tab-bar.
+	     *
+	     * @return {Array} tab-item renderables
+	     */
+	    TabBar.prototype.getItems = function() {
+	        return this._renderables.items;
+	    };
+	
+	    /**
+	     * Get the spec (size, transform, etc..) of the given tab-item.
+	     *
+	     * @param {Number} index Index of the tab-item.
+	     * @return {Spec} item spec
+	     */
+	    TabBar.prototype.getItemSpec = function(index, normalize) {
+	        return this.layout.getSpec(this._renderables.items[index], normalize);
+	    };
+	
+	    /**
+	     * Sets the index of the selected tab.
+	     *
+	     * @param {Number} index selected index.
+	     * @return {TabBar} this
+	     */
+	    TabBar.prototype.setSelectedItemIndex = function(index) {
+	        _setSelectedItem.call(this, index);
+	        return this;
+	    };
+	
+	    /**
+	     * Get the index of the selected tab-item.
+	     *
+	     * @return {Number} selected index
+	     */
+	    TabBar.prototype.getSelectedItemIndex = function() {
+	        return this._selectedItemIndex;
+	    };
+	
+	    /**
+	     * Get the size of the widget.
+	     *
+	     * @return {Array} size.
+	     */
+	    TabBar.prototype.getSize = function() {
+	        return this.options.size || (this.layout ? this.layout.getSize() : View.prototype.getSize.call(this));
+	    };
+	
+	    module.exports = TabBar;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 62 */
+/*!****************************************************!*\
+  !*** ../~/famous-flex/src/layouts/TabBarLayout.js ***!
+  \****************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;/**
+	 * This Source Code is licensed under the MIT license. If a copy of the
+	 * MIT-license was not distributed with this file, You can obtain one at:
+	 * http://opensource.org/licenses/mit-license.html.
+	 *
+	 * @author: Hein Rutjes (IjzerenHein)
+	 * @license MIT
+	 * @copyright Gloey Apps, 2015
+	 */
+	
+	/**
+	 * Tab-bar layout supporting both horizontal (default) and vertical orientation.
+	 *
+	 * |options|type|description|
+	 * |---|---|---|
+	 * |`[margins]`|Number/Array|Margins shorthand (e.g. 5, [10, 20], [2, 5, 2, 10])|
+	 * |`[spacing]`|Number|Space in between items|
+	 * |`[zIncrement]`|Number|Z-translation increment used to stack the elements correctly (default: 0.001)|
+	 * |`[itemSize]`|Number/Bool|Width or height of the item (see below)|
+	 *
+	 * `itemSize` can have of the following values:
+	 *
+	 * |itemSize|description|
+	 * |---|---|---|
+	 * |`undefined`|When itemSize is undefined or omitted, all items are spread out equally over the full size.|
+	 * |`Number`|Size of the item.|
+	 * |`true`|Use the size of the renderable (calls `getSize` on the item).|
+	 *
+	 * Example:
+	 *
+	 * ```javascript
+	 * var TabBarLayout = require('famous-flex/layouts/TabBarLayout');
+	 *
+	 * var layout = new LayoutController({
+	 *   layout: TabBarLayout,
+	 *   layoutOptions: {
+	 *     itemSize: undefined,   // undefined = fill equally to full width
+	 *     margins: [5, 1, 5, 1], // margins to utilize
+	 *     spacing: 10            // space in between items
+	 *   },
+	 *   dataSource: {
+	 *     background: new Surface({properties: {backgroundColor: 'black'}}),
+	 *     items: [
+	 *       new Surface({ content: 'one' }),
+	 *       new Surface({ content: 'two' }),
+	 *       new Surface({ content: 'three' })
+	 *     ],
+	 *     spacers: [ // spacers in between the items
+	 *       new Surface({properties: {backgroundColor: 'gray'}}),
+	 *       new Surface({properties: {backgroundColor: 'gray'}})
+	 *     ],
+	 *     selectedItemOverlay: {
+	 *       new Surface({ properties: {borderBottom: '4px solid blue'}})
+	 *     }
+	 *   }
+	 * });
+	 * ```
+	 * @module
+	 */
+	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
+	
+	    // import dependencies
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 28);
+	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 33);
+	
+	    // Define capabilities of this layout function
+	    var capabilities = {
+	        sequence: true,
+	        direction: [Utility.Direction.X, Utility.Direction.Y],
+	        trueSize: true
+	    };
+	
+	    // global data
+	    var size;
+	    var direction;
+	    var revDirection;
+	    var items;
+	    var spacers;
+	    var margins;
+	    var spacing;
+	    var sizeLeft;
+	    var set = {
+	        size: [0, 0],
+	        translate: [0, 0, 0],
+	        align: [0, 0],
+	        origin: [0, 0]
+	    };
+	    var nodeSize;
+	    var offset;
+	    var zIncrement;
+	
+	    // Layout function
+	    function TabBarLayout(context, options) {
+	
+	        // Prepare data
+	        size = context.size;
+	        direction = context.direction;
+	        revDirection = direction ? 0 : 1;
+	        spacing = options.spacing || 0;
+	        items = context.get('items');
+	        spacers = context.get('spacers');
+	        margins = LayoutUtility.normalizeMargins(options.margins);
+	        zIncrement = options.zIncrement || 0.001;
+	        set.size[0] = context.size[0];
+	        set.size[1] = context.size[1];
+	        set.size[revDirection] -= (margins[1 - revDirection] + margins[3 - revDirection]);
+	        set.translate[0] = 0;
+	        set.translate[1] = 0;
+	        set.translate[2] = zIncrement;
+	        set.translate[revDirection] = margins[direction ? 3 : 0];
+	        set.align[0] = 0;
+	        set.align[1] = 0;
+	        set.origin[0] = 0;
+	        set.origin[1] = 0;
+	
+	        // When no item-size specified, spread all items
+	        // out equally over the full width/height, taking into
+	        // account margins & spacing
+	        offset = direction ? margins[0] : margins[3];
+	        sizeLeft = size[direction] - (offset + (direction ? margins[2] : margins[1]));
+	        sizeLeft -= ((items.length - 1) * spacing);
+	        for (var i = 0; i < items.length; i++) {
+	
+	            // Calculate item size
+	            if (options.itemSize === undefined) {
+	                nodeSize = Math.round(sizeLeft / (items.length - i));
+	            }
+	            else {
+	                nodeSize = (options.itemSize === true) ? context.resolveSize(items[i], size)[direction] : options.itemSize;
+	            }
+	
+	            // Calculate length used
+	            set.scrollLength = nodeSize;
+	            if (i === 0) {
+	                set.scrollLength += direction ? margins[0] : margins[3];
+	            }
+	            if (i === (items.length - 1)) {
+	                set.scrollLength += direction ? margins[2] : margins[1];
+	            }
+	            else {
+	                set.scrollLength += spacing;
+	            }
+	
+	            // Position item
+	            set.size[direction] = nodeSize;
+	            set.translate[direction] = offset;
+	            context.set(items[i], set);
+	            offset += nodeSize;
+	            sizeLeft -= nodeSize;
+	
+	            // Place selected item overlay
+	            if (i === options.selectedItemIndex) {
+	                set.scrollLength = 0;
+	                set.translate[direction] += (nodeSize / 2);
+	                set.translate[2] = zIncrement * 2;
+	                set.origin[direction] = 0.5;
+	                context.set('selectedItemOverlay', set);
+	                set.origin[direction] = 0;
+	                set.translate[2] = zIncrement;
+	            }
+	
+	            // Position spacer (optional)
+	            if (i < (items.length - 1)) {
+	                if (spacers && (i < spacers.length)) {
+	                    set.size[direction] = spacing;
+	                    set.translate[direction] = offset;
+	                    context.set(spacers[i], set);
+	                }
+	                offset += spacing;
+	            }
+	            else {
+	                offset += direction ? margins[2] : margins[1];
+	            }
+	        }
+	
+	        // Set background
+	        set.scrollLength = 0;
+	        set.size[0] = size[0];
+	        set.size[1] = size[1];
+	        set.size[direction] = size[direction];
+	        set.translate[0] = 0;
+	        set.translate[1] = 0;
+	        set.translate[2] = 0;
+	        set.translate[direction] = 0;
+	        context.set('background', set);
+	    }
+	
+	    TabBarLayout.Capabilities = capabilities;
+	    TabBarLayout.Name = 'TabBarLayout';
+	    TabBarLayout.Description = 'TabBar widget layout';
+	    module.exports = TabBarLayout;
+	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+
+
+/***/ },
+/* 63 */
+/*!******************************!*\
+  !*** ./views/LayoutView.es6 ***!
+  \******************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
+	
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 50);
+	
+	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
+	
+	var _famousSurfacesInputSurface = __webpack_require__(/*! famous/surfaces/InputSurface */ 64);
+	
+	var _famousSurfacesInputSurface2 = _interopRequireDefault(_famousSurfacesInputSurface);
+	
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 51);
+	
+	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
+	
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
+	
+	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
+	
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 49);
+	
+	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
+	
+	var LayoutView = (function (_View) {
+	    function LayoutView(options) {
+	        var _this = this;
+	
+	        _classCallCheck(this, LayoutView);
+	
+	        _get(Object.getPrototypeOf(LayoutView.prototype), 'constructor', this).call(this, options);
+	
+	        this.content = new _famousFlexLayoutController2['default']({
+	            flow: true,
+	            flowOptions: {
+	                reflowOnResize: false
+	            },
+	            layout: function layout(context) {
+	                if (_this.alView) {
+	                    _this.alView.setSize(context.size[0], context.size[1]);
+	                    var subView;
+	                    for (var key in _this.alView.subViews) {
+	                        subView = _this.alView.subViews[key];
+	                        context.set(subView.name, {
+	                            size: [subView.width, subView.height],
+	                            translate: [subView.left, subView.top, 0]
+	                        });
+	                    }
+	                }
+	            }
+	        });
+	
+	        this.renderables = {
+	            widthText: new _famousCoreSurface2['default']({
+	                content: '<div class="va">Width:</div>'
+	            }),
+	            widthInput: new _famousSurfacesInputSurface2['default']({
+	                placeholder: 'auto'
+	            }),
+	            heightText: new _famousCoreSurface2['default']({
+	                content: '<div class="va">Height:</div>'
+	            }),
+	            heightInput: new _famousSurfacesInputSurface2['default']({
+	                placeholder: 'auto'
+	            }),
+	            spacingText: new _famousCoreSurface2['default']({
+	                content: '<div class="va">Spacing:</div>'
+	            }),
+	            spacingInput: new _famousSurfacesInputSurface2['default']({
+	                value: '8'
+	            }),
+	            content: this.content
+	        };
+	        this.layout = new _famousFlexLayoutController2['default']({
+	            layout: (0, _vflToLayout2['default'])(['|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(60)]-[spacingInput(200)]', 'V:[widthText(30,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]', '|-[content]-|', 'V:|-[widthText]-[content]-|', 'V:|-[widthInput]', 'V:|-[heightText]', 'V:|-[heightInput]', 'V:|-[spacingText]', 'V:|-[spacingInput]']),
+	            dataSource: this.renderables
+	        });
+	        this.add(this.layout);
+	        this.renderables.spacingInput.on('change', this._updateSpacing.bind(this));
+	        this.renderables.spacingInput.on('keyup', this._updateSpacing.bind(this));
+	    }
+	
+	    _inherits(LayoutView, _View);
+	
+	    _createClass(LayoutView, [{
+	        key: '_updateSpacing',
+	        value: function _updateSpacing() {
+	            try {
+	                var spacing = JSON.parse(this.renderables.spacingInput.getValue());
+	                if (this.alView) {
+	                    this.alView.setSpacing(spacing);
+	                    this.content.reflowLayout();
+	                }
+	            } catch (err) {}
+	        }
+	    }, {
+	        key: 'setAutoLayoutView',
+	        value: function setAutoLayoutView(alView) {
+	            this.alView = alView;
+	            this.contentRenderables = this.contentRenderables || {};
+	            this.contentPool = this.contentPool || {};
+	            for (var key in this.contentRenderables) {
+	                this.contentPool[key] = this.contentRenderables[key];
+	            }
+	            this.contentRenderables = {};
+	            if (this.alView) {
+	                for (var subView in this.alView.subViews) {
+	                    this.contentRenderables[subView] = this.contentRenderables[key] || new _famousCoreSurface2['default']({
+	                        content: '<div class="va">' + subView + '</div>',
+	                        classes: ['subView']
+	                    });
+	                }
+	            }
+	            this._updateSpacing();
+	            this.content.setDataSource(this.contentRenderables);
+	        }
+	    }]);
+	
+	    return LayoutView;
+	})(_famousCoreView2['default']);
+	
+	exports['default'] = LayoutView;
+	module.exports = exports['default'];
+
+	//
+
+/***/ },
+/* 64 */
 /*!********************************************!*\
   !*** ../~/famous/surfaces/InputSurface.js ***!
   \********************************************/
@@ -10719,7 +13178,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Surface = __webpack_require__(/*! ../core/Surface */ 43);
+	var Surface = __webpack_require__(/*! ../core/Surface */ 51);
 	function InputSurface(options) {
 	    this._placeholder = options.placeholder || '';
 	    this._value = options.value || '';
@@ -10786,39 +13245,128 @@
 	module.exports = InputSurface;
 
 /***/ },
-/* 51 */
-/*!************************!*\
-  !*** ./vflToLayout.js ***!
-  \************************/
+/* 65 */
+/*!*****************************!*\
+  !*** ./views/ParseView.es6 ***!
+  \*****************************/
 /***/ function(module, exports, __webpack_require__) {
 
-	var c = __webpack_require__(/*! cassowary/bin/c */ 45);
-	window.c = c;
-	var AutoLayout = __webpack_require__(/*! autolayout.js/dist/autolayout */ 47);
+	'use strict';
 	
-	function _layout(view, context) {
-	    view.setSize(context.size[0], context.size[1]);
-	    var subView;
-	    for (var key in view.subViews) {
-	        subView = view.subViews[key];
-	        context.set(subView.name, {
-	            size: [subView.width, subView.height],
-	            translate: [subView.left, subView.top, 0]
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
+	
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 50);
+	
+	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
+	
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 51);
+	
+	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
+	
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
+	
+	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
+	
+	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 54);
+	
+	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
+	
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 49);
+	
+	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
+	
+	var _autolayoutJsDistAutolayout = __webpack_require__(/*! autolayout.js/dist/autolayout */ 47);
+	
+	var _autolayoutJsDistAutolayout2 = _interopRequireDefault(_autolayoutJsDistAutolayout);
+	
+	var ParseView = (function (_View) {
+	    function ParseView(options) {
+	        _classCallCheck(this, ParseView);
+	
+	        _get(Object.getPrototypeOf(ParseView.prototype), 'constructor', this).call(this, options);
+	
+	        this.tabBarController = new _famousFlexWidgetsTabBarController2['default']({
+	            tabBarSize: 44,
+	            tabBarPosition: _famousFlexWidgetsTabBarController2['default'].Position.TOP,
+	            tabBar: {
+	                createRenderables: {
+	                    selectedItemOverlay: true
+	                }
+	            }
 	        });
-	    }
-	}
 	
-	module.exports = function(visualFormat) {
-	    var view = new AutoLayout.View();
-	    try {
-	        view.addVisualFormat(visualFormat);
-	        return _layout.bind(view, view);
+	        this.constraints = new _famousCoreSurface2['default']({
+	            classes: ['constraints']
+	        });
+	        this.logContent = '';
+	        this.log = new _famousCoreSurface2['default']({
+	            classes: ['log']
+	        });
+	        this.log.commit = (function () {
+	            var res = _famousCoreSurface2['default'].prototype.commit.apply(this.log, arguments);
+	            this.log._currentTarget.scrollTop = Math.max(0, this.log._currentTarget.scrollHeight - this.log._currentTarget.clientHeight);
+	            return res;
+	        }).bind(this);
+	        this.raw = new _famousCoreSurface2['default']({
+	            classes: ['raw']
+	        });
+	        this.tabBarController.setItems([{ tabItem: 'Log', view: this.log }, { tabItem: 'Constraints', view: this.constraints }, { tabItem: 'Raw', view: this.raw }]);
+	
+	        this.layout = new _famousFlexLayoutController2['default']({
+	            layout: (0, _vflToLayout2['default'])(['|-[content]-|', 'V:|-[content]-|']),
+	            dataSource: {
+	                content: this.tabBarController
+	            }
+	        });
+	        this.add(this.layout);
 	    }
-	    catch (err) {
-	        console.log(err); //eslint-disable-line no-console
-	    }
-	};
-
+	
+	    _inherits(ParseView, _View);
+	
+	    _createClass(ParseView, [{
+	        key: '_log',
+	        value: function _log(message) {
+	            this.logContent += message;
+	            this.log.setContent(this.logContent);
+	        }
+	    }, {
+	        key: 'parse',
+	        value: function parse(visualFormat) {
+	            try {
+	                // update constraints
+	                var constraints = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat);
+	                this.constraints.setContent('<pre>' + JSON.stringify(constraints, undefined, 2) + '</pre>');
+	                // update raw
+	                var raw = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat, { outFormat: 'raw' });
+	                this.raw.setContent('<pre>' + JSON.stringify(raw, undefined, 2) + '</pre>');
+	                // update log
+	                this._log('<code>Visual format parsed succesfully.</code><br>');
+	                return constraints;
+	            } catch (err) {
+	                this.constraints.setContent('');
+	                this.raw.setContent('');
+	                this._log('<pre style="color: red; margin: 0;">' + 'ERROR: ' + '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' + err.source.substring(err.column - 1) + '\n' + 'line ' + err.line + new Array(2 + err.column - ('' + err.line).length).join(' ') + '^ ' + err.message + '</pre>');
+	            }
+	        }
+	    }]);
+	
+	    return ParseView;
+	})(_famousCoreView2['default']);
+	
+	exports['default'] = ParseView;
+	module.exports = exports['default'];
 
 /***/ }
 /******/ ]);
