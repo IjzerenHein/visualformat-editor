@@ -52,7 +52,7 @@ class LayoutView extends View {
         this.layout = new LayoutController({
             layout: vflToLayout([
                 '|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(60)]-[spacingInput(200)]',
-                'V:[widthText(30,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]',
+                'V:[widthText(44,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]',
                 '|-[content]-|',
                 'V:|-[widthText]-[content]-|',
                 'V:|-[widthInput]',
@@ -91,7 +91,7 @@ class LayoutView extends View {
         this.contentRenderables = {};
         if (this.alView) {
             for (var subView in this.alView.subViews) {
-                this.contentRenderables[subView] = this.contentPool[key] || new Surface({
+                this.contentRenderables[subView] = this.contentPool[subView] || new Surface({
                     content: '<div class="va">' + subView + '</div>',
                     classes: ['subView']
                 });

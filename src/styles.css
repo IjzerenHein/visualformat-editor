@@ -11,9 +11,8 @@
 }
 
 @font-face {
-  font-family: 'Montserrat';
-  src: url('./fonts/montserrat/Montserrat-Regular.otf');
-  font-weight: 400;
+  font-family: 'DancingScriptOT';
+  src: url('./fonts/dancing-script-ot/DancingScript-Regular.otf');
 }
 
 body {
@@ -26,6 +25,9 @@ textarea, input {
   font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;
   font-size: 17px;
   border: 1px solid #DDDDDD;
+  -moz-tab-size: 2;
+  -o-tab-size: 2;
+  tab-size: 2;
 }
 textarea {
   padding: 5px;
@@ -38,18 +40,29 @@ input {
   font-size: 60px;
   text-align: center;
   color: black;
+  z-index: 10;
 }
 .banner > iframe {
   position: absolute;
   left: 10px;
   top: 10px;
 }
-
+.banner .subTitle {
+  font-family: DancingScriptOT;
+  font-weight: bold;
+  font-size: 26px;
+  color: orange;
+}
 .ff-tabbar.selectedItemOverlay {
-  border-bottom: 4px solid #1185c3;
+  border-bottom: 3px solid orange;
+}
+.ff-tabbar.item > div {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .ff-tabbar.item.selected {
-  color: #1185c3;
+  color: orange;
   font-weight: bold;
 }
 .constraints, .log, .raw {

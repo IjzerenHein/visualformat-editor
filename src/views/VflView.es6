@@ -20,10 +20,10 @@ class VflView extends View {
         });
 
         this.textArea = new TextareaSurface({
-            value: '|-[child]-|\nV:|-[child]-|\n'
+            value: '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|\n'
         });
-        this.textArea.on('change', () => this._eventOutput.emit('update'));
-        this.textArea.on('keyup', () => this._eventOutput.emit('update'));
+        this.textArea.on('change', this._onChange.bind(this));
+        this.textArea.on('keyup', this._onChange.bind(this));
 
         this.examples = new Surface();
 
@@ -42,6 +42,14 @@ class VflView extends View {
             }
         });
         this.add(this.layout);
+    }
+
+    _onChange() {
+        var vfl = this.textArea.getValue();
+        if (vfl !== this._vfl) {
+            this._vfl = vfl;
+            this._eventOutput.emit('update');
+        }
     }
 
     getVisualFormat() {

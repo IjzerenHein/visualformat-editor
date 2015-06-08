@@ -59,26 +59,39 @@ class ParseView extends View {
 
     parse(visualFormat) {
         try {
+            const json = visualFormat.replace(/["']/g, '\"');
+            visualFormat = JSON.parse(json);
+        } catch (err) {
+
+            //
+            console.log('huh');
+        }
+        try {
             // update constraints
-            const constraints = AutoLayout.VisualFormat.parse(visualFormat);
+            const constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
             this.constraints.setContent('<pre>' + JSON.stringify(constraints, undefined, 2) + '</pre>');
             // update raw
-            const raw = AutoLayout.VisualFormat.parse(visualFormat, {outFormat: 'raw'});
+            const raw = AutoLayout.VisualFormat.parse(visualFormat, {extended: true, outFormat: 'raw'});
             this.raw.setContent('<pre>' + JSON.stringify(raw, undefined, 2) + '</pre>');
             // update log
-            this._log('<code>Visual format parsed succesfully.</code><br>');
+            this._log('<code>Visual format parsed successfully.</code><br>');
             return constraints;
         }
         catch (err) {
-            this.constraints.setContent('');
-            this.raw.setContent('');
-            this._log('<pre style="color: red; margin: 0;">' +
-                'ERROR: ' +
-                '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' +
-                err.source.substring(err.column - 1) + '\n' +
-                'line ' + err.line + (new Array(2 + err.column - ('' + err.line).length)).join(' ') + '^ ' + err.message +
-                '</pre>'
-            );
+            if (err instanceof SyntaxError) {
+                this.constraints.setContent('');
+                this.raw.setContent('');
+                this._log('<pre style="color: red; margin: 0;">' +
+                    'ERROR: ' +
+                    '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' +
+                    err.source.substring(err.column - 1) + '\n' +
+                    'line ' + err.line + (new Array(2 + err.column - ('' + err.line).length)).join(' ') + '^ ' + err.message +
+                    '</pre>'
+                );
+            }
+            else {
+                this._log('<pre style="color: red; margin: 0;">ERROR: ' + err.toString() + '</pre>');
+            }
         }
     }
 }

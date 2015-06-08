@@ -17,7 +17,8 @@ function _layout(view, context) {
 module.exports = function(visualFormat) {
     var view = new AutoLayout.View();
     try {
-        view.addVisualFormat(visualFormat);
+        var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
+        view.addConstraint(constraints);
         return _layout.bind(view, view);
     }
     catch (err) {
