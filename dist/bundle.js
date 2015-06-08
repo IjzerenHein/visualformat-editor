@@ -13145,7 +13145,7 @@
 	            this.contentRenderables = {};
 	            if (this.alView) {
 	                for (var subView in this.alView.subViews) {
-	                    this.contentRenderables[subView] = this.contentRenderables[key] || new _famousCoreSurface2['default']({
+	                    this.contentRenderables[subView] = this.contentPool[key] || new _famousCoreSurface2['default']({
 	                        content: '<div class="va">' + subView + '</div>',
 	                        classes: ['subView']
 	                    });

@@ -91,7 +91,7 @@ class LayoutView extends View {
         this.contentRenderables = {};
         if (this.alView) {
             for (var subView in this.alView.subViews) {
-                this.contentRenderables[subView] = this.contentRenderables[key] || new Surface({
+                this.contentRenderables[subView] = this.contentPool[key] || new Surface({
                     content: '<div class="va">' + subView + '</div>',
                     classes: ['subView']
                 });
