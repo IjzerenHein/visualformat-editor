@@ -5,6 +5,13 @@ import vflToLayout from '../vflToLayout';
 import TextareaSurface from 'famous/surfaces/TextareaSurface';
 import TabBarController from 'famous-flex/widgets/TabBarController';
 
+function getParameterByName(name) {
+    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    var results = regex.exec(location.search);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+}
+
 class VflView extends View {
     constructor(options) {
         super(options);
@@ -20,7 +27,7 @@ class VflView extends View {
         });
 
         this.textArea = new TextareaSurface({
-            value: '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|\n'
+            value: getParameterByName('vfl') || '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|\n'
         });
         this.textArea.on('change', this._onChange.bind(this));
         this.textArea.on('keyup', this._onChange.bind(this));

@@ -58,6 +58,13 @@
 	 */
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 	
+	    function getParameterByName(name) {
+	        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+	        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+	        var results = regex.exec(location.search);
+	        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+	    }
+	
 	    //<webpack>
 	    __webpack_require__(/*! famous-polyfills */ 1);
 	    __webpack_require__(/*! famous/core/famous.css */ 5);
@@ -84,20 +91,26 @@
 	
 	    // create the main context and layout
 	    var mainContext = Engine.createContext();
+	    var fullLayout = vflToLayout([
+	        '|[banner]|\nV:[banner(124)]',
+	        'V:|[banner][vfl(parse)][parse]|',
+	        'V:[banner][layout]|',
+	        '|[vfl(parse,layout)][layout]|'
+	    ]);
+	    var previewLayout = vflToLayout([
+	        '|[banner]|\nV:[banner(124)]',
+	        'V:[banner][layout]|',
+	        '|[layout]|'
+	    ]);
 	    var mainLC = new LayoutController({
-	        layout: vflToLayout([
-	            '|[banner]|\nV:[banner(100)]',
-	            'V:|[banner][vfl(400)][parse]|',
-	            'V:[banner][layout]|',
-	            '|[vfl(400,==parse)][layout]|'
-	        ])
+	        layout: parseInt(getParameterByName('preview')) ? previewLayout : fullLayout
 	    });
 	    mainContext.add(mainLC);
 	
 	    // Create banner
 	    var banner = new Surface({
 	        classes: ['banner'],
-	        content: '<div class="va">AUTOLAYOUT.JS</div>' +
+	        content: '<div class="va">AUTOLAYOUT.JS<div class="subTitle">Visual Format Viewer</div></div>' +
 	        //'<iframe src="https://ghbtns.com/github-btn.html?user=ijzerenhein&repo=autolayout.js&type=star&count=true&size=small" frameborder="0" scrolling="0" width="170px" height="30px"></iframe>'
 	        '<a href="https://github.com/ijzerenhein/autolayout.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>'
 	    });
@@ -122,7 +135,7 @@
 	        var constraints = parseView.parse(vfl);
 	        if (constraints) {
 	            var view = new AutoLayout.View();
-	            view.addConstraint(constraints);
+	            view.addConstraints(constraints);
 	            layoutView.setAutoLayoutView(view);
 	        }
 	    }
@@ -451,7 +464,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports =
-		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 12)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 13)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Regular.otf */ 14)+");\n  font-weight: 400;\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n}\ntextarea {\n  padding: 5px;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 4px solid #1185c3;\n}\n.ff-tabbar.item.selected {\n  color: #1185c3;\n  font-weight: bold;\n}\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  background-color: #CCCCCC;\n  text-align: center;\n}\n";
+		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 12)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 13)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'DancingScriptOT';\n  src: url("+__webpack_require__(/*! ./fonts/dancing-script-ot/DancingScript-Regular.otf */ 14)+");\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n  -moz-tab-size: 2;\n  -o-tab-size: 2;\n  tab-size: 2;\n}\ntextarea {\n  padding: 5px;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n  z-index: 10;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n.banner .subTitle {\n  font-family: DancingScriptOT;\n  font-weight: bold;\n  font-size: 26px;\n  color: orange;\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 3px solid orange;\n}\n.ff-tabbar.item > div {\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n}\n.ff-tabbar.item.selected {\n  color: orange;\n  font-weight: bold;\n}\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  background-color: #CCCCCC;\n  text-align: center;\n}\n";
 
 /***/ },
 /* 12 */
@@ -473,12 +486,12 @@
 
 /***/ },
 /* 14 */
-/*!*************************************************!*\
-  !*** ./fonts/montserrat/Montserrat-Regular.otf ***!
-  \*************************************************/
+/*!***********************************************************!*\
+  !*** ./fonts/dancing-script-ot/DancingScript-Regular.otf ***!
+  \***********************************************************/
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Regular.otf"
+	module.exports = __webpack_require__.p + "fonts/dancing-script-ot/DancingScript-Regular.otf"
 
 /***/ },
 /* 15 */
@@ -8199,6 +8212,7 @@
 	var Attribute = {
 	    CONST: 'const',
 	    NOTANATTRIBUTE: 'const',
+	    VARIABLE: 'var',
 	    /** left aligned */
 	    LEFT: 'left',
 	    /** right aligned */
@@ -8312,7 +8326,6 @@
 	 * A SubView is automatically generated when constraints are added to a View.
 	 *
 	 * @class SubView
-	 * @param {Object} name Name of the sub-view.
 	 */
 	
 	var SubView = (function () {
@@ -8335,10 +8348,27 @@
 	    }
 	
 	    _createClass(SubView, [{
+	        key: 'toJSON',
+	        value: function toJSON() {
+	            return {
+	                name: this.name,
+	                left: this.left,
+	                top: this.top,
+	                width: this.width,
+	                height: this.height
+	            };
+	        }
+	    }, {
+	        key: 'toString',
+	        value: function toString() {
+	            JSON.stringify(this.toJSON(), undefined, 2);
+	        }
+	    }, {
 	        key: 'name',
 	
 	        /**
 	         * Name of the sub-view.
+	         * @readonly
 	         * @type {String}
 	         */
 	        get: function () {
@@ -8349,6 +8379,7 @@
 	
 	        /**
 	         * Left value (`Attribute.LEFT`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8359,6 +8390,7 @@
 	
 	        /**
 	         * Right value (`Attribute.RIGHT`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8369,6 +8401,7 @@
 	
 	        /**
 	         * Width value (`Attribute.WIDTH`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8379,6 +8412,7 @@
 	
 	        /**
 	         * Height value (`Attribute.HEIGHT`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8389,6 +8423,7 @@
 	
 	        /**
 	         * Top value (`Attribute.TOP`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8399,6 +8434,7 @@
 	
 	        /**
 	         * Bottom value (`Attribute.BOTTOM`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8409,6 +8445,7 @@
 	
 	        /**
 	         * Horizontal center (`Attribute.CENTERX`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8419,6 +8456,7 @@
 	
 	        /**
 	         * Vertical center (`Attribute.CENTERY`).
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -8507,10 +8545,6 @@
 	
 	var _cassowaryBinC2 = _interopRequireDefault(_cassowaryBinC);
 	
-	var _VisualFormat = require('./VisualFormat');
-	
-	var _VisualFormat2 = _interopRequireDefault(_VisualFormat);
-	
 	var _Attribute = require('./Attribute');
 	
 	var _Attribute2 = _interopRequireDefault(_Attribute);
@@ -8525,6 +8559,12 @@
 	
 	function _getConst(name, value) {
 	    var vr = new _cassowaryBinC2['default'].Variable({ value: value });
+	    this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(vr, _cassowaryBinC2['default'].Strength.required, 0));
+	    return vr;
+	}
+	
+	function _getVariable(name, defaultValue) {
+	    var vr = new _cassowaryBinC2['default'].Variable({ value: defaultValue });
 	    this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(vr, _cassowaryBinC2['default'].Strength.required, 0));
 	    return vr;
 	}
@@ -8584,23 +8624,28 @@
 	        constant = _getSpacing.call(this, constraint);
 	    }
 	    var attr1 = _getSubView.call(this, constraint.view1)._getAttr(constraint.attr1);
-	    var attr2 = constraint.attr2 === _Attribute2['default'].CONST ? _getConst.call(this, undefined, constraint.constant) : _getSubView.call(this, constraint.view2)._getAttr(constraint.attr2);
+	    var attr2 = undefined;
+	    if (constraint.attr2 === _Attribute2['default'].CONST) {
+	        attr2 = _getConst.call(this, undefined, constraint.constant);
+	    } else {
+	        attr2 = _getSubView.call(this, constraint.view2)._getAttr(constraint.attr2);
+	        if (multiplier !== 1 && constant) {
+	            attr2 = _cassowaryBinC2['default'].times(_cassowaryBinC2['default'].minus(attr2, constant), multiplier);
+	        } else if (constant) {
+	            attr2 = _cassowaryBinC2['default'].minus(attr2, constant);
+	        } else if (multiplier !== 1) {
+	            attr2 = _cassowaryBinC2['default'].times(attr2, multiplier);
+	        }
+	    }
 	    switch (constraint.relation) {
-	        case _Relation2['default'].LEQ:
-	            //relation = new c.Inequality(attr1, c.LEQ, c.plus(attr2, )
-	            break;
 	        case _Relation2['default'].EQU:
-	            if (multiplier === 1 && !constant || constraint.attr2 === _Attribute2['default'].CONST) {
-	                relation = new _cassowaryBinC2['default'].Equation(attr1, attr2);
-	            } else if (multiplier !== 1 && constant) {
-	                throw 'todo';
-	            } else if (constant) {
-	                relation = new _cassowaryBinC2['default'].Equation(attr2, _cassowaryBinC2['default'].plus(attr1, constant));
-	            } else {
-	                throw 'todo';
-	            }
+	            relation = new _cassowaryBinC2['default'].Equation(attr1, attr2);
 	            break;
 	        case _Relation2['default'].GEQ:
+	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].GEQ, attr2);
+	            break;
+	        case _Relation2['default'].LEQ:
+	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].LEQ, attr2);
 	            break;
 	        default:
 	            throw 'Invalid relation specified: ' + constraint.relation;
@@ -8617,7 +8662,6 @@
 	     * @param {Number} [options.height] Initial height of the view.
 	     * @param {Number|Object} [options.spacing] Spacing for the view (default: 8), see `setSpacing`.
 	     * @param {Object|Array} [options.constraints] One or more constraint definitions.
-	     * @param {String|Array} [options.visualFormat] Visual format string or array of vfl strings.
 	     */
 	
 	    function View(options) {
@@ -8625,6 +8669,7 @@
 	
 	        this._solver = new _cassowaryBinC2['default'].SimplexSolver();
 	        this._subViews = {};
+	        //this._variables = {};
 	        this._spacing = {};
 	        this._parentSubView = new _SubView2['default']({
 	            solver: this._solver
@@ -8637,9 +8682,6 @@
 	            }
 	            if (options.constraints) {
 	                this.addConstraints(options.constraints);
-	            }
-	            if (options.visualFormat) {
-	                this.addVisualFormat(options.visualFormat);
 	            }
 	        }
 	    }
@@ -8733,6 +8775,32 @@
 	        key: 'addConstraint',
 	
 	        /**
+	         * Adds a constraint definition.
+	         *
+	         * A constraint definition has the following format:
+	         *
+	         * ```javascript
+	         * constraint: {
+	         *   view1: {String},
+	         *   attr1: {AutoLayout.Attribute},
+	         *   relation: {AutoLayout.Relation},
+	         *   view2: {String},
+	         *   attr2: {AutoLayout.Attribute},
+	         *   multiplier: {Number},
+	         *   constant: {Number}
+	         * }
+	         * ```
+	         * @param {Object} constraint Constraint definition.
+	         * @return {AutoLayout} this
+	         */
+	        value: function addConstraint(constraint) {
+	            _addConstraint.call(this, constraint);
+	            return this;
+	        }
+	    }, {
+	        key: 'addConstraints',
+	
+	        /**
 	         * Adds one or more constraint definitions.
 	         *
 	         * A constraint definition has the following format:
@@ -8748,31 +8816,14 @@
 	         *   constant: {Number}
 	         * }
 	         * ```
-	         * @param {Object|Array} constraint One or more constraint definitions.
+	         * @param {Array} constraints One or more constraint definitions.
 	         * @return {AutoLayout} this
 	         */
-	        value: function addConstraint(constraint) {
-	            if (Array.isArray(constraint)) {
-	                for (var i = 0; i < constraint.length; i++) {
-	                    _addConstraint.call(this, constraint[i]);
-	                }
-	            } else {
-	                _addConstraint.call(this, constraint);
+	        value: function addConstraints(constraints) {
+	            for (var i = 0; i < constraints.length; i++) {
+	                _addConstraint.call(this, constraints[i]);
 	            }
 	            return this;
-	        }
-	    }, {
-	        key: 'addVisualFormat',
-	
-	        /**
-	         * Adds one or more constraints from a visual-format definition.
-	         * See `VisualFormat.parse`.
-	         *
-	         * @param {String|Array} visualFormat Visual format string or array of vfl strings.
-	         * @return {AutoLayout} this
-	         */
-	        value: function addVisualFormat(visualFormat) {
-	            return this.addConstraint(_VisualFormat2['default'].parse(visualFormat));
 	        }
 	    }, {
 	        key: 'subViews',
@@ -8784,6 +8835,16 @@
 	        get: function () {
 	            return this._subViews;
 	        }
+	
+	        /**
+	         * Dictionary of `Variable` objects that have been created when adding constraints.
+	         * @type {Object.SubView}
+	         */
+	        /*
+	        get variables() {
+	            return this._variables;
+	        }*/
+	
 	    }]);
 	
 	    return View;
@@ -8793,7 +8854,7 @@
 	module.exports = exports['default'];
 	
 	}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-	},{"./Attribute":1,"./Relation":3,"./SubView":4,"./VisualFormat":6}],6:[function(require,module,exports){
+	},{"./Attribute":1,"./Relation":3,"./SubView":4}],6:[function(require,module,exports){
 	'use strict';
 	
 	Object.defineProperty(exports, '__esModule', {
@@ -8809,6 +8870,10 @@
 	var _parserParser = require('./parser/parser');
 	
 	var _parserParser2 = _interopRequireDefault(_parserParser);
+	
+	var _parserParserExt = require('./parser/parserExt');
+	
+	var _parserParserExt2 = _interopRequireDefault(_parserParserExt);
 	
 	var _Attribute = require('./Attribute');
 	
@@ -8833,6 +8898,7 @@
 	         *
 	         * @param {String} visualFormat Visual format string (cannot contain line-endings!).
 	         * @param {Object} [options] Configuration options.
+	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
 	         * @return {Array} Array of constraint definitions.
 	         */
 	        value: function parseLine(visualFormat, options) {
@@ -8840,7 +8906,7 @@
 	                return [];
 	            }
 	            var constraints = [];
-	            var res = _parserParser2['default'].parse(visualFormat);
+	            var res = options && options.extended ? _parserParserExt2['default'].parse(visualFormat) : _parserParser2['default'].parse(visualFormat);
 	            if (options && options.outFormat === 'raw') {
 	                return [res];
 	            }
@@ -8851,6 +8917,7 @@
 	            var attr1 = undefined;
 	            var attr2 = undefined;
 	            var item = undefined;
+	            var constraint = undefined;
 	            for (var i = 0; i < res.cascade.length; i++) {
 	                item = res.cascade[i];
 	                if (!Array.isArray(item) && item.hasOwnProperty('view')) {
@@ -8871,8 +8938,9 @@
 	                            relation: relation.relation,
 	                            view2: view2,
 	                            attr2: attr2,
-	                            multiplier: 1,
-	                            constant: relation.constant
+	                            multiplier: relation.multiplier,
+	                            constant: relation.constant,
+	                            variable: relation.variable
 	                        });
 	                    }
 	                    relation = undefined;
@@ -8881,15 +8949,16 @@
 	                    if (item.constraints) {
 	                        for (var n = 0; n < item.constraints.length; n++) {
 	                            attr1 = horizontal ? _Attribute2['default'].WIDTH : _Attribute2['default'].HEIGHT;
-	                            attr2 = item.constraints[n].view ? attr1 : _Attribute2['default'].CONST;
+	                            attr2 = item.constraints[n].view || item.constraints[n].multiplier ? attr1 : item.constraints[n].variable ? _Attribute2['default'].VARIABLE : _Attribute2['default'].CONST;
 	                            constraints.push({
 	                                view1: item.view,
 	                                attr1: attr1,
 	                                relation: item.constraints[n].relation,
 	                                view2: item.constraints[n].view,
 	                                attr2: attr2,
-	                                multiplier: 1,
-	                                constant: item.constraints[n].constant
+	                                multiplier: item.constraints[n].multiplier,
+	                                constant: item.constraints[n].constant,
+	                                variable: item.constraints[n].variable
 	                            });
 	                        }
 	                    }
@@ -8907,6 +8976,7 @@
 	         *
 	         * @param {String|Array} visualFormat One or more visual format strings.
 	         * @param {Object} [options] Configuration options.
+	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
 	         * @param {String} [options.lineSeperator] String that defines the end of a line (default `\n`).
 	         * @param {String} [options.outFormat] Output format ('constraints' or 'raw') (default: 'constraints').
 	         * @return {Array} Array of constraint definitions.
@@ -8953,7 +9023,7 @@
 	exports['default'] = VisualFormat;
 	module.exports = exports['default'];
 	
-	},{"./Attribute":1,"./parser/parser":7}],7:[function(require,module,exports){
+	},{"./Attribute":1,"./parser/parser":7,"./parser/parserExt":8}],7:[function(require,module,exports){
 	"use strict";
 	
 	module.exports = (function () {
@@ -9937,6 +10007,1125 @@
 	  };
 	})();
 	
+	},{}],8:[function(require,module,exports){
+	"use strict";
+	
+	module.exports = (function () {
+	  /*
+	   * Generated by PEG.js 0.8.0.
+	   *
+	   * http://pegjs.majda.cz/
+	   */
+	
+	  function peg$subclass(child, parent) {
+	    function ctor() {
+	      this.constructor = child;
+	    }
+	    ctor.prototype = parent.prototype;
+	    child.prototype = new ctor();
+	  }
+	
+	  function SyntaxError(message, expected, found, offset, line, column) {
+	    this.message = message;
+	    this.expected = expected;
+	    this.found = found;
+	    this.offset = offset;
+	    this.line = line;
+	    this.column = column;
+	
+	    this.name = "SyntaxError";
+	  }
+	
+	  peg$subclass(SyntaxError, Error);
+	
+	  function parse(input) {
+	    var options = arguments.length > 1 ? arguments[1] : {},
+	        peg$FAILED = {},
+	        peg$startRuleFunctions = { visualFormatString: peg$parsevisualFormatString },
+	        peg$startRuleFunction = peg$parsevisualFormatString,
+	        peg$c0 = peg$FAILED,
+	        peg$c1 = null,
+	        peg$c2 = ":",
+	        peg$c3 = { type: "literal", value: ":", description: "\":\"" },
+	        peg$c4 = [],
+	        peg$c5 = function peg$c5(o, superto, view, views, tosuper) {
+	      return {
+	        orientation: o ? o[0] : "horizontal",
+	        cascade: (superto || []).concat([view], [].concat.apply([], views), tosuper || [])
+	      };
+	    },
+	        peg$c6 = "H",
+	        peg$c7 = { type: "literal", value: "H", description: "\"H\"" },
+	        peg$c8 = "V",
+	        peg$c9 = { type: "literal", value: "V", description: "\"V\"" },
+	        peg$c10 = function peg$c10(orient) {
+	      return orient == "H" ? "horizontal" : "vertical";
+	    },
+	        peg$c11 = "|",
+	        peg$c12 = { type: "literal", value: "|", description: "\"|\"" },
+	        peg$c13 = function peg$c13() {
+	      return { view: null };
+	    },
+	        peg$c14 = "[",
+	        peg$c15 = { type: "literal", value: "[", description: "\"[\"" },
+	        peg$c16 = "]",
+	        peg$c17 = { type: "literal", value: "]", description: "\"]\"" },
+	        peg$c18 = function peg$c18(view, predicates) {
+	      return extend(view, predicates ? { constraints: predicates } : {});
+	    },
+	        peg$c19 = "-",
+	        peg$c20 = { type: "literal", value: "-", description: "\"-\"" },
+	        peg$c21 = function peg$c21(predicateList) {
+	      return predicateList;
+	    },
+	        peg$c22 = function peg$c22() {
+	      return [{ relation: "equ", constant: "default", $parserOffset: offset() }];
+	    },
+	        peg$c23 = "",
+	        peg$c24 = function peg$c24() {
+	      return [{ relation: "equ", constant: 0, $parserOffset: offset() }];
+	    },
+	        peg$c25 = function peg$c25(n) {
+	      return [{ relation: "equ", constant: n, $parserOffset: offset() }];
+	    },
+	        peg$c26 = "(",
+	        peg$c27 = { type: "literal", value: "(", description: "\"(\"" },
+	        peg$c28 = ",",
+	        peg$c29 = { type: "literal", value: ",", description: "\",\"" },
+	        peg$c30 = ")",
+	        peg$c31 = { type: "literal", value: ")", description: "\")\"" },
+	        peg$c32 = function peg$c32(p, ps) {
+	      return [p].concat(ps.map(function (p) {
+	        return p[1];
+	      }));
+	    },
+	        peg$c33 = "@",
+	        peg$c34 = { type: "literal", value: "@", description: "\"@\"" },
+	        peg$c35 = function peg$c35(r, o, p) {
+	      return extend({ relation: "equ" }, r || {}, o, p ? p[1] : {});
+	    },
+	        peg$c36 = "==",
+	        peg$c37 = { type: "literal", value: "==", description: "\"==\"" },
+	        peg$c38 = function peg$c38() {
+	      return { relation: "equ", $parserOffset: offset() };
+	    },
+	        peg$c39 = "<=",
+	        peg$c40 = { type: "literal", value: "<=", description: "\"<=\"" },
+	        peg$c41 = function peg$c41() {
+	      return { relation: "leq", $parserOffset: offset() };
+	    },
+	        peg$c42 = ">=",
+	        peg$c43 = { type: "literal", value: ">=", description: "\">=\"" },
+	        peg$c44 = function peg$c44() {
+	      return { relation: "geq", $parserOffset: offset() };
+	    },
+	        peg$c45 = function peg$c45(n) {
+	      return { priority: n };
+	    },
+	        peg$c46 = function peg$c46(n) {
+	      return { constant: n };
+	    },
+	        peg$c47 = "%",
+	        peg$c48 = { type: "literal", value: "%", description: "\"%\"" },
+	        peg$c49 = function peg$c49(n) {
+	      return { view: null, multiplier: n / 100 };
+	    },
+	        peg$c50 = function peg$c50(vn, m) {
+	      return { view: vn.view, multiplier: m ? m : 1 };
+	    },
+	        peg$c51 = "/",
+	        peg$c52 = { type: "literal", value: "/", description: "\"/\"" },
+	        peg$c53 = function peg$c53(n) {
+	      return 1 / n;
+	    },
+	        peg$c54 = "*",
+	        peg$c55 = { type: "literal", value: "*", description: "\"*\"" },
+	        peg$c56 = function peg$c56(n) {
+	      return n;
+	    },
+	        peg$c57 = /^[a-zA-Z0-9\-_]/,
+	        peg$c58 = { type: "class", value: "[a-zA-Z0-9\\-_]", description: "[a-zA-Z0-9\\-_]" },
+	        peg$c59 = function peg$c59(v) {
+	      return { view: v };
+	    },
+	        peg$c60 = /^[0-9]/,
+	        peg$c61 = { type: "class", value: "[0-9]", description: "[0-9]" },
+	        peg$c62 = function peg$c62(digits) {
+	      return parseInt(digits.join(""), 10);
+	    },
+	        peg$currPos = 0,
+	        peg$reportedPos = 0,
+	        peg$cachedPos = 0,
+	        peg$cachedPosDetails = { line: 1, column: 1, seenCR: false },
+	        peg$maxFailPos = 0,
+	        peg$maxFailExpected = [],
+	        peg$silentFails = 0,
+	        peg$result;
+	
+	    if ("startRule" in options) {
+	      if (!(options.startRule in peg$startRuleFunctions)) {
+	        throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
+	      }
+	
+	      peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
+	    }
+	
+	    function text() {
+	      return input.substring(peg$reportedPos, peg$currPos);
+	    }
+	
+	    function offset() {
+	      return peg$reportedPos;
+	    }
+	
+	    function line() {
+	      return peg$computePosDetails(peg$reportedPos).line;
+	    }
+	
+	    function column() {
+	      return peg$computePosDetails(peg$reportedPos).column;
+	    }
+	
+	    function expected(description) {
+	      throw peg$buildException(null, [{ type: "other", description: description }], peg$reportedPos);
+	    }
+	
+	    function error(message) {
+	      throw peg$buildException(message, null, peg$reportedPos);
+	    }
+	
+	    function peg$computePosDetails(pos) {
+	      function advance(details, startPos, endPos) {
+	        var p, ch;
+	
+	        for (p = startPos; p < endPos; p++) {
+	          ch = input.charAt(p);
+	          if (ch === "\n") {
+	            if (!details.seenCR) {
+	              details.line++;
+	            }
+	            details.column = 1;
+	            details.seenCR = false;
+	          } else if (ch === "\r" || ch === "\u2028" || ch === "\u2029") {
+	            details.line++;
+	            details.column = 1;
+	            details.seenCR = true;
+	          } else {
+	            details.column++;
+	            details.seenCR = false;
+	          }
+	        }
+	      }
+	
+	      if (peg$cachedPos !== pos) {
+	        if (peg$cachedPos > pos) {
+	          peg$cachedPos = 0;
+	          peg$cachedPosDetails = { line: 1, column: 1, seenCR: false };
+	        }
+	        advance(peg$cachedPosDetails, peg$cachedPos, pos);
+	        peg$cachedPos = pos;
+	      }
+	
+	      return peg$cachedPosDetails;
+	    }
+	
+	    function peg$fail(expected) {
+	      if (peg$currPos < peg$maxFailPos) {
+	        return;
+	      }
+	
+	      if (peg$currPos > peg$maxFailPos) {
+	        peg$maxFailPos = peg$currPos;
+	        peg$maxFailExpected = [];
+	      }
+	
+	      peg$maxFailExpected.push(expected);
+	    }
+	
+	    function peg$buildException(message, expected, pos) {
+	      function cleanupExpected(expected) {
+	        var i = 1;
+	
+	        expected.sort(function (a, b) {
+	          if (a.description < b.description) {
+	            return -1;
+	          } else if (a.description > b.description) {
+	            return 1;
+	          } else {
+	            return 0;
+	          }
+	        });
+	
+	        while (i < expected.length) {
+	          if (expected[i - 1] === expected[i]) {
+	            expected.splice(i, 1);
+	          } else {
+	            i++;
+	          }
+	        }
+	      }
+	
+	      function buildMessage(expected, found) {
+	        function stringEscape(s) {
+	          function hex(ch) {
+	            return ch.charCodeAt(0).toString(16).toUpperCase();
+	          }
+	
+	          return s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\x08/g, "\\b").replace(/\t/g, "\\t").replace(/\n/g, "\\n").replace(/\f/g, "\\f").replace(/\r/g, "\\r").replace(/[\x00-\x07\x0B\x0E\x0F]/g, function (ch) {
+	            return "\\x0" + hex(ch);
+	          }).replace(/[\x10-\x1F\x80-\xFF]/g, function (ch) {
+	            return "\\x" + hex(ch);
+	          }).replace(/[\u0180-\u0FFF]/g, function (ch) {
+	            return "\\u0" + hex(ch);
+	          }).replace(/[\u1080-\uFFFF]/g, function (ch) {
+	            return "\\u" + hex(ch);
+	          });
+	        }
+	
+	        var expectedDescs = new Array(expected.length),
+	            expectedDesc,
+	            foundDesc,
+	            i;
+	
+	        for (i = 0; i < expected.length; i++) {
+	          expectedDescs[i] = expected[i].description;
+	        }
+	
+	        expectedDesc = expected.length > 1 ? expectedDescs.slice(0, -1).join(", ") + " or " + expectedDescs[expected.length - 1] : expectedDescs[0];
+	
+	        foundDesc = found ? "\"" + stringEscape(found) + "\"" : "end of input";
+	
+	        return "Expected " + expectedDesc + " but " + foundDesc + " found.";
+	      }
+	
+	      var posDetails = peg$computePosDetails(pos),
+	          found = pos < input.length ? input.charAt(pos) : null;
+	
+	      if (expected !== null) {
+	        cleanupExpected(expected);
+	      }
+	
+	      return new SyntaxError(message !== null ? message : buildMessage(expected, found), expected, found, pos, posDetails.line, posDetails.column);
+	    }
+	
+	    function peg$parsevisualFormatString() {
+	      var s0, s1, s2, s3, s4, s5, s6, s7;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$currPos;
+	      s2 = peg$parseorientation();
+	      if (s2 !== peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 58) {
+	          s3 = peg$c2;
+	          peg$currPos++;
+	        } else {
+	          s3 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c3);
+	          }
+	        }
+	        if (s3 !== peg$FAILED) {
+	          s2 = [s2, s3];
+	          s1 = s2;
+	        } else {
+	          peg$currPos = s1;
+	          s1 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s1;
+	        s1 = peg$c0;
+	      }
+	      if (s1 === peg$FAILED) {
+	        s1 = peg$c1;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$currPos;
+	        s3 = peg$parsesuperview();
+	        if (s3 !== peg$FAILED) {
+	          s4 = peg$parseconnection();
+	          if (s4 !== peg$FAILED) {
+	            s3 = [s3, s4];
+	            s2 = s3;
+	          } else {
+	            peg$currPos = s2;
+	            s2 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s2;
+	          s2 = peg$c0;
+	        }
+	        if (s2 === peg$FAILED) {
+	          s2 = peg$c1;
+	        }
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parseview();
+	          if (s3 !== peg$FAILED) {
+	            s4 = [];
+	            s5 = peg$currPos;
+	            s6 = peg$parseconnection();
+	            if (s6 !== peg$FAILED) {
+	              s7 = peg$parseview();
+	              if (s7 !== peg$FAILED) {
+	                s6 = [s6, s7];
+	                s5 = s6;
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s5;
+	              s5 = peg$c0;
+	            }
+	            while (s5 !== peg$FAILED) {
+	              s4.push(s5);
+	              s5 = peg$currPos;
+	              s6 = peg$parseconnection();
+	              if (s6 !== peg$FAILED) {
+	                s7 = peg$parseview();
+	                if (s7 !== peg$FAILED) {
+	                  s6 = [s6, s7];
+	                  s5 = s6;
+	                } else {
+	                  peg$currPos = s5;
+	                  s5 = peg$c0;
+	                }
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              s5 = peg$currPos;
+	              s6 = peg$parseconnection();
+	              if (s6 !== peg$FAILED) {
+	                s7 = peg$parsesuperview();
+	                if (s7 !== peg$FAILED) {
+	                  s6 = [s6, s7];
+	                  s5 = s6;
+	                } else {
+	                  peg$currPos = s5;
+	                  s5 = peg$c0;
+	                }
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	              if (s5 === peg$FAILED) {
+	                s5 = peg$c1;
+	              }
+	              if (s5 !== peg$FAILED) {
+	                peg$reportedPos = s0;
+	                s1 = peg$c5(s1, s2, s3, s4, s5);
+	                s0 = s1;
+	              } else {
+	                peg$currPos = s0;
+	                s0 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseorientation() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 72) {
+	        s1 = peg$c6;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c7);
+	        }
+	      }
+	      if (s1 === peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 86) {
+	          s1 = peg$c8;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c9);
+	          }
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c10(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsesuperview() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 124) {
+	        s1 = peg$c11;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c12);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c13();
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parseview() {
+	      var s0, s1, s2, s3, s4;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 91) {
+	        s1 = peg$c14;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c15);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseviewName();
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parsepredicateListWithParens();
+	          if (s3 === peg$FAILED) {
+	            s3 = peg$c1;
+	          }
+	          if (s3 !== peg$FAILED) {
+	            if (input.charCodeAt(peg$currPos) === 93) {
+	              s4 = peg$c16;
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) {
+	                peg$fail(peg$c17);
+	              }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c18(s2, s3);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseconnection() {
+	      var s0, s1, s2, s3;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 45) {
+	        s1 = peg$c19;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c20);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsepredicateList();
+	        if (s2 !== peg$FAILED) {
+	          if (input.charCodeAt(peg$currPos) === 45) {
+	            s3 = peg$c19;
+	            peg$currPos++;
+	          } else {
+	            s3 = peg$FAILED;
+	            if (peg$silentFails === 0) {
+	              peg$fail(peg$c20);
+	            }
+	          }
+	          if (s3 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c21(s2);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.charCodeAt(peg$currPos) === 45) {
+	          s1 = peg$c19;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c20);
+	          }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c22();
+	        }
+	        s0 = s1;
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$currPos;
+	          s1 = peg$c23;
+	          if (s1 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c24();
+	          }
+	          s0 = s1;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicateList() {
+	      var s0;
+	
+	      s0 = peg$parsesimplePredicate();
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$parsepredicateListWithParens();
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsesimplePredicate() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c25(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicateListWithParens() {
+	      var s0, s1, s2, s3, s4, s5, s6;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 40) {
+	        s1 = peg$c26;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c27);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsepredicate();
+	        if (s2 !== peg$FAILED) {
+	          s3 = [];
+	          s4 = peg$currPos;
+	          if (input.charCodeAt(peg$currPos) === 44) {
+	            s5 = peg$c28;
+	            peg$currPos++;
+	          } else {
+	            s5 = peg$FAILED;
+	            if (peg$silentFails === 0) {
+	              peg$fail(peg$c29);
+	            }
+	          }
+	          if (s5 !== peg$FAILED) {
+	            s6 = peg$parsepredicate();
+	            if (s6 !== peg$FAILED) {
+	              s5 = [s5, s6];
+	              s4 = s5;
+	            } else {
+	              peg$currPos = s4;
+	              s4 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s4;
+	            s4 = peg$c0;
+	          }
+	          while (s4 !== peg$FAILED) {
+	            s3.push(s4);
+	            s4 = peg$currPos;
+	            if (input.charCodeAt(peg$currPos) === 44) {
+	              s5 = peg$c28;
+	              peg$currPos++;
+	            } else {
+	              s5 = peg$FAILED;
+	              if (peg$silentFails === 0) {
+	                peg$fail(peg$c29);
+	              }
+	            }
+	            if (s5 !== peg$FAILED) {
+	              s6 = peg$parsepredicate();
+	              if (s6 !== peg$FAILED) {
+	                s5 = [s5, s6];
+	                s4 = s5;
+	              } else {
+	                peg$currPos = s4;
+	                s4 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s4;
+	              s4 = peg$c0;
+	            }
+	          }
+	          if (s3 !== peg$FAILED) {
+	            if (input.charCodeAt(peg$currPos) === 41) {
+	              s4 = peg$c30;
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) {
+	                peg$fail(peg$c31);
+	              }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c32(s2, s3);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicate() {
+	      var s0, s1, s2, s3, s4, s5;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parserelation();
+	      if (s1 === peg$FAILED) {
+	        s1 = peg$c1;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseobjectOfPredicate();
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$currPos;
+	          if (input.charCodeAt(peg$currPos) === 64) {
+	            s4 = peg$c33;
+	            peg$currPos++;
+	          } else {
+	            s4 = peg$FAILED;
+	            if (peg$silentFails === 0) {
+	              peg$fail(peg$c34);
+	            }
+	          }
+	          if (s4 !== peg$FAILED) {
+	            s5 = peg$parsepriority();
+	            if (s5 !== peg$FAILED) {
+	              s4 = [s4, s5];
+	              s3 = s4;
+	            } else {
+	              peg$currPos = s3;
+	              s3 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s3;
+	            s3 = peg$c0;
+	          }
+	          if (s3 === peg$FAILED) {
+	            s3 = peg$c1;
+	          }
+	          if (s3 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c35(s1, s2, s3);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parserelation() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.substr(peg$currPos, 2) === peg$c36) {
+	        s1 = peg$c36;
+	        peg$currPos += 2;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c37);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c38();
+	      }
+	      s0 = s1;
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.substr(peg$currPos, 2) === peg$c39) {
+	          s1 = peg$c39;
+	          peg$currPos += 2;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c40);
+	          }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c41();
+	        }
+	        s0 = s1;
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$currPos;
+	          if (input.substr(peg$currPos, 2) === peg$c42) {
+	            s1 = peg$c42;
+	            peg$currPos += 2;
+	          } else {
+	            s1 = peg$FAILED;
+	            if (peg$silentFails === 0) {
+	              peg$fail(peg$c43);
+	            }
+	          }
+	          if (s1 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c44();
+	          }
+	          s0 = s1;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseobjectOfPredicate() {
+	      var s0;
+	
+	      s0 = peg$parsepercentage();
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$parseconstant();
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$parseviewPredicate();
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepriority() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c45(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parseconstant() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c46(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepercentage() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 37) {
+	          s2 = peg$c47;
+	          peg$currPos++;
+	        } else {
+	          s2 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c48);
+	          }
+	        }
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c49(s1);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseviewPredicate() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parseviewName();
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsemultiplier();
+	        if (s2 === peg$FAILED) {
+	          s2 = peg$c1;
+	        }
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c50(s1, s2);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsemultiplier() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 47) {
+	        s1 = peg$c51;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c52);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsenumber();
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c53(s2);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.charCodeAt(peg$currPos) === 42) {
+	          s1 = peg$c54;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c55);
+	          }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          s2 = peg$parsenumber();
+	          if (s2 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c56(s2);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseviewName() {
+	      var s0, s1, s2, s3;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$currPos;
+	      s2 = [];
+	      if (peg$c57.test(input.charAt(peg$currPos))) {
+	        s3 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s3 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c58);
+	        }
+	      }
+	      if (s3 !== peg$FAILED) {
+	        while (s3 !== peg$FAILED) {
+	          s2.push(s3);
+	          if (peg$c57.test(input.charAt(peg$currPos))) {
+	            s3 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s3 = peg$FAILED;
+	            if (peg$silentFails === 0) {
+	              peg$fail(peg$c58);
+	            }
+	          }
+	        }
+	      } else {
+	        s2 = peg$c0;
+	      }
+	      if (s2 !== peg$FAILED) {
+	        s2 = input.substring(s1, peg$currPos);
+	      }
+	      s1 = s2;
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c59(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsenumber() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      s1 = [];
+	      if (peg$c60.test(input.charAt(peg$currPos))) {
+	        s2 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s2 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c61);
+	        }
+	      }
+	      if (s2 !== peg$FAILED) {
+	        while (s2 !== peg$FAILED) {
+	          s1.push(s2);
+	          if (peg$c60.test(input.charAt(peg$currPos))) {
+	            s2 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s2 = peg$FAILED;
+	            if (peg$silentFails === 0) {
+	              peg$fail(peg$c61);
+	            }
+	          }
+	        }
+	      } else {
+	        s1 = peg$c0;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c62(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function extend(dst) {
+	      for (var i = 1; i < arguments.length; i++) {
+	        for (var k in arguments[i]) {
+	          dst[k] = arguments[i][k];
+	        }
+	      }
+	      return dst;
+	    }
+	
+	    peg$result = peg$startRuleFunction();
+	
+	    if (peg$result !== peg$FAILED && peg$currPos === input.length) {
+	      return peg$result;
+	    } else {
+	      if (peg$result !== peg$FAILED && peg$currPos < input.length) {
+	        peg$fail({ type: "end", description: "end of input" });
+	      }
+	
+	      throw peg$buildException(null, peg$maxFailExpected, peg$maxFailPos);
+	    }
+	  }
+	
+	  return {
+	    SyntaxError: SyntaxError,
+	    parse: parse
+	  };
+	})();
+	
 	},{}]},{},[2])(2)
 	});
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
@@ -9988,10 +11177,15 @@
 	
 	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
 	
+	function getParameterByName(name) {
+	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+	    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+	    var results = regex.exec(location.search);
+	    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+	}
+	
 	var VflView = (function (_View) {
 	    function VflView(options) {
-	        var _this = this;
-	
 	        _classCallCheck(this, VflView);
 	
 	        _get(Object.getPrototypeOf(VflView.prototype), 'constructor', this).call(this, options);
@@ -10007,14 +11201,10 @@
 	        });
 	
 	        this.textArea = new _famousSurfacesTextareaSurface2['default']({
-	            value: '|-[child]-|\nV:|-[child]-|\n'
+	            value: getParameterByName('vfl') || '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|\n'
 	        });
-	        this.textArea.on('change', function () {
-	            return _this._eventOutput.emit('update');
-	        });
-	        this.textArea.on('keyup', function () {
-	            return _this._eventOutput.emit('update');
-	        });
+	        this.textArea.on('change', this._onChange.bind(this));
+	        this.textArea.on('keyup', this._onChange.bind(this));
 	
 	        this.examples = new _famousCoreSurface2['default']();
 	
@@ -10032,6 +11222,15 @@
 	    _inherits(VflView, _View);
 	
 	    _createClass(VflView, [{
+	        key: '_onChange',
+	        value: function _onChange() {
+	            var vfl = this.textArea.getValue();
+	            if (vfl !== this._vfl) {
+	                this._vfl = vfl;
+	                this._eventOutput.emit('update');
+	            }
+	        }
+	    }, {
 	        key: 'getVisualFormat',
 	        value: function getVisualFormat() {
 	            return this.textArea.getValue();
@@ -10070,7 +11269,8 @@
 	module.exports = function(visualFormat) {
 	    var view = new AutoLayout.View();
 	    try {
-	        view.addVisualFormat(visualFormat);
+	        var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
+	        view.addConstraints(constraints);
 	        return _layout.bind(view, view);
 	    }
 	    catch (err) {
@@ -13112,7 +14312,7 @@
 	            content: this.content
 	        };
 	        this.layout = new _famousFlexLayoutController2['default']({
-	            layout: (0, _vflToLayout2['default'])(['|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(60)]-[spacingInput(200)]', 'V:[widthText(30,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]', '|-[content]-|', 'V:|-[widthText]-[content]-|', 'V:|-[widthInput]', 'V:|-[heightText]', 'V:|-[heightInput]', 'V:|-[spacingText]', 'V:|-[spacingInput]']),
+	            layout: (0, _vflToLayout2['default'])(['|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(60)]-[spacingInput(200)]', 'V:[widthText(44,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]', '|-[content]-|', 'V:|-[widthText]-[content]-|', 'V:|-[widthInput]', 'V:|-[heightText]', 'V:|-[heightInput]', 'V:|-[spacingText]', 'V:|-[spacingInput]']),
 	            dataSource: this.renderables
 	        });
 	        this.add(this.layout);
@@ -13145,7 +14345,7 @@
 	            this.contentRenderables = {};
 	            if (this.alView) {
 	                for (var subView in this.alView.subViews) {
-	                    this.contentRenderables[subView] = this.contentPool[key] || new _famousCoreSurface2['default']({
+	                    this.contentRenderables[subView] = this.contentPool[subView] || new _famousCoreSurface2['default']({
 	                        content: '<div class="va">' + subView + '</div>',
 	                        classes: ['subView']
 	                    });
@@ -13344,20 +14544,33 @@
 	    }, {
 	        key: 'parse',
 	        value: function parse(visualFormat) {
+	            visualFormat = visualFormat.replace(/[\\]/g, '\n');
+	            try {
+	                var json = visualFormat.replace(/["']/g, '"');
+	                visualFormat = JSON.parse(json);
+	            } catch (err) {
+	
+	                //
+	                console.log('huh');
+	            }
 	            try {
 	                // update constraints
-	                var constraints = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat);
+	                var constraints = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat, { extended: true });
 	                this.constraints.setContent('<pre>' + JSON.stringify(constraints, undefined, 2) + '</pre>');
 	                // update raw
-	                var raw = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat, { outFormat: 'raw' });
+	                var raw = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat, { extended: true, outFormat: 'raw' });
 	                this.raw.setContent('<pre>' + JSON.stringify(raw, undefined, 2) + '</pre>');
 	                // update log
-	                this._log('<code>Visual format parsed succesfully.</code><br>');
+	                this._log('<code>Visual format parsed successfully.</code><br>');
 	                return constraints;
 	            } catch (err) {
-	                this.constraints.setContent('');
-	                this.raw.setContent('');
-	                this._log('<pre style="color: red; margin: 0;">' + 'ERROR: ' + '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' + err.source.substring(err.column - 1) + '\n' + 'line ' + err.line + new Array(2 + err.column - ('' + err.line).length).join(' ') + '^ ' + err.message + '</pre>');
+	                if (err instanceof SyntaxError) {
+	                    this.constraints.setContent('');
+	                    this.raw.setContent('');
+	                    this._log('<pre style="color: red; margin: 0;">' + 'ERROR: ' + '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' + err.source.substring(err.column - 1) + '\n' + 'line ' + err.line + new Array(2 + err.column - ('' + err.line).length).join(' ') + '^ ' + err.message + '</pre>');
+	                } else {
+	                    this._log('<pre style="color: red; margin: 0;">ERROR: ' + err.toString() + '</pre>');
+	                }
 	            }
 	        }
 	    }]);

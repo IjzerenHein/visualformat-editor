@@ -9,6 +9,13 @@
  */
 define(function(require) {
 
+    function getParameterByName(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+
     //<webpack>
     require('famous-polyfills');
     require('famous/core/famous.css');
@@ -35,13 +42,19 @@ define(function(require) {
 
     // create the main context and layout
     var mainContext = Engine.createContext();
+    var fullLayout = vflToLayout([
+        '|[banner]|\nV:[banner(124)]',
+        'V:|[banner][vfl(parse)][parse]|',
+        'V:[banner][layout]|',
+        '|[vfl(parse,layout)][layout]|'
+    ]);
+    var previewLayout = vflToLayout([
+        '|[banner]|\nV:[banner(124)]',
+        'V:[banner][layout]|',
+        '|[layout]|'
+    ]);
     var mainLC = new LayoutController({
-        layout: vflToLayout([
-            '|[banner]|\nV:[banner(124)]',
-            'V:|[banner][vfl(parse)][parse]|',
-            'V:[banner][layout]|',
-            '|[vfl(parse,layout)][layout]|'
-        ])
+        layout: parseInt(getParameterByName('preview')) ? previewLayout : fullLayout
     });
     mainContext.add(mainLC);
 
@@ -73,7 +86,7 @@ define(function(require) {
         var constraints = parseView.parse(vfl);
         if (constraints) {
             var view = new AutoLayout.View();
-            view.addConstraint(constraints);
+            view.addConstraints(constraints);
             layoutView.setAutoLayoutView(view);
         }
     }

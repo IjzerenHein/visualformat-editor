@@ -58,6 +58,7 @@ class ParseView extends View {
     }
 
     parse(visualFormat) {
+        visualFormat = visualFormat.replace(/[\\]/g, '\n');
         try {
             const json = visualFormat.replace(/["']/g, '\"');
             visualFormat = JSON.parse(json);
