@@ -1,6 +1,4 @@
-var c = require('cassowary/bin/c');
-window.c = c;
-var AutoLayout = require('autolayout.js/dist/autolayout');
+var AutoLayout = require('autolayout.js');
 
 function _layout(view, context) {
     view.setSize(context.size[0], context.size[1]);
@@ -14,8 +12,8 @@ function _layout(view, context) {
     }
 }
 
-module.exports = function(visualFormat) {
-    var view = new AutoLayout.View();
+module.exports = function(visualFormat, options) {
+    var view = new AutoLayout.View(options);
     try {
         var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
         view.addConstraints(constraints);

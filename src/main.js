@@ -31,30 +31,49 @@ define(function(require) {
     // import dependencies
     var Engine = require('famous/core/Engine');
     var LayoutController = require('famous-flex/LayoutController');
-    var c = require('cassowary/bin/c');
-    window.c = c;
-    var AutoLayout = require('autolayout.js/dist/autolayout');
-    var VflView = require('./views/VflView.es6');
-    var LayoutView = require('./views/LayoutView.es6');
-    var ParseView = require('./views/ParseView.es6');
+    var AutoLayout = require('autolayout.js');
+    var InputView = require('./views/InputView.es6');
+    var OutputView = require('./views/OutputView.es6');
+    var VisualOutputView = require('./views/VisualOutputView.es6');
     var vflToLayout = require('./vflToLayout');
     var Surface = require('famous/core/Surface');
 
     // create the main context and layout
     var mainContext = Engine.createContext();
-    var fullLayout = vflToLayout([
-        '|[banner]|\nV:[banner(124)]',
-        'V:|[banner][vfl(parse)][parse]|',
-        'V:[banner][layout]|',
-        '|[vfl(parse,layout)][layout]|'
-    ]);
-    var previewLayout = vflToLayout([
-        '|[banner]|\nV:[banner(124)]',
-        'V:[banner][layout]|',
-        '|[layout]|'
-    ]);
+    var layout;
+    switch (getParameterByName('mode')) {
+        case 'preview':
+            layout = vflToLayout([
+                '|-[visualOutput]-|',
+                'V:|-[visualOutput]-|'
+            ]);
+            break;
+        case 'compact':
+            layout = vflToLayout([
+                'V:|-[input(output)]-[output]-|',
+                'V:|-[visualOutput]-|',
+                '|-[input(output,visualOutput)]-[visualOutput]-|',
+                '|-[output]-[visualOutput]-|'
+            ], {spacing: [10, 10]});
+            break;
+        case 'nolog':
+            layout = vflToLayout([
+                'V:|-[input]-|',
+                'V:|-[visualOutput]-|',
+                '|-[input(visualOutput)]-[visualOutput]-|'
+            ], {spacing: [10, 10]});
+            break;
+        default:
+            layout = vflToLayout([
+                '|[banner]|\nV:[banner(124)]',
+                'V:|[banner]-[input(output)]-[output]-|',
+                'V:[banner]-[visualOutput]-|',
+                '|-[input(output,visualOutput)]-[visualOutput]-|',
+                '|-[output]-[visualOutput]-|'
+            ], {spacing: [10, 10]});
+    }
     var mainLC = new LayoutController({
-        layout: parseInt(getParameterByName('preview')) ? previewLayout : fullLayout
+        layout: layout
     });
     mainContext.add(mainLC);
 
@@ -67,27 +86,36 @@ define(function(require) {
     });
     mainLC.insert('banner', banner);
 
-    // Create vfl view
-    var vflView = new VflView();
-    mainLC.insert('vfl', vflView);
-    vflView.on('update', _update); //eslint-disable-line no-use-before-define
+    // Create input view
+    var inputView = new InputView();
+    mainLC.insert('input', inputView);
+    inputView.editor.on('update', _update); //eslint-disable-line no-use-before-define
+    inputView.settings.on('update', _updateSettings); //eslint-disable-line no-use-before-define
 
-    // Create parse view
-    var parseView = new ParseView();
-    mainLC.insert('parse', parseView);
+    // Create output view
+    var outputView = new OutputView();
+    mainLC.insert('output', outputView);
 
-    // Create output layout-controller for results
-    var layoutView = new LayoutView();
-    mainLC.insert('layout', layoutView);
+    // Create visualoutput view
+    var visualOutputView = new VisualOutputView();
+    mainLC.insert('visualOutput', visualOutputView);
 
     // Update handling
     function _update() {
-        var vfl = vflView.getVisualFormat();
-        var constraints = parseView.parse(vfl);
+        var vfl = inputView.editor.getVisualFormat();
+        var constraints = outputView.parse(vfl);
         if (constraints) {
             var view = new AutoLayout.View();
             view.addConstraints(constraints);
-            layoutView.setAutoLayoutView(view);
+            visualOutputView.setAutoLayoutView(view);
+        }
+        _updateSettings(); //eslint-disable-line no-use-before-define
+    }
+    function _updateSettings() {
+        var view = visualOutputView.getAutoLayoutView();
+        if (view) {
+            inputView.settings.updateAutoLayoutView(view);
+            visualOutputView.setAutoLayoutView(view);
         }
     }
     _update();

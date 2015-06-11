@@ -66,44 +66,63 @@
 	    }
 	
 	    //<webpack>
-	    __webpack_require__(/*! famous-polyfills */ 1);
-	    __webpack_require__(/*! famous/core/famous.css */ 5);
-	    __webpack_require__(/*! famous-flex/widgets/styles.css */ 8);
-	    __webpack_require__(/*! ./styles.css */ 10);
-	    __webpack_require__(/*! ./index.html */ 15);
+	    __webpack_require__(/*! famous-polyfills */ 24);
+	    __webpack_require__(/*! famous/core/famous.css */ 28);
+	    __webpack_require__(/*! famous-flex/widgets/styles.css */ 31);
+	    __webpack_require__(/*! ./styles.css */ 33);
+	    __webpack_require__(/*! ./index.html */ 38);
 	    //</webpack>
 	
 	    // Fast-click
-	    var FastClick = __webpack_require__(/*! fastclick/lib/fastclick */ 16);
+	    var FastClick = __webpack_require__(/*! fastclick/lib/fastclick */ 39);
 	    FastClick.attach(document.body);
 	
 	    // import dependencies
-	    var Engine = __webpack_require__(/*! famous/core/Engine */ 17);
-	    var LayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
-	    var c = __webpack_require__(/*! cassowary/bin/c */ 45);
-	    window.c = c;
-	    var AutoLayout = __webpack_require__(/*! autolayout.js/dist/autolayout */ 47);
-	    var VflView = __webpack_require__(/*! ./views/VflView.es6 */ 48);
-	    var LayoutView = __webpack_require__(/*! ./views/LayoutView.es6 */ 63);
-	    var ParseView = __webpack_require__(/*! ./views/ParseView.es6 */ 65);
-	    var vflToLayout = __webpack_require__(/*! ./vflToLayout */ 49);
-	    var Surface = __webpack_require__(/*! famous/core/Surface */ 51);
+	    var Engine = __webpack_require__(/*! famous/core/Engine */ 40);
+	    var LayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 1);
+	    var AutoLayout = __webpack_require__(/*! autolayout.js */ 45);
+	    var InputView = __webpack_require__(/*! ./views/InputView.es6 */ 55);
+	    var OutputView = __webpack_require__(/*! ./views/OutputView.es6 */ 73);
+	    var VisualOutputView = __webpack_require__(/*! ./views/VisualOutputView.es6 */ 74);
+	    var vflToLayout = __webpack_require__(/*! ./vflToLayout */ 68);
+	    var Surface = __webpack_require__(/*! famous/core/Surface */ 65);
 	
 	    // create the main context and layout
 	    var mainContext = Engine.createContext();
-	    var fullLayout = vflToLayout([
-	        '|[banner]|\nV:[banner(124)]',
-	        'V:|[banner][vfl(parse)][parse]|',
-	        'V:[banner][layout]|',
-	        '|[vfl(parse,layout)][layout]|'
-	    ]);
-	    var previewLayout = vflToLayout([
-	        '|[banner]|\nV:[banner(124)]',
-	        'V:[banner][layout]|',
-	        '|[layout]|'
-	    ]);
+	    var layout;
+	    switch (getParameterByName('mode')) {
+	        case 'preview':
+	            layout = vflToLayout([
+	                '|-[visualOutput]-|',
+	                'V:|-[visualOutput]-|'
+	            ]);
+	            break;
+	        case 'compact':
+	            layout = vflToLayout([
+	                'V:|-[input(output)]-[output]-|',
+	                'V:|-[visualOutput]-|',
+	                '|-[input(output,visualOutput)]-[visualOutput]-|',
+	                '|-[output]-[visualOutput]-|'
+	            ], {spacing: [10, 10]});
+	            break;
+	        case 'nolog':
+	            layout = vflToLayout([
+	                'V:|-[input]-|',
+	                'V:|-[visualOutput]-|',
+	                '|-[input(visualOutput)]-[visualOutput]-|'
+	            ], {spacing: [10, 10]});
+	            break;
+	        default:
+	            layout = vflToLayout([
+	                '|[banner]|\nV:[banner(124)]',
+	                'V:|[banner]-[input(output)]-[output]-|',
+	                'V:[banner]-[visualOutput]-|',
+	                '|-[input(output,visualOutput)]-[visualOutput]-|',
+	                '|-[output]-[visualOutput]-|'
+	            ], {spacing: [10, 10]});
+	    }
 	    var mainLC = new LayoutController({
-	        layout: parseInt(getParameterByName('preview')) ? previewLayout : fullLayout
+	        layout: layout
 	    });
 	    mainContext.add(mainLC);
 	
@@ -116,27 +135,36 @@
 	    });
 	    mainLC.insert('banner', banner);
 	
-	    // Create vfl view
-	    var vflView = new VflView();
-	    mainLC.insert('vfl', vflView);
-	    vflView.on('update', _update); //eslint-disable-line no-use-before-define
+	    // Create input view
+	    var inputView = new InputView();
+	    mainLC.insert('input', inputView);
+	    inputView.editor.on('update', _update); //eslint-disable-line no-use-before-define
+	    inputView.settings.on('update', _updateSettings); //eslint-disable-line no-use-before-define
 	
-	    // Create parse view
-	    var parseView = new ParseView();
-	    mainLC.insert('parse', parseView);
+	    // Create output view
+	    var outputView = new OutputView();
+	    mainLC.insert('output', outputView);
 	
-	    // Create output layout-controller for results
-	    var layoutView = new LayoutView();
-	    mainLC.insert('layout', layoutView);
+	    // Create visualoutput view
+	    var visualOutputView = new VisualOutputView();
+	    mainLC.insert('visualOutput', visualOutputView);
 	
 	    // Update handling
 	    function _update() {
-	        var vfl = vflView.getVisualFormat();
-	        var constraints = parseView.parse(vfl);
+	        var vfl = inputView.editor.getVisualFormat();
+	        var constraints = outputView.parse(vfl);
 	        if (constraints) {
 	            var view = new AutoLayout.View();
 	            view.addConstraints(constraints);
-	            layoutView.setAutoLayoutView(view);
+	            visualOutputView.setAutoLayoutView(view);
+	        }
+	        _updateSettings(); //eslint-disable-line no-use-before-define
+	    }
+	    function _updateSettings() {
+	        var view = visualOutputView.getAutoLayoutView();
+	        if (view) {
+	            inputView.settings.updateAutoLayoutView(view);
+	            visualOutputView.setAutoLayoutView(view);
 	        }
 	    }
 	    _update();
@@ -145,3346 +173,6 @@
 
 /***/ },
 /* 1 */
-/*!**************************************!*\
-  !*** ../~/famous-polyfills/index.js ***!
-  \**************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	__webpack_require__(/*! ./classList.js */ 2);
-	__webpack_require__(/*! ./functionPrototypeBind.js */ 3);
-	__webpack_require__(/*! ./requestAnimationFrame.js */ 4);
-
-/***/ },
-/* 2 */
-/*!******************************************!*\
-  !*** ../~/famous-polyfills/classList.js ***!
-  \******************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	
-	/*
-	 * classList.js: Cross-browser full element.classList implementation.
-	 * 2011-06-15
-	 *
-	 * By Eli Grey, http://eligrey.com
-	 * Public Domain.
-	 * NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
-	 */
-	
-	/*global self, document, DOMException */
-	
-	/*! @source http://purl.eligrey.com/github/classList.js/blob/master/classList.js*/
-	
-	if (typeof document !== "undefined" && !("classList" in document.createElement("a"))) {
-	
-	(function (view) {
-	
-	"use strict";
-	
-	var
-	      classListProp = "classList"
-	    , protoProp = "prototype"
-	    , elemCtrProto = (view.HTMLElement || view.Element)[protoProp]
-	    , objCtr = Object
-	    , strTrim = String[protoProp].trim || function () {
-	        return this.replace(/^\s+|\s+$/g, "");
-	    }
-	    , arrIndexOf = Array[protoProp].indexOf || function (item) {
-	        var
-	              i = 0
-	            , len = this.length
-	        ;
-	        for (; i < len; i++) {
-	            if (i in this && this[i] === item) {
-	                return i;
-	            }
-	        }
-	        return -1;
-	    }
-	    // Vendors: please allow content code to instantiate DOMExceptions
-	    , DOMEx = function (type, message) {
-	        this.name = type;
-	        this.code = DOMException[type];
-	        this.message = message;
-	    }
-	    , checkTokenAndGetIndex = function (classList, token) {
-	        if (token === "") {
-	            throw new DOMEx(
-	                  "SYNTAX_ERR"
-	                , "An invalid or illegal string was specified"
-	            );
-	        }
-	        if (/\s/.test(token)) {
-	            throw new DOMEx(
-	                  "INVALID_CHARACTER_ERR"
-	                , "String contains an invalid character"
-	            );
-	        }
-	        return arrIndexOf.call(classList, token);
-	    }
-	    , ClassList = function (elem) {
-	        var
-	              trimmedClasses = strTrim.call(elem.className)
-	            , classes = trimmedClasses ? trimmedClasses.split(/\s+/) : []
-	            , i = 0
-	            , len = classes.length
-	        ;
-	        for (; i < len; i++) {
-	            this.push(classes[i]);
-	        }
-	        this._updateClassName = function () {
-	            elem.className = this.toString();
-	        };
-	    }
-	    , classListProto = ClassList[protoProp] = []
-	    , classListGetter = function () {
-	        return new ClassList(this);
-	    }
-	;
-	// Most DOMException implementations don't allow calling DOMException's toString()
-	// on non-DOMExceptions. Error's toString() is sufficient here.
-	DOMEx[protoProp] = Error[protoProp];
-	classListProto.item = function (i) {
-	    return this[i] || null;
-	};
-	classListProto.contains = function (token) {
-	    token += "";
-	    return checkTokenAndGetIndex(this, token) !== -1;
-	};
-	classListProto.add = function (token) {
-	    token += "";
-	    if (checkTokenAndGetIndex(this, token) === -1) {
-	        this.push(token);
-	        this._updateClassName();
-	    }
-	};
-	classListProto.remove = function (token) {
-	    token += "";
-	    var index = checkTokenAndGetIndex(this, token);
-	    if (index !== -1) {
-	        this.splice(index, 1);
-	        this._updateClassName();
-	    }
-	};
-	classListProto.toggle = function (token) {
-	    token += "";
-	    if (checkTokenAndGetIndex(this, token) === -1) {
-	        this.add(token);
-	    } else {
-	        this.remove(token);
-	    }
-	};
-	classListProto.toString = function () {
-	    return this.join(" ");
-	};
-	
-	if (objCtr.defineProperty) {
-	    var classListPropDesc = {
-	          get: classListGetter
-	        , enumerable: true
-	        , configurable: true
-	    };
-	    try {
-	        objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
-	    } catch (ex) { // IE 8 doesn't support enumerable:true
-	        if (ex.number === -0x7FF5EC54) {
-	            classListPropDesc.enumerable = false;
-	            objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
-	        }
-	    }
-	} else if (objCtr[protoProp].__defineGetter__) {
-	    elemCtrProto.__defineGetter__(classListProp, classListGetter);
-	}
-	
-	}(self));
-	
-	}
-
-
-/***/ },
-/* 3 */
-/*!******************************************************!*\
-  !*** ../~/famous-polyfills/functionPrototypeBind.js ***!
-  \******************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	if (!Function.prototype.bind) {
-	    Function.prototype.bind = function (oThis) {
-	        if (typeof this !== "function") {
-	            // closest thing possible to the ECMAScript 5 internal IsCallable function
-	            throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-	        }
-	
-	        var aArgs = Array.prototype.slice.call(arguments, 1),
-	        fToBind = this,
-	        fNOP = function () {},
-	        fBound = function () {
-	            return fToBind.apply(this instanceof fNOP && oThis
-	                ? this
-	                : oThis,
-	                aArgs.concat(Array.prototype.slice.call(arguments)));
-	        };
-	
-	        fNOP.prototype = this.prototype;
-	        fBound.prototype = new fNOP();
-	
-	        return fBound;
-	    };
-	}
-
-
-/***/ },
-/* 4 */
-/*!******************************************************!*\
-  !*** ../~/famous-polyfills/requestAnimationFrame.js ***!
-  \******************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	// adds requestAnimationFrame functionality
-	// Source: http://strd6.com/2011/05/better-window-requestanimationframe-shim/
-	
-	window.requestAnimationFrame || (window.requestAnimationFrame =
-	  window.webkitRequestAnimationFrame ||
-	  window.mozRequestAnimationFrame    ||
-	  window.oRequestAnimationFrame      ||
-	  window.msRequestAnimationFrame     ||
-	  function(callback, element) {
-	    return window.setTimeout(function() {
-	      callback(+new Date());
-	  }, 1000 / 60);
-	});
-
-
-/***/ },
-/* 5 */
-/*!***********************************!*\
-  !*** ../~/famous/core/famous.css ***!
-  \***********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
-		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!../~/famous/core/famous.css */ 7));
-	// Hot Module Replacement
-	if(false) {
-		module.hot.accept();
-		module.hot.dispose(dispose);
-	}
-
-/***/ },
-/* 6 */
-/*!*************************************!*\
-  !*** ../~/style-loader/addStyle.js ***!
-  \*************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/*
-		MIT License http://www.opensource.org/licenses/mit-license.php
-		Author Tobias Koppers @sokra
-	*/
-	module.exports = function addStyle(cssCode) {
-		if(true) {
-			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
-		}
-		var styleElement = document.createElement("style");
-		styleElement.type = "text/css";
-		var head = document.getElementsByTagName("head")[0];
-		head.appendChild(styleElement);
-		if (styleElement.styleSheet) {
-			styleElement.styleSheet.cssText = cssCode;
-		} else {
-			styleElement.appendChild(document.createTextNode(cssCode));
-		}
-		return function() {
-			head.removeChild(styleElement);
-		};
-	}
-
-
-/***/ },
-/* 7 */
-/*!***************************************************!*\
-  !*** ../~/css-loader!../~/famous/core/famous.css ***!
-  \***************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports =
-		"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\n *\n * Owner: mark@famo.us\n * @license MPL 2.0\n * @copyright Famous Industries, Inc. 2015\n */\n\n.famous-root {\n    width: 100%;\n    height: 100%;\n    margin: 0px;\n    padding: 0px;\n    opacity: .999999; /* ios8 hotfix */\n    overflow: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n}\n\n.famous-container, .famous-group {\n    position: absolute;\n    top: 0px;\n    left: 0px;\n    bottom: 0px;\n    right: 0px;\n    overflow: visible;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-backface-visibility: visible;\n    backface-visibility: visible;\n    pointer-events: none;\n}\n\n.famous-group {\n    width: 0px;\n    height: 0px;\n    margin: 0px;\n    padding: 0px;\n}\n\n.famous-surface {\n    position: absolute;\n    -webkit-transform-origin: center center;\n    transform-origin: center center;\n    -webkit-backface-visibility: hidden;\n    backface-visibility: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-box-sizing: border-box;\n    -moz-box-sizing: border-box;\n    box-sizing: border-box;\n    -webkit-tap-highlight-color: transparent;\n    pointer-events: auto;\n}\n\n.famous-container-group {\n    position: relative;\n    width: 100%;\n    height: 100%;\n}\n";
-
-/***/ },
-/* 8 */
-/*!***********************************************!*\
-  !*** ../~/famous-flex/src/widgets/styles.css ***!
-  \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
-		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!../~/famous-flex/src/widgets/styles.css */ 9));
-	// Hot Module Replacement
-	if(false) {
-		module.hot.accept();
-		module.hot.dispose(dispose);
-	}
-
-/***/ },
-/* 9 */
-/*!***************************************************************!*\
-  !*** ../~/css-loader!../~/famous-flex/src/widgets/styles.css ***!
-  \***************************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports =
-		"/**\n * This Source Code is licensed under the MIT license. If a copy of the\n * MIT-license was not distributed with this file, You can obtain one at:\n * http://opensource.org/licenses/mit-license.html.\n *\n * @author: Hein Rutjes (IjzerenHein)\n * @license MIT\n * @copyright Gloey Apps, 2015\n */\n\n/* datepicker */\n.ff-datepicker.item {\n  text-align: center;\n}\n.ff-datepicker.item > div {\n  /* align content vertically */\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n.ff-datepicker.top, .ff-datepicker.middle, .ff-datepicker.bottom {\n  pointer-events: none;\n}\n\n\n/* tabbar common */\n.ff-tabbar.item {\n  text-align: center;\n  white-space: nowrap;\n  color: #333333;\n  cursor: pointer;\n}\n.ff-tabbar.item > div {\n  /* align content vertically */\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 6px solid #1185c3;\n}\n";
-
-/***/ },
-/* 10 */
-/*!********************!*\
-  !*** ./styles.css ***!
-  \********************/
-/***/ function(module, exports, __webpack_require__) {
-
-	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
-		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!./styles.css */ 11));
-	// Hot Module Replacement
-	if(false) {
-		module.hot.accept();
-		module.hot.dispose(dispose);
-	}
-
-/***/ },
-/* 11 */
-/*!************************************!*\
-  !*** ../~/css-loader!./styles.css ***!
-  \************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports =
-		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 12)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 13)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'DancingScriptOT';\n  src: url("+__webpack_require__(/*! ./fonts/dancing-script-ot/DancingScript-Regular.otf */ 14)+");\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n  -moz-tab-size: 2;\n  -o-tab-size: 2;\n  tab-size: 2;\n}\ntextarea {\n  padding: 5px;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n  z-index: 10;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n.banner .subTitle {\n  font-family: DancingScriptOT;\n  font-weight: bold;\n  font-size: 26px;\n  color: orange;\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 3px solid orange;\n}\n.ff-tabbar.item > div {\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n}\n.ff-tabbar.item.selected {\n  color: orange;\n  font-weight: bold;\n}\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  background-color: #CCCCCC;\n  text-align: center;\n}\n";
-
-/***/ },
-/* 12 */
-/*!**************************************************!*\
-  !*** ./fonts/montserrat/Montserrat-Hairline.otf ***!
-  \**************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Hairline.otf"
-
-/***/ },
-/* 13 */
-/*!***********************************************!*\
-  !*** ./fonts/montserrat/Montserrat-Light.otf ***!
-  \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Light.otf"
-
-/***/ },
-/* 14 */
-/*!***********************************************************!*\
-  !*** ./fonts/dancing-script-ot/DancingScript-Regular.otf ***!
-  \***********************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "fonts/dancing-script-ot/DancingScript-Regular.otf"
-
-/***/ },
-/* 15 */
-/*!********************!*\
-  !*** ./index.html ***!
-  \********************/
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "index.html"
-
-/***/ },
-/* 16 */
-/*!***************************************!*\
-  !*** ../~/fastclick/lib/fastclick.js ***!
-  \***************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;;(function () {
-		'use strict';
-	
-		/**
-		 * @preserve FastClick: polyfill to remove click delays on browsers with touch UIs.
-		 *
-		 * @codingstandard ftlabs-jsv2
-		 * @copyright The Financial Times Limited [All Rights Reserved]
-		 * @license MIT License (see LICENSE.txt)
-		 */
-	
-		/*jslint browser:true, node:true*/
-		/*global define, Event, Node*/
-	
-	
-		/**
-		 * Instantiate fast-clicking listeners on the specified layer.
-		 *
-		 * @constructor
-		 * @param {Element} layer The layer to listen on
-		 * @param {Object} [options={}] The options to override the defaults
-		 */
-		function FastClick(layer, options) {
-			var oldOnClick;
-	
-			options = options || {};
-	
-			/**
-			 * Whether a click is currently being tracked.
-			 *
-			 * @type boolean
-			 */
-			this.trackingClick = false;
-	
-	
-			/**
-			 * Timestamp for when click tracking started.
-			 *
-			 * @type number
-			 */
-			this.trackingClickStart = 0;
-	
-	
-			/**
-			 * The element being tracked for a click.
-			 *
-			 * @type EventTarget
-			 */
-			this.targetElement = null;
-	
-	
-			/**
-			 * X-coordinate of touch start event.
-			 *
-			 * @type number
-			 */
-			this.touchStartX = 0;
-	
-	
-			/**
-			 * Y-coordinate of touch start event.
-			 *
-			 * @type number
-			 */
-			this.touchStartY = 0;
-	
-	
-			/**
-			 * ID of the last touch, retrieved from Touch.identifier.
-			 *
-			 * @type number
-			 */
-			this.lastTouchIdentifier = 0;
-	
-	
-			/**
-			 * Touchmove boundary, beyond which a click will be cancelled.
-			 *
-			 * @type number
-			 */
-			this.touchBoundary = options.touchBoundary || 10;
-	
-	
-			/**
-			 * The FastClick layer.
-			 *
-			 * @type Element
-			 */
-			this.layer = layer;
-	
-			/**
-			 * The minimum time between tap(touchstart and touchend) events
-			 *
-			 * @type number
-			 */
-			this.tapDelay = options.tapDelay || 200;
-	
-			/**
-			 * The maximum time for a tap
-			 *
-			 * @type number
-			 */
-			this.tapTimeout = options.tapTimeout || 700;
-	
-			if (FastClick.notNeeded(layer)) {
-				return;
-			}
-	
-			// Some old versions of Android don't have Function.prototype.bind
-			function bind(method, context) {
-				return function() { return method.apply(context, arguments); };
-			}
-	
-	
-			var methods = ['onMouse', 'onClick', 'onTouchStart', 'onTouchMove', 'onTouchEnd', 'onTouchCancel'];
-			var context = this;
-			for (var i = 0, l = methods.length; i < l; i++) {
-				context[methods[i]] = bind(context[methods[i]], context);
-			}
-	
-			// Set up event handlers as required
-			if (deviceIsAndroid) {
-				layer.addEventListener('mouseover', this.onMouse, true);
-				layer.addEventListener('mousedown', this.onMouse, true);
-				layer.addEventListener('mouseup', this.onMouse, true);
-			}
-	
-			layer.addEventListener('click', this.onClick, true);
-			layer.addEventListener('touchstart', this.onTouchStart, false);
-			layer.addEventListener('touchmove', this.onTouchMove, false);
-			layer.addEventListener('touchend', this.onTouchEnd, false);
-			layer.addEventListener('touchcancel', this.onTouchCancel, false);
-	
-			// Hack is required for browsers that don't support Event#stopImmediatePropagation (e.g. Android 2)
-			// which is how FastClick normally stops click events bubbling to callbacks registered on the FastClick
-			// layer when they are cancelled.
-			if (!Event.prototype.stopImmediatePropagation) {
-				layer.removeEventListener = function(type, callback, capture) {
-					var rmv = Node.prototype.removeEventListener;
-					if (type === 'click') {
-						rmv.call(layer, type, callback.hijacked || callback, capture);
-					} else {
-						rmv.call(layer, type, callback, capture);
-					}
-				};
-	
-				layer.addEventListener = function(type, callback, capture) {
-					var adv = Node.prototype.addEventListener;
-					if (type === 'click') {
-						adv.call(layer, type, callback.hijacked || (callback.hijacked = function(event) {
-							if (!event.propagationStopped) {
-								callback(event);
-							}
-						}), capture);
-					} else {
-						adv.call(layer, type, callback, capture);
-					}
-				};
-			}
-	
-			// If a handler is already declared in the element's onclick attribute, it will be fired before
-			// FastClick's onClick handler. Fix this by pulling out the user-defined handler function and
-			// adding it as listener.
-			if (typeof layer.onclick === 'function') {
-	
-				// Android browser on at least 3.2 requires a new reference to the function in layer.onclick
-				// - the old one won't work if passed to addEventListener directly.
-				oldOnClick = layer.onclick;
-				layer.addEventListener('click', function(event) {
-					oldOnClick(event);
-				}, false);
-				layer.onclick = null;
-			}
-		}
-	
-		/**
-		* Windows Phone 8.1 fakes user agent string to look like Android and iPhone.
-		*
-		* @type boolean
-		*/
-		var deviceIsWindowsPhone = navigator.userAgent.indexOf("Windows Phone") >= 0;
-	
-		/**
-		 * Android requires exceptions.
-		 *
-		 * @type boolean
-		 */
-		var deviceIsAndroid = navigator.userAgent.indexOf('Android') > 0 && !deviceIsWindowsPhone;
-	
-	
-		/**
-		 * iOS requires exceptions.
-		 *
-		 * @type boolean
-		 */
-		var deviceIsIOS = /iP(ad|hone|od)/.test(navigator.userAgent) && !deviceIsWindowsPhone;
-	
-	
-		/**
-		 * iOS 4 requires an exception for select elements.
-		 *
-		 * @type boolean
-		 */
-		var deviceIsIOS4 = deviceIsIOS && (/OS 4_\d(_\d)?/).test(navigator.userAgent);
-	
-	
-		/**
-		 * iOS 6.0-7.* requires the target element to be manually derived
-		 *
-		 * @type boolean
-		 */
-		var deviceIsIOSWithBadTarget = deviceIsIOS && (/OS [6-7]_\d/).test(navigator.userAgent);
-	
-		/**
-		 * BlackBerry requires exceptions.
-		 *
-		 * @type boolean
-		 */
-		var deviceIsBlackBerry10 = navigator.userAgent.indexOf('BB10') > 0;
-	
-		/**
-		 * Determine whether a given element requires a native click.
-		 *
-		 * @param {EventTarget|Element} target Target DOM element
-		 * @returns {boolean} Returns true if the element needs a native click
-		 */
-		FastClick.prototype.needsClick = function(target) {
-			switch (target.nodeName.toLowerCase()) {
-	
-			// Don't send a synthetic click to disabled inputs (issue #62)
-			case 'button':
-			case 'select':
-			case 'textarea':
-				if (target.disabled) {
-					return true;
-				}
-	
-				break;
-			case 'input':
-	
-				// File inputs need real clicks on iOS 6 due to a browser bug (issue #68)
-				if ((deviceIsIOS && target.type === 'file') || target.disabled) {
-					return true;
-				}
-	
-				break;
-			case 'label':
-			case 'iframe': // iOS8 homescreen apps can prevent events bubbling into frames
-			case 'video':
-				return true;
-			}
-	
-			return (/\bneedsclick\b/).test(target.className);
-		};
-	
-	
-		/**
-		 * Determine whether a given element requires a call to focus to simulate click into element.
-		 *
-		 * @param {EventTarget|Element} target Target DOM element
-		 * @returns {boolean} Returns true if the element requires a call to focus to simulate native click.
-		 */
-		FastClick.prototype.needsFocus = function(target) {
-			switch (target.nodeName.toLowerCase()) {
-			case 'textarea':
-				return true;
-			case 'select':
-				return !deviceIsAndroid;
-			case 'input':
-				switch (target.type) {
-				case 'button':
-				case 'checkbox':
-				case 'file':
-				case 'image':
-				case 'radio':
-				case 'submit':
-					return false;
-				}
-	
-				// No point in attempting to focus disabled inputs
-				return !target.disabled && !target.readOnly;
-			default:
-				return (/\bneedsfocus\b/).test(target.className);
-			}
-		};
-	
-	
-		/**
-		 * Send a click event to the specified element.
-		 *
-		 * @param {EventTarget|Element} targetElement
-		 * @param {Event} event
-		 */
-		FastClick.prototype.sendClick = function(targetElement, event) {
-			var clickEvent, touch;
-	
-			// On some Android devices activeElement needs to be blurred otherwise the synthetic click will have no effect (#24)
-			if (document.activeElement && document.activeElement !== targetElement) {
-				document.activeElement.blur();
-			}
-	
-			touch = event.changedTouches[0];
-	
-			// Synthesise a click event, with an extra attribute so it can be tracked
-			clickEvent = document.createEvent('MouseEvents');
-			clickEvent.initMouseEvent(this.determineEventType(targetElement), true, true, window, 1, touch.screenX, touch.screenY, touch.clientX, touch.clientY, false, false, false, false, 0, null);
-			clickEvent.forwardedTouchEvent = true;
-			targetElement.dispatchEvent(clickEvent);
-		};
-	
-		FastClick.prototype.determineEventType = function(targetElement) {
-	
-			//Issue #159: Android Chrome Select Box does not open with a synthetic click event
-			if (deviceIsAndroid && targetElement.tagName.toLowerCase() === 'select') {
-				return 'mousedown';
-			}
-	
-			return 'click';
-		};
-	
-	
-		/**
-		 * @param {EventTarget|Element} targetElement
-		 */
-		FastClick.prototype.focus = function(targetElement) {
-			var length;
-	
-			// Issue #160: on iOS 7, some input elements (e.g. date datetime month) throw a vague TypeError on setSelectionRange. These elements don't have an integer value for the selectionStart and selectionEnd properties, but unfortunately that can't be used for detection because accessing the properties also throws a TypeError. Just check the type instead. Filed as Apple bug #15122724.
-			if (deviceIsIOS && targetElement.setSelectionRange && targetElement.type.indexOf('date') !== 0 && targetElement.type !== 'time' && targetElement.type !== 'month') {
-				length = targetElement.value.length;
-				targetElement.setSelectionRange(length, length);
-			} else {
-				targetElement.focus();
-			}
-		};
-	
-	
-		/**
-		 * Check whether the given target element is a child of a scrollable layer and if so, set a flag on it.
-		 *
-		 * @param {EventTarget|Element} targetElement
-		 */
-		FastClick.prototype.updateScrollParent = function(targetElement) {
-			var scrollParent, parentElement;
-	
-			scrollParent = targetElement.fastClickScrollParent;
-	
-			// Attempt to discover whether the target element is contained within a scrollable layer. Re-check if the
-			// target element was moved to another parent.
-			if (!scrollParent || !scrollParent.contains(targetElement)) {
-				parentElement = targetElement;
-				do {
-					if (parentElement.scrollHeight > parentElement.offsetHeight) {
-						scrollParent = parentElement;
-						targetElement.fastClickScrollParent = parentElement;
-						break;
-					}
-	
-					parentElement = parentElement.parentElement;
-				} while (parentElement);
-			}
-	
-			// Always update the scroll top tracker if possible.
-			if (scrollParent) {
-				scrollParent.fastClickLastScrollTop = scrollParent.scrollTop;
-			}
-		};
-	
-	
-		/**
-		 * @param {EventTarget} targetElement
-		 * @returns {Element|EventTarget}
-		 */
-		FastClick.prototype.getTargetElementFromEventTarget = function(eventTarget) {
-	
-			// On some older browsers (notably Safari on iOS 4.1 - see issue #56) the event target may be a text node.
-			if (eventTarget.nodeType === Node.TEXT_NODE) {
-				return eventTarget.parentNode;
-			}
-	
-			return eventTarget;
-		};
-	
-	
-		/**
-		 * On touch start, record the position and scroll offset.
-		 *
-		 * @param {Event} event
-		 * @returns {boolean}
-		 */
-		FastClick.prototype.onTouchStart = function(event) {
-			var targetElement, touch, selection;
-	
-			// Ignore multiple touches, otherwise pinch-to-zoom is prevented if both fingers are on the FastClick element (issue #111).
-			if (event.targetTouches.length > 1) {
-				return true;
-			}
-	
-			targetElement = this.getTargetElementFromEventTarget(event.target);
-			touch = event.targetTouches[0];
-	
-			if (deviceIsIOS) {
-	
-				// Only trusted events will deselect text on iOS (issue #49)
-				selection = window.getSelection();
-				if (selection.rangeCount && !selection.isCollapsed) {
-					return true;
-				}
-	
-				if (!deviceIsIOS4) {
-	
-					// Weird things happen on iOS when an alert or confirm dialog is opened from a click event callback (issue #23):
-					// when the user next taps anywhere else on the page, new touchstart and touchend events are dispatched
-					// with the same identifier as the touch event that previously triggered the click that triggered the alert.
-					// Sadly, there is an issue on iOS 4 that causes some normal touch events to have the same identifier as an
-					// immediately preceeding touch event (issue #52), so this fix is unavailable on that platform.
-					// Issue 120: touch.identifier is 0 when Chrome dev tools 'Emulate touch events' is set with an iOS device UA string,
-					// which causes all touch events to be ignored. As this block only applies to iOS, and iOS identifiers are always long,
-					// random integers, it's safe to to continue if the identifier is 0 here.
-					if (touch.identifier && touch.identifier === this.lastTouchIdentifier) {
-						event.preventDefault();
-						return false;
-					}
-	
-					this.lastTouchIdentifier = touch.identifier;
-	
-					// If the target element is a child of a scrollable layer (using -webkit-overflow-scrolling: touch) and:
-					// 1) the user does a fling scroll on the scrollable layer
-					// 2) the user stops the fling scroll with another tap
-					// then the event.target of the last 'touchend' event will be the element that was under the user's finger
-					// when the fling scroll was started, causing FastClick to send a click event to that layer - unless a check
-					// is made to ensure that a parent layer was not scrolled before sending a synthetic click (issue #42).
-					this.updateScrollParent(targetElement);
-				}
-			}
-	
-			this.trackingClick = true;
-			this.trackingClickStart = event.timeStamp;
-			this.targetElement = targetElement;
-	
-			this.touchStartX = touch.pageX;
-			this.touchStartY = touch.pageY;
-	
-			// Prevent phantom clicks on fast double-tap (issue #36)
-			if ((event.timeStamp - this.lastClickTime) < this.tapDelay) {
-				event.preventDefault();
-			}
-	
-			return true;
-		};
-	
-	
-		/**
-		 * Based on a touchmove event object, check whether the touch has moved past a boundary since it started.
-		 *
-		 * @param {Event} event
-		 * @returns {boolean}
-		 */
-		FastClick.prototype.touchHasMoved = function(event) {
-			var touch = event.changedTouches[0], boundary = this.touchBoundary;
-	
-			if (Math.abs(touch.pageX - this.touchStartX) > boundary || Math.abs(touch.pageY - this.touchStartY) > boundary) {
-				return true;
-			}
-	
-			return false;
-		};
-	
-	
-		/**
-		 * Update the last position.
-		 *
-		 * @param {Event} event
-		 * @returns {boolean}
-		 */
-		FastClick.prototype.onTouchMove = function(event) {
-			if (!this.trackingClick) {
-				return true;
-			}
-	
-			// If the touch has moved, cancel the click tracking
-			if (this.targetElement !== this.getTargetElementFromEventTarget(event.target) || this.touchHasMoved(event)) {
-				this.trackingClick = false;
-				this.targetElement = null;
-			}
-	
-			return true;
-		};
-	
-	
-		/**
-		 * Attempt to find the labelled control for the given label element.
-		 *
-		 * @param {EventTarget|HTMLLabelElement} labelElement
-		 * @returns {Element|null}
-		 */
-		FastClick.prototype.findControl = function(labelElement) {
-	
-			// Fast path for newer browsers supporting the HTML5 control attribute
-			if (labelElement.control !== undefined) {
-				return labelElement.control;
-			}
-	
-			// All browsers under test that support touch events also support the HTML5 htmlFor attribute
-			if (labelElement.htmlFor) {
-				return document.getElementById(labelElement.htmlFor);
-			}
-	
-			// If no for attribute exists, attempt to retrieve the first labellable descendant element
-			// the list of which is defined here: http://www.w3.org/TR/html5/forms.html#category-label
-			return labelElement.querySelector('button, input:not([type=hidden]), keygen, meter, output, progress, select, textarea');
-		};
-	
-	
-		/**
-		 * On touch end, determine whether to send a click event at once.
-		 *
-		 * @param {Event} event
-		 * @returns {boolean}
-		 */
-		FastClick.prototype.onTouchEnd = function(event) {
-			var forElement, trackingClickStart, targetTagName, scrollParent, touch, targetElement = this.targetElement;
-	
-			if (!this.trackingClick) {
-				return true;
-			}
-	
-			// Prevent phantom clicks on fast double-tap (issue #36)
-			if ((event.timeStamp - this.lastClickTime) < this.tapDelay) {
-				this.cancelNextClick = true;
-				return true;
-			}
-	
-			if ((event.timeStamp - this.trackingClickStart) > this.tapTimeout) {
-				return true;
-			}
-	
-			// Reset to prevent wrong click cancel on input (issue #156).
-			this.cancelNextClick = false;
-	
-			this.lastClickTime = event.timeStamp;
-	
-			trackingClickStart = this.trackingClickStart;
-			this.trackingClick = false;
-			this.trackingClickStart = 0;
-	
-			// On some iOS devices, the targetElement supplied with the event is invalid if the layer
-			// is performing a transition or scroll, and has to be re-detected manually. Note that
-			// for this to function correctly, it must be called *after* the event target is checked!
-			// See issue #57; also filed as rdar://13048589 .
-			if (deviceIsIOSWithBadTarget) {
-				touch = event.changedTouches[0];
-	
-				// In certain cases arguments of elementFromPoint can be negative, so prevent setting targetElement to null
-				targetElement = document.elementFromPoint(touch.pageX - window.pageXOffset, touch.pageY - window.pageYOffset) || targetElement;
-				targetElement.fastClickScrollParent = this.targetElement.fastClickScrollParent;
-			}
-	
-			targetTagName = targetElement.tagName.toLowerCase();
-			if (targetTagName === 'label') {
-				forElement = this.findControl(targetElement);
-				if (forElement) {
-					this.focus(targetElement);
-					if (deviceIsAndroid) {
-						return false;
-					}
-	
-					targetElement = forElement;
-				}
-			} else if (this.needsFocus(targetElement)) {
-	
-				// Case 1: If the touch started a while ago (best guess is 100ms based on tests for issue #36) then focus will be triggered anyway. Return early and unset the target element reference so that the subsequent click will be allowed through.
-				// Case 2: Without this exception for input elements tapped when the document is contained in an iframe, then any inputted text won't be visible even though the value attribute is updated as the user types (issue #37).
-				if ((event.timeStamp - trackingClickStart) > 100 || (deviceIsIOS && window.top !== window && targetTagName === 'input')) {
-					this.targetElement = null;
-					return false;
-				}
-	
-				this.focus(targetElement);
-				this.sendClick(targetElement, event);
-	
-				// Select elements need the event to go through on iOS 4, otherwise the selector menu won't open.
-				// Also this breaks opening selects when VoiceOver is active on iOS6, iOS7 (and possibly others)
-				if (!deviceIsIOS || targetTagName !== 'select') {
-					this.targetElement = null;
-					event.preventDefault();
-				}
-	
-				return false;
-			}
-	
-			if (deviceIsIOS && !deviceIsIOS4) {
-	
-				// Don't send a synthetic click event if the target element is contained within a parent layer that was scrolled
-				// and this tap is being used to stop the scrolling (usually initiated by a fling - issue #42).
-				scrollParent = targetElement.fastClickScrollParent;
-				if (scrollParent && scrollParent.fastClickLastScrollTop !== scrollParent.scrollTop) {
-					return true;
-				}
-			}
-	
-			// Prevent the actual click from going though - unless the target node is marked as requiring
-			// real clicks or if it is in the whitelist in which case only non-programmatic clicks are permitted.
-			if (!this.needsClick(targetElement)) {
-				event.preventDefault();
-				this.sendClick(targetElement, event);
-			}
-	
-			return false;
-		};
-	
-	
-		/**
-		 * On touch cancel, stop tracking the click.
-		 *
-		 * @returns {void}
-		 */
-		FastClick.prototype.onTouchCancel = function() {
-			this.trackingClick = false;
-			this.targetElement = null;
-		};
-	
-	
-		/**
-		 * Determine mouse events which should be permitted.
-		 *
-		 * @param {Event} event
-		 * @returns {boolean}
-		 */
-		FastClick.prototype.onMouse = function(event) {
-	
-			// If a target element was never set (because a touch event was never fired) allow the event
-			if (!this.targetElement) {
-				return true;
-			}
-	
-			if (event.forwardedTouchEvent) {
-				return true;
-			}
-	
-			// Programmatically generated events targeting a specific element should be permitted
-			if (!event.cancelable) {
-				return true;
-			}
-	
-			// Derive and check the target element to see whether the mouse event needs to be permitted;
-			// unless explicitly enabled, prevent non-touch click events from triggering actions,
-			// to prevent ghost/doubleclicks.
-			if (!this.needsClick(this.targetElement) || this.cancelNextClick) {
-	
-				// Prevent any user-added listeners declared on FastClick element from being fired.
-				if (event.stopImmediatePropagation) {
-					event.stopImmediatePropagation();
-				} else {
-	
-					// Part of the hack for browsers that don't support Event#stopImmediatePropagation (e.g. Android 2)
-					event.propagationStopped = true;
-				}
-	
-				// Cancel the event
-				event.stopPropagation();
-				event.preventDefault();
-	
-				return false;
-			}
-	
-			// If the mouse event is permitted, return true for the action to go through.
-			return true;
-		};
-	
-	
-		/**
-		 * On actual clicks, determine whether this is a touch-generated click, a click action occurring
-		 * naturally after a delay after a touch (which needs to be cancelled to avoid duplication), or
-		 * an actual click which should be permitted.
-		 *
-		 * @param {Event} event
-		 * @returns {boolean}
-		 */
-		FastClick.prototype.onClick = function(event) {
-			var permitted;
-	
-			// It's possible for another FastClick-like library delivered with third-party code to fire a click event before FastClick does (issue #44). In that case, set the click-tracking flag back to false and return early. This will cause onTouchEnd to return early.
-			if (this.trackingClick) {
-				this.targetElement = null;
-				this.trackingClick = false;
-				return true;
-			}
-	
-			// Very odd behaviour on iOS (issue #18): if a submit element is present inside a form and the user hits enter in the iOS simulator or clicks the Go button on the pop-up OS keyboard the a kind of 'fake' click event will be triggered with the submit-type input element as the target.
-			if (event.target.type === 'submit' && event.detail === 0) {
-				return true;
-			}
-	
-			permitted = this.onMouse(event);
-	
-			// Only unset targetElement if the click is not permitted. This will ensure that the check for !targetElement in onMouse fails and the browser's click doesn't go through.
-			if (!permitted) {
-				this.targetElement = null;
-			}
-	
-			// If clicks are permitted, return true for the action to go through.
-			return permitted;
-		};
-	
-	
-		/**
-		 * Remove all FastClick's event listeners.
-		 *
-		 * @returns {void}
-		 */
-		FastClick.prototype.destroy = function() {
-			var layer = this.layer;
-	
-			if (deviceIsAndroid) {
-				layer.removeEventListener('mouseover', this.onMouse, true);
-				layer.removeEventListener('mousedown', this.onMouse, true);
-				layer.removeEventListener('mouseup', this.onMouse, true);
-			}
-	
-			layer.removeEventListener('click', this.onClick, true);
-			layer.removeEventListener('touchstart', this.onTouchStart, false);
-			layer.removeEventListener('touchmove', this.onTouchMove, false);
-			layer.removeEventListener('touchend', this.onTouchEnd, false);
-			layer.removeEventListener('touchcancel', this.onTouchCancel, false);
-		};
-	
-	
-		/**
-		 * Check whether FastClick is needed.
-		 *
-		 * @param {Element} layer The layer to listen on
-		 */
-		FastClick.notNeeded = function(layer) {
-			var metaViewport;
-			var chromeVersion;
-			var blackberryVersion;
-			var firefoxVersion;
-	
-			// Devices that don't support touch don't need FastClick
-			if (typeof window.ontouchstart === 'undefined') {
-				return true;
-			}
-	
-			// Chrome version - zero for other browsers
-			chromeVersion = +(/Chrome\/([0-9]+)/.exec(navigator.userAgent) || [,0])[1];
-	
-			if (chromeVersion) {
-	
-				if (deviceIsAndroid) {
-					metaViewport = document.querySelector('meta[name=viewport]');
-	
-					if (metaViewport) {
-						// Chrome on Android with user-scalable="no" doesn't need FastClick (issue #89)
-						if (metaViewport.content.indexOf('user-scalable=no') !== -1) {
-							return true;
-						}
-						// Chrome 32 and above with width=device-width or less don't need FastClick
-						if (chromeVersion > 31 && document.documentElement.scrollWidth <= window.outerWidth) {
-							return true;
-						}
-					}
-	
-				// Chrome desktop doesn't need FastClick (issue #15)
-				} else {
-					return true;
-				}
-			}
-	
-			if (deviceIsBlackBerry10) {
-				blackberryVersion = navigator.userAgent.match(/Version\/([0-9]*)\.([0-9]*)/);
-	
-				// BlackBerry 10.3+ does not require Fastclick library.
-				// https://github.com/ftlabs/fastclick/issues/251
-				if (blackberryVersion[1] >= 10 && blackberryVersion[2] >= 3) {
-					metaViewport = document.querySelector('meta[name=viewport]');
-	
-					if (metaViewport) {
-						// user-scalable=no eliminates click delay.
-						if (metaViewport.content.indexOf('user-scalable=no') !== -1) {
-							return true;
-						}
-						// width=device-width (or less than device-width) eliminates click delay.
-						if (document.documentElement.scrollWidth <= window.outerWidth) {
-							return true;
-						}
-					}
-				}
-			}
-	
-			// IE10 with -ms-touch-action: none or manipulation, which disables double-tap-to-zoom (issue #97)
-			if (layer.style.msTouchAction === 'none' || layer.style.touchAction === 'manipulation') {
-				return true;
-			}
-	
-			// Firefox version - zero for other browsers
-			firefoxVersion = +(/Firefox\/([0-9]+)/.exec(navigator.userAgent) || [,0])[1];
-	
-			if (firefoxVersion >= 27) {
-				// Firefox 27+ does not have tap delay if the content is not zoomable - https://bugzilla.mozilla.org/show_bug.cgi?id=922896
-	
-				metaViewport = document.querySelector('meta[name=viewport]');
-				if (metaViewport && (metaViewport.content.indexOf('user-scalable=no') !== -1 || document.documentElement.scrollWidth <= window.outerWidth)) {
-					return true;
-				}
-			}
-	
-			// IE11: prefixed -ms-touch-action is no longer supported and it's recomended to use non-prefixed version
-			// http://msdn.microsoft.com/en-us/library/windows/apps/Hh767313.aspx
-			if (layer.style.touchAction === 'none' || layer.style.touchAction === 'manipulation') {
-				return true;
-			}
-	
-			return false;
-		};
-	
-	
-		/**
-		 * Factory method for creating a FastClick object
-		 *
-		 * @param {Element} layer The layer to listen on
-		 * @param {Object} [options={}] The options to override the defaults
-		 */
-		FastClick.attach = function(layer, options) {
-			return new FastClick(layer, options);
-		};
-	
-	
-		if (true) {
-	
-			// AMD. Register as an anonymous module.
-			!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
-				return FastClick;
-			}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-		} else if (typeof module !== 'undefined' && module.exports) {
-			module.exports = FastClick.attach;
-			module.exports.FastClick = FastClick;
-		} else {
-			window.FastClick = FastClick;
-		}
-	}());
-
-
-/***/ },
-/* 17 */
-/*!**********************************!*\
-  !*** ../~/famous/core/Engine.js ***!
-  \**********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Context = __webpack_require__(/*! ./Context */ 18);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
-	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 30);
-	var Engine = {};
-	var contexts = [];
-	var nextTickQueue = [];
-	var currentFrame = 0;
-	var nextTickFrame = 0;
-	var deferQueue = [];
-	var lastTime = Date.now();
-	var frameTime;
-	var frameTimeLimit;
-	var loopEnabled = true;
-	var eventForwarders = {};
-	var eventHandler = new EventHandler();
-	var options = {
-	    containerType: 'div',
-	    containerClass: 'famous-container',
-	    fpsCap: undefined,
-	    runLoop: true,
-	    appMode: true
-	};
-	var optionsManager = new OptionsManager(options);
-	var MAX_DEFER_FRAME_TIME = 10;
-	Engine.step = function step() {
-	    currentFrame++;
-	    nextTickFrame = currentFrame;
-	    var currentTime = Date.now();
-	    if (frameTimeLimit && currentTime - lastTime < frameTimeLimit)
-	        return;
-	    var i = 0;
-	    frameTime = currentTime - lastTime;
-	    lastTime = currentTime;
-	    eventHandler.emit('prerender');
-	    var numFunctions = nextTickQueue.length;
-	    while (numFunctions--)
-	        nextTickQueue.shift()(currentFrame);
-	    while (deferQueue.length && Date.now() - currentTime < MAX_DEFER_FRAME_TIME) {
-	        deferQueue.shift().call(this);
-	    }
-	    for (i = 0; i < contexts.length; i++)
-	        contexts[i].update();
-	    eventHandler.emit('postrender');
-	};
-	function loop() {
-	    if (options.runLoop) {
-	        Engine.step();
-	        window.requestAnimationFrame(loop);
-	    } else
-	        loopEnabled = false;
-	}
-	window.requestAnimationFrame(loop);
-	function handleResize(event) {
-	    for (var i = 0; i < contexts.length; i++) {
-	        contexts[i].emit('resize');
-	    }
-	    eventHandler.emit('resize');
-	}
-	window.addEventListener('resize', handleResize, false);
-	handleResize();
-	function initialize() {
-	    window.addEventListener('touchmove', function (event) {
-	        event.preventDefault();
-	    }, true);
-	    addRootClasses();
-	}
-	var initialized = false;
-	function addRootClasses() {
-	    if (!document.body) {
-	        Engine.nextTick(addRootClasses);
-	        return;
-	    }
-	    document.body.classList.add('famous-root');
-	    document.documentElement.classList.add('famous-root');
-	}
-	Engine.pipe = function pipe(target) {
-	    if (target.subscribe instanceof Function)
-	        return target.subscribe(Engine);
-	    else
-	        return eventHandler.pipe(target);
-	};
-	Engine.unpipe = function unpipe(target) {
-	    if (target.unsubscribe instanceof Function)
-	        return target.unsubscribe(Engine);
-	    else
-	        return eventHandler.unpipe(target);
-	};
-	Engine.on = function on(type, handler) {
-	    if (!(type in eventForwarders)) {
-	        eventForwarders[type] = eventHandler.emit.bind(eventHandler, type);
-	        addEngineListener(type, eventForwarders[type]);
-	    }
-	    return eventHandler.on(type, handler);
-	};
-	function addEngineListener(type, forwarder) {
-	    if (!document.body) {
-	        Engine.nextTick(addEventListener.bind(this, type, forwarder));
-	        return;
-	    }
-	    document.body.addEventListener(type, forwarder);
-	}
-	Engine.emit = function emit(type, event) {
-	    return eventHandler.emit(type, event);
-	};
-	Engine.removeListener = function removeListener(type, handler) {
-	    return eventHandler.removeListener(type, handler);
-	};
-	Engine.getFPS = function getFPS() {
-	    return 1000 / frameTime;
-	};
-	Engine.setFPSCap = function setFPSCap(fps) {
-	    frameTimeLimit = Math.floor(1000 / fps);
-	};
-	Engine.getOptions = function getOptions(key) {
-	    return optionsManager.getOptions(key);
-	};
-	Engine.setOptions = function setOptions(options) {
-	    return optionsManager.setOptions.apply(optionsManager, arguments);
-	};
-	Engine.createContext = function createContext(el) {
-	    if (!initialized && options.appMode)
-	        Engine.nextTick(initialize);
-	    var needMountContainer = false;
-	    if (!el) {
-	        el = document.createElement(options.containerType);
-	        el.classList.add(options.containerClass);
-	        needMountContainer = true;
-	    }
-	    var context = new Context(el);
-	    Engine.registerContext(context);
-	    if (needMountContainer)
-	        mount(context, el);
-	    return context;
-	};
-	function mount(context, el) {
-	    if (!document.body) {
-	        Engine.nextTick(mount.bind(this, context, el));
-	        return;
-	    }
-	    document.body.appendChild(el);
-	    context.emit('resize');
-	}
-	Engine.registerContext = function registerContext(context) {
-	    contexts.push(context);
-	    return context;
-	};
-	Engine.getContexts = function getContexts() {
-	    return contexts;
-	};
-	Engine.deregisterContext = function deregisterContext(context) {
-	    var i = contexts.indexOf(context);
-	    if (i >= 0)
-	        contexts.splice(i, 1);
-	};
-	Engine.nextTick = function nextTick(fn) {
-	    nextTickQueue.push(fn);
-	};
-	Engine.defer = function defer(fn) {
-	    deferQueue.push(fn);
-	};
-	optionsManager.on('change', function (data) {
-	    if (data.id === 'fpsCap')
-	        Engine.setFPSCap(data.value);
-	    else if (data.id === 'runLoop') {
-	        if (!loopEnabled && data.value) {
-	            loopEnabled = true;
-	            window.requestAnimationFrame(loop);
-	        }
-	    }
-	});
-	module.exports = Engine;
-
-/***/ },
-/* 18 */
-/*!***********************************!*\
-  !*** ../~/famous/core/Context.js ***!
-  \***********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var RenderNode = __webpack_require__(/*! ./RenderNode */ 19);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
-	var ElementAllocator = __webpack_require__(/*! ./ElementAllocator */ 25);
-	var Transform = __webpack_require__(/*! ./Transform */ 22);
-	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 26);
-	var _zeroZero = [
-	    0,
-	    0
-	];
-	var usePrefix = !('perspective' in document.documentElement.style);
-	function _getElementSize() {
-	    var element = this.container;
-	    return [
-	        element.clientWidth,
-	        element.clientHeight
-	    ];
-	}
-	var _setPerspective = usePrefix ? function (element, perspective) {
-	    element.style.webkitPerspective = perspective ? perspective.toFixed() + 'px' : '';
-	} : function (element, perspective) {
-	    element.style.perspective = perspective ? perspective.toFixed() + 'px' : '';
-	};
-	function Context(container) {
-	    this.container = container;
-	    this._allocator = new ElementAllocator(container);
-	    this._node = new RenderNode();
-	    this._eventOutput = new EventHandler();
-	    this._size = _getElementSize.call(this);
-	    this._perspectiveState = new Transitionable(0);
-	    this._perspective = undefined;
-	    this._nodeContext = {
-	        allocator: this._allocator,
-	        transform: Transform.identity,
-	        opacity: 1,
-	        origin: _zeroZero,
-	        align: _zeroZero,
-	        size: this._size
-	    };
-	    this._eventOutput.on('resize', function () {
-	        this.setSize(_getElementSize.call(this));
-	    }.bind(this));
-	}
-	Context.prototype.getAllocator = function getAllocator() {
-	    return this._allocator;
-	};
-	Context.prototype.add = function add(obj) {
-	    return this._node.add(obj);
-	};
-	Context.prototype.migrate = function migrate(container) {
-	    if (container === this.container)
-	        return;
-	    this.container = container;
-	    this._allocator.migrate(container);
-	};
-	Context.prototype.getSize = function getSize() {
-	    return this._size;
-	};
-	Context.prototype.setSize = function setSize(size) {
-	    if (!size)
-	        size = _getElementSize.call(this);
-	    this._size[0] = size[0];
-	    this._size[1] = size[1];
-	};
-	Context.prototype.update = function update(contextParameters) {
-	    if (contextParameters) {
-	        if (contextParameters.transform)
-	            this._nodeContext.transform = contextParameters.transform;
-	        if (contextParameters.opacity)
-	            this._nodeContext.opacity = contextParameters.opacity;
-	        if (contextParameters.origin)
-	            this._nodeContext.origin = contextParameters.origin;
-	        if (contextParameters.align)
-	            this._nodeContext.align = contextParameters.align;
-	        if (contextParameters.size)
-	            this._nodeContext.size = contextParameters.size;
-	    }
-	    var perspective = this._perspectiveState.get();
-	    if (perspective !== this._perspective) {
-	        _setPerspective(this.container, perspective);
-	        this._perspective = perspective;
-	    }
-	    this._node.commit(this._nodeContext);
-	};
-	Context.prototype.getPerspective = function getPerspective() {
-	    return this._perspectiveState.get();
-	};
-	Context.prototype.setPerspective = function setPerspective(perspective, transition, callback) {
-	    return this._perspectiveState.set(perspective, transition, callback);
-	};
-	Context.prototype.emit = function emit(type, event) {
-	    return this._eventOutput.emit(type, event);
-	};
-	Context.prototype.on = function on(type, handler) {
-	    return this._eventOutput.on(type, handler);
-	};
-	Context.prototype.removeListener = function removeListener(type, handler) {
-	    return this._eventOutput.removeListener(type, handler);
-	};
-	Context.prototype.pipe = function pipe(target) {
-	    return this._eventOutput.pipe(target);
-	};
-	Context.prototype.unpipe = function unpipe(target) {
-	    return this._eventOutput.unpipe(target);
-	};
-	module.exports = Context;
-
-/***/ },
-/* 19 */
-/*!**************************************!*\
-  !*** ../~/famous/core/RenderNode.js ***!
-  \**************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Entity = __webpack_require__(/*! ./Entity */ 20);
-	var SpecParser = __webpack_require__(/*! ./SpecParser */ 21);
-	function RenderNode(object) {
-	    this._object = null;
-	    this._child = null;
-	    this._hasMultipleChildren = false;
-	    this._isRenderable = false;
-	    this._isModifier = false;
-	    this._resultCache = {};
-	    this._prevResults = {};
-	    this._childResult = null;
-	    if (object)
-	        this.set(object);
-	}
-	RenderNode.prototype.add = function add(child) {
-	    var childNode = child instanceof RenderNode ? child : new RenderNode(child);
-	    if (this._child instanceof Array)
-	        this._child.push(childNode);
-	    else if (this._child) {
-	        this._child = [
-	            this._child,
-	            childNode
-	        ];
-	        this._hasMultipleChildren = true;
-	        this._childResult = [];
-	    } else
-	        this._child = childNode;
-	    return childNode;
-	};
-	RenderNode.prototype.get = function get() {
-	    return this._object || (this._hasMultipleChildren ? null : this._child ? this._child.get() : null);
-	};
-	RenderNode.prototype.set = function set(child) {
-	    this._childResult = null;
-	    this._hasMultipleChildren = false;
-	    this._isRenderable = child.render ? true : false;
-	    this._isModifier = child.modify ? true : false;
-	    this._object = child;
-	    this._child = null;
-	    if (child instanceof RenderNode)
-	        return child;
-	    else
-	        return this;
-	};
-	RenderNode.prototype.getSize = function getSize() {
-	    var result = null;
-	    var target = this.get();
-	    if (target && target.getSize)
-	        result = target.getSize();
-	    if (!result && this._child && this._child.getSize)
-	        result = this._child.getSize();
-	    return result;
-	};
-	function _applyCommit(spec, context, cacheStorage) {
-	    var result = SpecParser.parse(spec, context);
-	    var keys = Object.keys(result);
-	    for (var i = 0; i < keys.length; i++) {
-	        var id = keys[i];
-	        var childNode = Entity.get(id);
-	        var commitParams = result[id];
-	        commitParams.allocator = context.allocator;
-	        var commitResult = childNode.commit(commitParams);
-	        if (commitResult)
-	            _applyCommit(commitResult, context, cacheStorage);
-	        else
-	            cacheStorage[id] = commitParams;
-	    }
-	}
-	RenderNode.prototype.commit = function commit(context) {
-	    var prevKeys = Object.keys(this._prevResults);
-	    for (var i = 0; i < prevKeys.length; i++) {
-	        var id = prevKeys[i];
-	        if (this._resultCache[id] === undefined) {
-	            var object = Entity.get(id);
-	            if (object.cleanup)
-	                object.cleanup(context.allocator);
-	        }
-	    }
-	    this._prevResults = this._resultCache;
-	    this._resultCache = {};
-	    _applyCommit(this.render(), context, this._resultCache);
-	};
-	RenderNode.prototype.render = function render() {
-	    if (this._isRenderable)
-	        return this._object.render();
-	    var result = null;
-	    if (this._hasMultipleChildren) {
-	        result = this._childResult;
-	        var children = this._child;
-	        for (var i = 0; i < children.length; i++) {
-	            result[i] = children[i].render();
-	        }
-	    } else if (this._child)
-	        result = this._child.render();
-	    return this._isModifier ? this._object.modify(result) : result;
-	};
-	module.exports = RenderNode;
-
-/***/ },
-/* 20 */
-/*!**********************************!*\
-  !*** ../~/famous/core/Entity.js ***!
-  \**********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var entities = [];
-	function get(id) {
-	    return entities[id];
-	}
-	function set(id, entity) {
-	    entities[id] = entity;
-	}
-	function register(entity) {
-	    var id = entities.length;
-	    set(id, entity);
-	    return id;
-	}
-	function unregister(id) {
-	    set(id, null);
-	}
-	module.exports = {
-	    register: register,
-	    unregister: unregister,
-	    get: get,
-	    set: set
-	};
-
-/***/ },
-/* 21 */
-/*!**************************************!*\
-  !*** ../~/famous/core/SpecParser.js ***!
-  \**************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Transform = __webpack_require__(/*! ./Transform */ 22);
-	function SpecParser() {
-	    this.result = {};
-	}
-	SpecParser._instance = new SpecParser();
-	SpecParser.parse = function parse(spec, context) {
-	    return SpecParser._instance.parse(spec, context);
-	};
-	SpecParser.prototype.parse = function parse(spec, context) {
-	    this.reset();
-	    this._parseSpec(spec, context, Transform.identity);
-	    return this.result;
-	};
-	SpecParser.prototype.reset = function reset() {
-	    this.result = {};
-	};
-	function _vecInContext(v, m) {
-	    return [
-	        v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
-	        v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
-	        v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
-	    ];
-	}
-	var _zeroZero = [
-	    0,
-	    0
-	];
-	SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
-	    var id;
-	    var target;
-	    var transform;
-	    var opacity;
-	    var origin;
-	    var align;
-	    var size;
-	    if (typeof spec === 'number') {
-	        id = spec;
-	        transform = parentContext.transform;
-	        align = parentContext.align || _zeroZero;
-	        if (parentContext.size && align && (align[0] || align[1])) {
-	            var alignAdjust = [
-	                align[0] * parentContext.size[0],
-	                align[1] * parentContext.size[1],
-	                0
-	            ];
-	            transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
-	        }
-	        this.result[id] = {
-	            transform: transform,
-	            opacity: parentContext.opacity,
-	            origin: parentContext.origin || _zeroZero,
-	            align: parentContext.align || _zeroZero,
-	            size: parentContext.size
-	        };
-	    } else if (!spec) {
-	        return;
-	    } else if (spec instanceof Array) {
-	        for (var i = 0; i < spec.length; i++) {
-	            this._parseSpec(spec[i], parentContext, sizeContext);
-	        }
-	    } else {
-	        target = spec.target;
-	        transform = parentContext.transform;
-	        opacity = parentContext.opacity;
-	        origin = parentContext.origin;
-	        align = parentContext.align;
-	        size = parentContext.size;
-	        var nextSizeContext = sizeContext;
-	        if (spec.opacity !== undefined)
-	            opacity = parentContext.opacity * spec.opacity;
-	        if (spec.transform)
-	            transform = Transform.multiply(parentContext.transform, spec.transform);
-	        if (spec.origin) {
-	            origin = spec.origin;
-	            nextSizeContext = parentContext.transform;
-	        }
-	        if (spec.align)
-	            align = spec.align;
-	        if (spec.size || spec.proportions) {
-	            var parentSize = size;
-	            size = [
-	                size[0],
-	                size[1]
-	            ];
-	            if (spec.size) {
-	                if (spec.size[0] !== undefined)
-	                    size[0] = spec.size[0];
-	                if (spec.size[1] !== undefined)
-	                    size[1] = spec.size[1];
-	            }
-	            if (spec.proportions) {
-	                if (spec.proportions[0] !== undefined)
-	                    size[0] = size[0] * spec.proportions[0];
-	                if (spec.proportions[1] !== undefined)
-	                    size[1] = size[1] * spec.proportions[1];
-	            }
-	            if (parentSize) {
-	                if (align && (align[0] || align[1]))
-	                    transform = Transform.thenMove(transform, _vecInContext([
-	                        align[0] * parentSize[0],
-	                        align[1] * parentSize[1],
-	                        0
-	                    ], sizeContext));
-	                if (origin && (origin[0] || origin[1]))
-	                    transform = Transform.moveThen([
-	                        -origin[0] * size[0],
-	                        -origin[1] * size[1],
-	                        0
-	                    ], transform);
-	            }
-	            nextSizeContext = parentContext.transform;
-	            origin = null;
-	            align = null;
-	        }
-	        this._parseSpec(target, {
-	            transform: transform,
-	            opacity: opacity,
-	            origin: origin,
-	            align: align,
-	            size: size
-	        }, nextSizeContext);
-	    }
-	};
-	module.exports = SpecParser;
-
-/***/ },
-/* 22 */
-/*!*************************************!*\
-  !*** ../~/famous/core/Transform.js ***!
-  \*************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Transform = {};
-	Transform.precision = 0.000001;
-	Transform.identity = [
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1
-	];
-	Transform.multiply4x4 = function multiply4x4(a, b) {
-	    return [
-	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2] + a[12] * b[3],
-	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2] + a[13] * b[3],
-	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2] + a[14] * b[3],
-	        a[3] * b[0] + a[7] * b[1] + a[11] * b[2] + a[15] * b[3],
-	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6] + a[12] * b[7],
-	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6] + a[13] * b[7],
-	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6] + a[14] * b[7],
-	        a[3] * b[4] + a[7] * b[5] + a[11] * b[6] + a[15] * b[7],
-	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10] + a[12] * b[11],
-	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10] + a[13] * b[11],
-	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10] + a[14] * b[11],
-	        a[3] * b[8] + a[7] * b[9] + a[11] * b[10] + a[15] * b[11],
-	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12] * b[15],
-	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13] * b[15],
-	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14] * b[15],
-	        a[3] * b[12] + a[7] * b[13] + a[11] * b[14] + a[15] * b[15]
-	    ];
-	};
-	Transform.multiply = function multiply(a, b) {
-	    return [
-	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2],
-	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2],
-	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2],
-	        0,
-	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6],
-	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6],
-	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6],
-	        0,
-	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10],
-	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10],
-	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10],
-	        0,
-	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12],
-	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13],
-	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14],
-	        1
-	    ];
-	};
-	Transform.thenMove = function thenMove(m, t) {
-	    if (!t[2])
-	        t[2] = 0;
-	    return [
-	        m[0],
-	        m[1],
-	        m[2],
-	        0,
-	        m[4],
-	        m[5],
-	        m[6],
-	        0,
-	        m[8],
-	        m[9],
-	        m[10],
-	        0,
-	        m[12] + t[0],
-	        m[13] + t[1],
-	        m[14] + t[2],
-	        1
-	    ];
-	};
-	Transform.moveThen = function moveThen(v, m) {
-	    if (!v[2])
-	        v[2] = 0;
-	    var t0 = v[0] * m[0] + v[1] * m[4] + v[2] * m[8];
-	    var t1 = v[0] * m[1] + v[1] * m[5] + v[2] * m[9];
-	    var t2 = v[0] * m[2] + v[1] * m[6] + v[2] * m[10];
-	    return Transform.thenMove(m, [
-	        t0,
-	        t1,
-	        t2
-	    ]);
-	};
-	Transform.translate = function translate(x, y, z) {
-	    if (z === undefined)
-	        z = 0;
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        x,
-	        y,
-	        z,
-	        1
-	    ];
-	};
-	Transform.thenScale = function thenScale(m, s) {
-	    return [
-	        s[0] * m[0],
-	        s[1] * m[1],
-	        s[2] * m[2],
-	        0,
-	        s[0] * m[4],
-	        s[1] * m[5],
-	        s[2] * m[6],
-	        0,
-	        s[0] * m[8],
-	        s[1] * m[9],
-	        s[2] * m[10],
-	        0,
-	        s[0] * m[12],
-	        s[1] * m[13],
-	        s[2] * m[14],
-	        1
-	    ];
-	};
-	Transform.scale = function scale(x, y, z) {
-	    if (z === undefined)
-	        z = 1;
-	    if (y === undefined)
-	        y = x;
-	    return [
-	        x,
-	        0,
-	        0,
-	        0,
-	        0,
-	        y,
-	        0,
-	        0,
-	        0,
-	        0,
-	        z,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotateX = function rotateX(theta) {
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        cosTheta,
-	        sinTheta,
-	        0,
-	        0,
-	        -sinTheta,
-	        cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotateY = function rotateY(theta) {
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    return [
-	        cosTheta,
-	        0,
-	        -sinTheta,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        sinTheta,
-	        0,
-	        cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotateZ = function rotateZ(theta) {
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    return [
-	        cosTheta,
-	        sinTheta,
-	        0,
-	        0,
-	        -sinTheta,
-	        cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotate = function rotate(phi, theta, psi) {
-	    var cosPhi = Math.cos(phi);
-	    var sinPhi = Math.sin(phi);
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    var cosPsi = Math.cos(psi);
-	    var sinPsi = Math.sin(psi);
-	    var result = [
-	        cosTheta * cosPsi,
-	        cosPhi * sinPsi + sinPhi * sinTheta * cosPsi,
-	        sinPhi * sinPsi - cosPhi * sinTheta * cosPsi,
-	        0,
-	        -cosTheta * sinPsi,
-	        cosPhi * cosPsi - sinPhi * sinTheta * sinPsi,
-	        sinPhi * cosPsi + cosPhi * sinTheta * sinPsi,
-	        0,
-	        sinTheta,
-	        -sinPhi * cosTheta,
-	        cosPhi * cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    return result;
-	};
-	Transform.rotateAxis = function rotateAxis(v, theta) {
-	    var sinTheta = Math.sin(theta);
-	    var cosTheta = Math.cos(theta);
-	    var verTheta = 1 - cosTheta;
-	    var xxV = v[0] * v[0] * verTheta;
-	    var xyV = v[0] * v[1] * verTheta;
-	    var xzV = v[0] * v[2] * verTheta;
-	    var yyV = v[1] * v[1] * verTheta;
-	    var yzV = v[1] * v[2] * verTheta;
-	    var zzV = v[2] * v[2] * verTheta;
-	    var xs = v[0] * sinTheta;
-	    var ys = v[1] * sinTheta;
-	    var zs = v[2] * sinTheta;
-	    var result = [
-	        xxV + cosTheta,
-	        xyV + zs,
-	        xzV - ys,
-	        0,
-	        xyV - zs,
-	        yyV + cosTheta,
-	        yzV + xs,
-	        0,
-	        xzV + ys,
-	        yzV - xs,
-	        zzV + cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    return result;
-	};
-	Transform.aboutOrigin = function aboutOrigin(v, m) {
-	    var t0 = v[0] - (v[0] * m[0] + v[1] * m[4] + v[2] * m[8]);
-	    var t1 = v[1] - (v[0] * m[1] + v[1] * m[5] + v[2] * m[9]);
-	    var t2 = v[2] - (v[0] * m[2] + v[1] * m[6] + v[2] * m[10]);
-	    return Transform.thenMove(m, [
-	        t0,
-	        t1,
-	        t2
-	    ]);
-	};
-	Transform.skew = function skew(phi, theta, psi) {
-	    return [
-	        1,
-	        Math.tan(theta),
-	        0,
-	        0,
-	        Math.tan(psi),
-	        1,
-	        0,
-	        0,
-	        0,
-	        Math.tan(phi),
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.skewX = function skewX(angle) {
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        Math.tan(angle),
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.skewY = function skewY(angle) {
-	    return [
-	        1,
-	        Math.tan(angle),
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.perspective = function perspective(focusZ) {
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        -1 / focusZ,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.getTranslate = function getTranslate(m) {
-	    return [
-	        m[12],
-	        m[13],
-	        m[14]
-	    ];
-	};
-	Transform.inverse = function inverse(m) {
-	    var c0 = m[5] * m[10] - m[6] * m[9];
-	    var c1 = m[4] * m[10] - m[6] * m[8];
-	    var c2 = m[4] * m[9] - m[5] * m[8];
-	    var c4 = m[1] * m[10] - m[2] * m[9];
-	    var c5 = m[0] * m[10] - m[2] * m[8];
-	    var c6 = m[0] * m[9] - m[1] * m[8];
-	    var c8 = m[1] * m[6] - m[2] * m[5];
-	    var c9 = m[0] * m[6] - m[2] * m[4];
-	    var c10 = m[0] * m[5] - m[1] * m[4];
-	    var detM = m[0] * c0 - m[1] * c1 + m[2] * c2;
-	    var invD = 1 / detM;
-	    var result = [
-	        invD * c0,
-	        -invD * c4,
-	        invD * c8,
-	        0,
-	        -invD * c1,
-	        invD * c5,
-	        -invD * c9,
-	        0,
-	        invD * c2,
-	        -invD * c6,
-	        invD * c10,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    result[12] = -m[12] * result[0] - m[13] * result[4] - m[14] * result[8];
-	    result[13] = -m[12] * result[1] - m[13] * result[5] - m[14] * result[9];
-	    result[14] = -m[12] * result[2] - m[13] * result[6] - m[14] * result[10];
-	    return result;
-	};
-	Transform.transpose = function transpose(m) {
-	    return [
-	        m[0],
-	        m[4],
-	        m[8],
-	        m[12],
-	        m[1],
-	        m[5],
-	        m[9],
-	        m[13],
-	        m[2],
-	        m[6],
-	        m[10],
-	        m[14],
-	        m[3],
-	        m[7],
-	        m[11],
-	        m[15]
-	    ];
-	};
-	function _normSquared(v) {
-	    return v.length === 2 ? v[0] * v[0] + v[1] * v[1] : v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	}
-	function _norm(v) {
-	    return Math.sqrt(_normSquared(v));
-	}
-	function _sign(n) {
-	    return n < 0 ? -1 : 1;
-	}
-	Transform.interpret = function interpret(M) {
-	    var x = [
-	        M[0],
-	        M[1],
-	        M[2]
-	    ];
-	    var sgn = _sign(x[0]);
-	    var xNorm = _norm(x);
-	    var v = [
-	        x[0] + sgn * xNorm,
-	        x[1],
-	        x[2]
-	    ];
-	    var mult = 2 / _normSquared(v);
-	    if (mult >= Infinity) {
-	        return {
-	            translate: Transform.getTranslate(M),
-	            rotate: [
-	                0,
-	                0,
-	                0
-	            ],
-	            scale: [
-	                0,
-	                0,
-	                0
-	            ],
-	            skew: [
-	                0,
-	                0,
-	                0
-	            ]
-	        };
-	    }
-	    var Q1 = [
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    Q1[0] = 1 - mult * v[0] * v[0];
-	    Q1[5] = 1 - mult * v[1] * v[1];
-	    Q1[10] = 1 - mult * v[2] * v[2];
-	    Q1[1] = -mult * v[0] * v[1];
-	    Q1[2] = -mult * v[0] * v[2];
-	    Q1[6] = -mult * v[1] * v[2];
-	    Q1[4] = Q1[1];
-	    Q1[8] = Q1[2];
-	    Q1[9] = Q1[6];
-	    var MQ1 = Transform.multiply(Q1, M);
-	    var x2 = [
-	        MQ1[5],
-	        MQ1[6]
-	    ];
-	    var sgn2 = _sign(x2[0]);
-	    var x2Norm = _norm(x2);
-	    var v2 = [
-	        x2[0] + sgn2 * x2Norm,
-	        x2[1]
-	    ];
-	    var mult2 = 2 / _normSquared(v2);
-	    var Q2 = [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    Q2[5] = 1 - mult2 * v2[0] * v2[0];
-	    Q2[10] = 1 - mult2 * v2[1] * v2[1];
-	    Q2[6] = -mult2 * v2[0] * v2[1];
-	    Q2[9] = Q2[6];
-	    var Q = Transform.multiply(Q2, Q1);
-	    var R = Transform.multiply(Q, M);
-	    var remover = Transform.scale(R[0] < 0 ? -1 : 1, R[5] < 0 ? -1 : 1, R[10] < 0 ? -1 : 1);
-	    R = Transform.multiply(R, remover);
-	    Q = Transform.multiply(remover, Q);
-	    var result = {};
-	    result.translate = Transform.getTranslate(M);
-	    result.rotate = [
-	        Math.atan2(-Q[6], Q[10]),
-	        Math.asin(Q[2]),
-	        Math.atan2(-Q[1], Q[0])
-	    ];
-	    if (!result.rotate[0]) {
-	        result.rotate[0] = 0;
-	        result.rotate[2] = Math.atan2(Q[4], Q[5]);
-	    }
-	    result.scale = [
-	        R[0],
-	        R[5],
-	        R[10]
-	    ];
-	    result.skew = [
-	        Math.atan2(R[9], result.scale[2]),
-	        Math.atan2(R[8], result.scale[2]),
-	        Math.atan2(R[4], result.scale[0])
-	    ];
-	    if (Math.abs(result.rotate[0]) + Math.abs(result.rotate[2]) > 1.5 * Math.PI) {
-	        result.rotate[1] = Math.PI - result.rotate[1];
-	        if (result.rotate[1] > Math.PI)
-	            result.rotate[1] -= 2 * Math.PI;
-	        if (result.rotate[1] < -Math.PI)
-	            result.rotate[1] += 2 * Math.PI;
-	        if (result.rotate[0] < 0)
-	            result.rotate[0] += Math.PI;
-	        else
-	            result.rotate[0] -= Math.PI;
-	        if (result.rotate[2] < 0)
-	            result.rotate[2] += Math.PI;
-	        else
-	            result.rotate[2] -= Math.PI;
-	    }
-	    return result;
-	};
-	Transform.average = function average(M1, M2, t) {
-	    t = t === undefined ? 0.5 : t;
-	    var specM1 = Transform.interpret(M1);
-	    var specM2 = Transform.interpret(M2);
-	    var specAvg = {
-	        translate: [
-	            0,
-	            0,
-	            0
-	        ],
-	        rotate: [
-	            0,
-	            0,
-	            0
-	        ],
-	        scale: [
-	            0,
-	            0,
-	            0
-	        ],
-	        skew: [
-	            0,
-	            0,
-	            0
-	        ]
-	    };
-	    for (var i = 0; i < 3; i++) {
-	        specAvg.translate[i] = (1 - t) * specM1.translate[i] + t * specM2.translate[i];
-	        specAvg.rotate[i] = (1 - t) * specM1.rotate[i] + t * specM2.rotate[i];
-	        specAvg.scale[i] = (1 - t) * specM1.scale[i] + t * specM2.scale[i];
-	        specAvg.skew[i] = (1 - t) * specM1.skew[i] + t * specM2.skew[i];
-	    }
-	    return Transform.build(specAvg);
-	};
-	Transform.build = function build(spec) {
-	    var scaleMatrix = Transform.scale(spec.scale[0], spec.scale[1], spec.scale[2]);
-	    var skewMatrix = Transform.skew(spec.skew[0], spec.skew[1], spec.skew[2]);
-	    var rotateMatrix = Transform.rotate(spec.rotate[0], spec.rotate[1], spec.rotate[2]);
-	    return Transform.thenMove(Transform.multiply(Transform.multiply(rotateMatrix, skewMatrix), scaleMatrix), spec.translate);
-	};
-	Transform.equals = function equals(a, b) {
-	    return !Transform.notEquals(a, b);
-	};
-	Transform.notEquals = function notEquals(a, b) {
-	    if (a === b)
-	        return false;
-	    return !(a && b) || a[12] !== b[12] || a[13] !== b[13] || a[14] !== b[14] || a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2] || a[4] !== b[4] || a[5] !== b[5] || a[6] !== b[6] || a[8] !== b[8] || a[9] !== b[9] || a[10] !== b[10];
-	};
-	Transform.normalizeRotation = function normalizeRotation(rotation) {
-	    var result = rotation.slice(0);
-	    if (result[0] === Math.PI * 0.5 || result[0] === -Math.PI * 0.5) {
-	        result[0] = -result[0];
-	        result[1] = Math.PI - result[1];
-	        result[2] -= Math.PI;
-	    }
-	    if (result[0] > Math.PI * 0.5) {
-	        result[0] = result[0] - Math.PI;
-	        result[1] = Math.PI - result[1];
-	        result[2] -= Math.PI;
-	    }
-	    if (result[0] < -Math.PI * 0.5) {
-	        result[0] = result[0] + Math.PI;
-	        result[1] = -Math.PI - result[1];
-	        result[2] -= Math.PI;
-	    }
-	    while (result[1] < -Math.PI)
-	        result[1] += 2 * Math.PI;
-	    while (result[1] >= Math.PI)
-	        result[1] -= 2 * Math.PI;
-	    while (result[2] < -Math.PI)
-	        result[2] += 2 * Math.PI;
-	    while (result[2] >= Math.PI)
-	        result[2] -= 2 * Math.PI;
-	    return result;
-	};
-	Transform.inFront = [
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0.001,
-	    1
-	];
-	Transform.behind = [
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    -0.001,
-	    1
-	];
-	module.exports = Transform;
-
-/***/ },
-/* 23 */
-/*!****************************************!*\
-  !*** ../~/famous/core/EventHandler.js ***!
-  \****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var EventEmitter = __webpack_require__(/*! ./EventEmitter */ 24);
-	function EventHandler() {
-	    EventEmitter.apply(this, arguments);
-	    this.downstream = [];
-	    this.downstreamFn = [];
-	    this.upstream = [];
-	    this.upstreamListeners = {};
-	}
-	EventHandler.prototype = Object.create(EventEmitter.prototype);
-	EventHandler.prototype.constructor = EventHandler;
-	EventHandler.setInputHandler = function setInputHandler(object, handler) {
-	    object.trigger = handler.trigger.bind(handler);
-	    if (handler.subscribe && handler.unsubscribe) {
-	        object.subscribe = handler.subscribe.bind(handler);
-	        object.unsubscribe = handler.unsubscribe.bind(handler);
-	    }
-	};
-	EventHandler.setOutputHandler = function setOutputHandler(object, handler) {
-	    if (handler instanceof EventHandler)
-	        handler.bindThis(object);
-	    object.pipe = handler.pipe.bind(handler);
-	    object.unpipe = handler.unpipe.bind(handler);
-	    object.on = handler.on.bind(handler);
-	    object.addListener = object.on;
-	    object.removeListener = handler.removeListener.bind(handler);
-	};
-	EventHandler.prototype.emit = function emit(type, event) {
-	    EventEmitter.prototype.emit.apply(this, arguments);
-	    var i = 0;
-	    for (i = 0; i < this.downstream.length; i++) {
-	        if (this.downstream[i].trigger)
-	            this.downstream[i].trigger(type, event);
-	    }
-	    for (i = 0; i < this.downstreamFn.length; i++) {
-	        this.downstreamFn[i](type, event);
-	    }
-	    return this;
-	};
-	EventHandler.prototype.trigger = EventHandler.prototype.emit;
-	EventHandler.prototype.pipe = function pipe(target) {
-	    if (target.subscribe instanceof Function)
-	        return target.subscribe(this);
-	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
-	    var index = downstreamCtx.indexOf(target);
-	    if (index < 0)
-	        downstreamCtx.push(target);
-	    if (target instanceof Function)
-	        target('pipe', null);
-	    else if (target.trigger)
-	        target.trigger('pipe', null);
-	    return target;
-	};
-	EventHandler.prototype.unpipe = function unpipe(target) {
-	    if (target.unsubscribe instanceof Function)
-	        return target.unsubscribe(this);
-	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
-	    var index = downstreamCtx.indexOf(target);
-	    if (index >= 0) {
-	        downstreamCtx.splice(index, 1);
-	        if (target instanceof Function)
-	            target('unpipe', null);
-	        else if (target.trigger)
-	            target.trigger('unpipe', null);
-	        return target;
-	    } else
-	        return false;
-	};
-	EventHandler.prototype.on = function on(type, handler) {
-	    EventEmitter.prototype.on.apply(this, arguments);
-	    if (!(type in this.upstreamListeners)) {
-	        var upstreamListener = this.trigger.bind(this, type);
-	        this.upstreamListeners[type] = upstreamListener;
-	        for (var i = 0; i < this.upstream.length; i++) {
-	            this.upstream[i].on(type, upstreamListener);
-	        }
-	    }
-	    return this;
-	};
-	EventHandler.prototype.addListener = EventHandler.prototype.on;
-	EventHandler.prototype.subscribe = function subscribe(source) {
-	    var index = this.upstream.indexOf(source);
-	    if (index < 0) {
-	        this.upstream.push(source);
-	        for (var type in this.upstreamListeners) {
-	            source.on(type, this.upstreamListeners[type]);
-	        }
-	    }
-	    return this;
-	};
-	EventHandler.prototype.unsubscribe = function unsubscribe(source) {
-	    var index = this.upstream.indexOf(source);
-	    if (index >= 0) {
-	        this.upstream.splice(index, 1);
-	        for (var type in this.upstreamListeners) {
-	            source.removeListener(type, this.upstreamListeners[type]);
-	        }
-	    }
-	    return this;
-	};
-	module.exports = EventHandler;
-
-/***/ },
-/* 24 */
-/*!****************************************!*\
-  !*** ../~/famous/core/EventEmitter.js ***!
-  \****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	function EventEmitter() {
-	    this.listeners = {};
-	    this._owner = this;
-	}
-	EventEmitter.prototype.emit = function emit(type, event) {
-	    var handlers = this.listeners[type];
-	    if (handlers) {
-	        for (var i = 0; i < handlers.length; i++) {
-	            handlers[i].call(this._owner, event);
-	        }
-	    }
-	    return this;
-	};
-	EventEmitter.prototype.on = function on(type, handler) {
-	    if (!(type in this.listeners))
-	        this.listeners[type] = [];
-	    var index = this.listeners[type].indexOf(handler);
-	    if (index < 0)
-	        this.listeners[type].push(handler);
-	    return this;
-	};
-	EventEmitter.prototype.addListener = EventEmitter.prototype.on;
-	EventEmitter.prototype.removeListener = function removeListener(type, handler) {
-	    var listener = this.listeners[type];
-	    if (listener !== undefined) {
-	        var index = listener.indexOf(handler);
-	        if (index >= 0)
-	            listener.splice(index, 1);
-	    }
-	    return this;
-	};
-	EventEmitter.prototype.bindThis = function bindThis(owner) {
-	    this._owner = owner;
-	};
-	module.exports = EventEmitter;
-
-/***/ },
-/* 25 */
-/*!********************************************!*\
-  !*** ../~/famous/core/ElementAllocator.js ***!
-  \********************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	function ElementAllocator(container) {
-	    if (!container)
-	        container = document.createDocumentFragment();
-	    this.container = container;
-	    this.detachedNodes = {};
-	    this.nodeCount = 0;
-	}
-	ElementAllocator.prototype.migrate = function migrate(container) {
-	    var oldContainer = this.container;
-	    if (container === oldContainer)
-	        return;
-	    if (oldContainer instanceof DocumentFragment) {
-	        container.appendChild(oldContainer);
-	    } else {
-	        while (oldContainer.hasChildNodes()) {
-	            container.appendChild(oldContainer.firstChild);
-	        }
-	    }
-	    this.container = container;
-	};
-	ElementAllocator.prototype.allocate = function allocate(type) {
-	    type = type.toLowerCase();
-	    if (!(type in this.detachedNodes))
-	        this.detachedNodes[type] = [];
-	    var nodeStore = this.detachedNodes[type];
-	    var result;
-	    if (nodeStore.length > 0) {
-	        result = nodeStore.pop();
-	    } else {
-	        result = document.createElement(type);
-	        this.container.appendChild(result);
-	    }
-	    this.nodeCount++;
-	    return result;
-	};
-	ElementAllocator.prototype.deallocate = function deallocate(element) {
-	    var nodeType = element.nodeName.toLowerCase();
-	    var nodeStore = this.detachedNodes[nodeType];
-	    nodeStore.push(element);
-	    this.nodeCount--;
-	};
-	ElementAllocator.prototype.getNodeCount = function getNodeCount() {
-	    return this.nodeCount;
-	};
-	module.exports = ElementAllocator;
-
-/***/ },
-/* 26 */
-/*!*************************************************!*\
-  !*** ../~/famous/transitions/Transitionable.js ***!
-  \*************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var MultipleTransition = __webpack_require__(/*! ./MultipleTransition */ 27);
-	var TweenTransition = __webpack_require__(/*! ./TweenTransition */ 29);
-	function Transitionable(start) {
-	    this.currentAction = null;
-	    this.actionQueue = [];
-	    this.callbackQueue = [];
-	    this.state = 0;
-	    this.velocity = undefined;
-	    this._callback = undefined;
-	    this._engineInstance = null;
-	    this._currentMethod = null;
-	    this.set(start);
-	}
-	var transitionMethods = {};
-	Transitionable.register = function register(methods) {
-	    var success = true;
-	    for (var method in methods) {
-	        if (!Transitionable.registerMethod(method, methods[method]))
-	            success = false;
-	    }
-	    return success;
-	};
-	Transitionable.registerMethod = function registerMethod(name, engineClass) {
-	    if (!(name in transitionMethods)) {
-	        transitionMethods[name] = engineClass;
-	        return true;
-	    } else
-	        return false;
-	};
-	Transitionable.unregisterMethod = function unregisterMethod(name) {
-	    if (name in transitionMethods) {
-	        delete transitionMethods[name];
-	        return true;
-	    } else
-	        return false;
-	};
-	function _loadNext() {
-	    if (this._callback) {
-	        var callback = this._callback;
-	        this._callback = undefined;
-	        callback();
-	    }
-	    if (this.actionQueue.length <= 0) {
-	        this.set(this.get());
-	        return;
-	    }
-	    this.currentAction = this.actionQueue.shift();
-	    this._callback = this.callbackQueue.shift();
-	    var method = null;
-	    var endValue = this.currentAction[0];
-	    var transition = this.currentAction[1];
-	    if (transition instanceof Object && transition.method) {
-	        method = transition.method;
-	        if (typeof method === 'string')
-	            method = transitionMethods[method];
-	    } else {
-	        method = TweenTransition;
-	    }
-	    if (this._currentMethod !== method) {
-	        if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
-	            this._engineInstance = new method();
-	        } else {
-	            this._engineInstance = new MultipleTransition(method);
-	        }
-	        this._currentMethod = method;
-	    }
-	    this._engineInstance.reset(this.state, this.velocity);
-	    if (this.velocity !== undefined)
-	        transition.velocity = this.velocity;
-	    this._engineInstance.set(endValue, transition, _loadNext.bind(this));
-	}
-	Transitionable.prototype.set = function set(endState, transition, callback) {
-	    if (!transition) {
-	        this.reset(endState);
-	        if (callback)
-	            callback();
-	        return this;
-	    }
-	    var action = [
-	        endState,
-	        transition
-	    ];
-	    this.actionQueue.push(action);
-	    this.callbackQueue.push(callback);
-	    if (!this.currentAction)
-	        _loadNext.call(this);
-	    return this;
-	};
-	Transitionable.prototype.reset = function reset(startState, startVelocity) {
-	    this._currentMethod = null;
-	    this._engineInstance = null;
-	    this._callback = undefined;
-	    this.state = startState;
-	    this.velocity = startVelocity;
-	    this.currentAction = null;
-	    this.actionQueue = [];
-	    this.callbackQueue = [];
-	};
-	Transitionable.prototype.delay = function delay(duration, callback) {
-	    var endValue;
-	    if (this.actionQueue.length)
-	        endValue = this.actionQueue[this.actionQueue.length - 1][0];
-	    else if (this.currentAction)
-	        endValue = this.currentAction[0];
-	    else
-	        endValue = this.get();
-	    return this.set(endValue, {
-	        duration: duration,
-	        curve: function () {
-	            return 0;
-	        }
-	    }, callback);
-	};
-	Transitionable.prototype.get = function get(timestamp) {
-	    if (this._engineInstance) {
-	        if (this._engineInstance.getVelocity)
-	            this.velocity = this._engineInstance.getVelocity();
-	        this.state = this._engineInstance.get(timestamp);
-	    }
-	    return this.state;
-	};
-	Transitionable.prototype.isActive = function isActive() {
-	    return !!this.currentAction;
-	};
-	Transitionable.prototype.halt = function halt() {
-	    return this.set(this.get());
-	};
-	module.exports = Transitionable;
-
-/***/ },
-/* 27 */
-/*!*****************************************************!*\
-  !*** ../~/famous/transitions/MultipleTransition.js ***!
-  \*****************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 28);
-	function MultipleTransition(method) {
-	    this.method = method;
-	    this._instances = [];
-	    this.state = [];
-	}
-	MultipleTransition.SUPPORTS_MULTIPLE = true;
-	MultipleTransition.prototype.get = function get() {
-	    for (var i = 0; i < this._instances.length; i++) {
-	        this.state[i] = this._instances[i].get();
-	    }
-	    return this.state;
-	};
-	MultipleTransition.prototype.set = function set(endState, transition, callback) {
-	    var _allCallback = Utility.after(endState.length, callback);
-	    for (var i = 0; i < endState.length; i++) {
-	        if (!this._instances[i])
-	            this._instances[i] = new this.method();
-	        this._instances[i].set(endState[i], transition, _allCallback);
-	    }
-	};
-	MultipleTransition.prototype.reset = function reset(startState) {
-	    for (var i = 0; i < startState.length; i++) {
-	        if (!this._instances[i])
-	            this._instances[i] = new this.method();
-	        this._instances[i].reset(startState[i]);
-	    }
-	};
-	module.exports = MultipleTransition;
-
-/***/ },
-/* 28 */
-/*!****************************************!*\
-  !*** ../~/famous/utilities/Utility.js ***!
-  \****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Utility = {};
-	Utility.Direction = {
-	    X: 0,
-	    Y: 1,
-	    Z: 2
-	};
-	Utility.after = function after(count, callback) {
-	    var counter = count;
-	    return function () {
-	        counter--;
-	        if (counter === 0)
-	            callback.apply(this, arguments);
-	    };
-	};
-	Utility.loadURL = function loadURL(url, callback) {
-	    var xhr = new XMLHttpRequest();
-	    xhr.onreadystatechange = function onreadystatechange() {
-	        if (this.readyState === 4) {
-	            if (callback)
-	                callback(this.responseText);
-	        }
-	    };
-	    xhr.open('GET', url);
-	    xhr.send();
-	};
-	Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
-	    var element = document.createElement('div');
-	    element.innerHTML = html;
-	    var result = document.createDocumentFragment();
-	    while (element.hasChildNodes())
-	        result.appendChild(element.firstChild);
-	    return result;
-	};
-	Utility.clone = function clone(b) {
-	    var a;
-	    if (typeof b === 'object') {
-	        a = b instanceof Array ? [] : {};
-	        for (var key in b) {
-	            if (typeof b[key] === 'object' && b[key] !== null) {
-	                if (b[key] instanceof Array) {
-	                    a[key] = new Array(b[key].length);
-	                    for (var i = 0; i < b[key].length; i++) {
-	                        a[key][i] = Utility.clone(b[key][i]);
-	                    }
-	                } else {
-	                    a[key] = Utility.clone(b[key]);
-	                }
-	            } else {
-	                a[key] = b[key];
-	            }
-	        }
-	    } else {
-	        a = b;
-	    }
-	    return a;
-	};
-	module.exports = Utility;
-
-/***/ },
-/* 29 */
-/*!**************************************************!*\
-  !*** ../~/famous/transitions/TweenTransition.js ***!
-  \**************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	function TweenTransition(options) {
-	    this.options = Object.create(TweenTransition.DEFAULT_OPTIONS);
-	    if (options)
-	        this.setOptions(options);
-	    this._startTime = 0;
-	    this._startValue = 0;
-	    this._updateTime = 0;
-	    this._endValue = 0;
-	    this._curve = undefined;
-	    this._duration = 0;
-	    this._active = false;
-	    this._callback = undefined;
-	    this.state = 0;
-	    this.velocity = undefined;
-	}
-	TweenTransition.Curves = {
-	    linear: function (t) {
-	        return t;
-	    },
-	    easeIn: function (t) {
-	        return t * t;
-	    },
-	    easeOut: function (t) {
-	        return t * (2 - t);
-	    },
-	    easeInOut: function (t) {
-	        if (t <= 0.5)
-	            return 2 * t * t;
-	        else
-	            return -2 * t * t + 4 * t - 1;
-	    },
-	    easeOutBounce: function (t) {
-	        return t * (3 - 2 * t);
-	    },
-	    spring: function (t) {
-	        return (1 - t) * Math.sin(6 * Math.PI * t) + t;
-	    }
-	};
-	TweenTransition.SUPPORTS_MULTIPLE = true;
-	TweenTransition.DEFAULT_OPTIONS = {
-	    curve: TweenTransition.Curves.linear,
-	    duration: 500,
-	    speed: 0
-	};
-	var registeredCurves = {};
-	TweenTransition.registerCurve = function registerCurve(curveName, curve) {
-	    if (!registeredCurves[curveName]) {
-	        registeredCurves[curveName] = curve;
-	        return true;
-	    } else {
-	        return false;
-	    }
-	};
-	TweenTransition.unregisterCurve = function unregisterCurve(curveName) {
-	    if (registeredCurves[curveName]) {
-	        delete registeredCurves[curveName];
-	        return true;
-	    } else {
-	        return false;
-	    }
-	};
-	TweenTransition.getCurve = function getCurve(curveName) {
-	    var curve = registeredCurves[curveName];
-	    if (curve !== undefined)
-	        return curve;
-	    else
-	        throw new Error('curve not registered');
-	};
-	TweenTransition.getCurves = function getCurves() {
-	    return registeredCurves;
-	};
-	function _interpolate(a, b, t) {
-	    return (1 - t) * a + t * b;
-	}
-	function _clone(obj) {
-	    if (obj instanceof Object) {
-	        if (obj instanceof Array)
-	            return obj.slice(0);
-	        else
-	            return Object.create(obj);
-	    } else
-	        return obj;
-	}
-	function _normalize(transition, defaultTransition) {
-	    var result = { curve: defaultTransition.curve };
-	    if (defaultTransition.duration)
-	        result.duration = defaultTransition.duration;
-	    if (defaultTransition.speed)
-	        result.speed = defaultTransition.speed;
-	    if (transition instanceof Object) {
-	        if (transition.duration !== undefined)
-	            result.duration = transition.duration;
-	        if (transition.curve)
-	            result.curve = transition.curve;
-	        if (transition.speed)
-	            result.speed = transition.speed;
-	    }
-	    if (typeof result.curve === 'string')
-	        result.curve = TweenTransition.getCurve(result.curve);
-	    return result;
-	}
-	TweenTransition.prototype.setOptions = function setOptions(options) {
-	    if (options.curve !== undefined)
-	        this.options.curve = options.curve;
-	    if (options.duration !== undefined)
-	        this.options.duration = options.duration;
-	    if (options.speed !== undefined)
-	        this.options.speed = options.speed;
-	};
-	TweenTransition.prototype.set = function set(endValue, transition, callback) {
-	    if (!transition) {
-	        this.reset(endValue);
-	        if (callback)
-	            callback();
-	        return;
-	    }
-	    this._startValue = _clone(this.get());
-	    transition = _normalize(transition, this.options);
-	    if (transition.speed) {
-	        var startValue = this._startValue;
-	        if (startValue instanceof Object) {
-	            var variance = 0;
-	            for (var i in startValue)
-	                variance += (endValue[i] - startValue[i]) * (endValue[i] - startValue[i]);
-	            transition.duration = Math.sqrt(variance) / transition.speed;
-	        } else {
-	            transition.duration = Math.abs(endValue - startValue) / transition.speed;
-	        }
-	    }
-	    this._startTime = Date.now();
-	    this._endValue = _clone(endValue);
-	    this._startVelocity = _clone(transition.velocity);
-	    this._duration = transition.duration;
-	    this._curve = transition.curve;
-	    this._active = true;
-	    this._callback = callback;
-	};
-	TweenTransition.prototype.reset = function reset(startValue, startVelocity) {
-	    if (this._callback) {
-	        var callback = this._callback;
-	        this._callback = undefined;
-	        callback();
-	    }
-	    this.state = _clone(startValue);
-	    this.velocity = _clone(startVelocity);
-	    this._startTime = 0;
-	    this._duration = 0;
-	    this._updateTime = 0;
-	    this._startValue = this.state;
-	    this._startVelocity = this.velocity;
-	    this._endValue = this.state;
-	    this._active = false;
-	};
-	TweenTransition.prototype.getVelocity = function getVelocity() {
-	    return this.velocity;
-	};
-	TweenTransition.prototype.get = function get(timestamp) {
-	    this.update(timestamp);
-	    return this.state;
-	};
-	function _calculateVelocity(current, start, curve, duration, t) {
-	    var velocity;
-	    var eps = 1e-7;
-	    var speed = (curve(t) - curve(t - eps)) / eps;
-	    if (current instanceof Array) {
-	        velocity = [];
-	        for (var i = 0; i < current.length; i++) {
-	            if (typeof current[i] === 'number')
-	                velocity[i] = speed * (current[i] - start[i]) / duration;
-	            else
-	                velocity[i] = 0;
-	        }
-	    } else
-	        velocity = speed * (current - start) / duration;
-	    return velocity;
-	}
-	function _calculateState(start, end, t) {
-	    var state;
-	    if (start instanceof Array) {
-	        state = [];
-	        for (var i = 0; i < start.length; i++) {
-	            if (typeof start[i] === 'number')
-	                state[i] = _interpolate(start[i], end[i], t);
-	            else
-	                state[i] = start[i];
-	        }
-	    } else
-	        state = _interpolate(start, end, t);
-	    return state;
-	}
-	TweenTransition.prototype.update = function update(timestamp) {
-	    if (!this._active) {
-	        if (this._callback) {
-	            var callback = this._callback;
-	            this._callback = undefined;
-	            callback();
-	        }
-	        return;
-	    }
-	    if (!timestamp)
-	        timestamp = Date.now();
-	    if (this._updateTime >= timestamp)
-	        return;
-	    this._updateTime = timestamp;
-	    var timeSinceStart = timestamp - this._startTime;
-	    if (timeSinceStart >= this._duration) {
-	        this.state = this._endValue;
-	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, 1);
-	        this._active = false;
-	    } else if (timeSinceStart < 0) {
-	        this.state = this._startValue;
-	        this.velocity = this._startVelocity;
-	    } else {
-	        var t = timeSinceStart / this._duration;
-	        this.state = _calculateState(this._startValue, this._endValue, this._curve(t));
-	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, t);
-	    }
-	};
-	TweenTransition.prototype.isActive = function isActive() {
-	    return this._active;
-	};
-	TweenTransition.prototype.halt = function halt() {
-	    this.reset(this.get());
-	};
-	TweenTransition.registerCurve('linear', TweenTransition.Curves.linear);
-	TweenTransition.registerCurve('easeIn', TweenTransition.Curves.easeIn);
-	TweenTransition.registerCurve('easeOut', TweenTransition.Curves.easeOut);
-	TweenTransition.registerCurve('easeInOut', TweenTransition.Curves.easeInOut);
-	TweenTransition.registerCurve('easeOutBounce', TweenTransition.Curves.easeOutBounce);
-	TweenTransition.registerCurve('spring', TweenTransition.Curves.spring);
-	TweenTransition.customCurve = function customCurve(v1, v2) {
-	    v1 = v1 || 0;
-	    v2 = v2 || 0;
-	    return function (t) {
-	        return v1 * t + (-2 * v1 - v2 + 3) * t * t + (v1 + v2 - 2) * t * t * t;
-	    };
-	};
-	module.exports = TweenTransition;
-
-/***/ },
-/* 30 */
-/*!******************************************!*\
-  !*** ../~/famous/core/OptionsManager.js ***!
-  \******************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
-	function OptionsManager(value) {
-	    this._value = value;
-	    this.eventOutput = null;
-	}
-	OptionsManager.patch = function patchObject(source, data) {
-	    var manager = new OptionsManager(source);
-	    for (var i = 1; i < arguments.length; i++)
-	        manager.patch(arguments[i]);
-	    return source;
-	};
-	function _createEventOutput() {
-	    this.eventOutput = new EventHandler();
-	    this.eventOutput.bindThis(this);
-	    EventHandler.setOutputHandler(this, this.eventOutput);
-	}
-	OptionsManager.prototype.patch = function patch() {
-	    var myState = this._value;
-	    for (var i = 0; i < arguments.length; i++) {
-	        var data = arguments[i];
-	        for (var k in data) {
-	            if (k in myState && (data[k] && data[k].constructor === Object) && (myState[k] && myState[k].constructor === Object)) {
-	                if (!myState.hasOwnProperty(k))
-	                    myState[k] = Object.create(myState[k]);
-	                this.key(k).patch(data[k]);
-	                if (this.eventOutput)
-	                    this.eventOutput.emit('change', {
-	                        id: k,
-	                        value: this.key(k).value()
-	                    });
-	            } else
-	                this.set(k, data[k]);
-	        }
-	    }
-	    return this;
-	};
-	OptionsManager.prototype.setOptions = OptionsManager.prototype.patch;
-	OptionsManager.prototype.key = function key(identifier) {
-	    var result = new OptionsManager(this._value[identifier]);
-	    if (!(result._value instanceof Object) || result._value instanceof Array)
-	        result._value = {};
-	    return result;
-	};
-	OptionsManager.prototype.get = function get(key) {
-	    return key ? this._value[key] : this._value;
-	};
-	OptionsManager.prototype.getOptions = OptionsManager.prototype.get;
-	OptionsManager.prototype.set = function set(key, value) {
-	    var originalValue = this.get(key);
-	    this._value[key] = value;
-	    if (this.eventOutput && value !== originalValue)
-	        this.eventOutput.emit('change', {
-	            id: key,
-	            value: value
-	        });
-	    return this;
-	};
-	OptionsManager.prototype.on = function on() {
-	    _createEventOutput.call(this);
-	    return this.on.apply(this, arguments);
-	};
-	OptionsManager.prototype.removeListener = function removeListener() {
-	    _createEventOutput.call(this);
-	    return this.removeListener.apply(this, arguments);
-	};
-	OptionsManager.prototype.pipe = function pipe() {
-	    _createEventOutput.call(this);
-	    return this.pipe.apply(this, arguments);
-	};
-	OptionsManager.prototype.unpipe = function unpipe() {
-	    _createEventOutput.call(this);
-	    return this.unpipe.apply(this, arguments);
-	};
-	module.exports = OptionsManager;
-
-/***/ },
-/* 31 */
 /*!************************************************!*\
   !*** ../~/famous-flex/src/LayoutController.js ***!
   \************************************************/
@@ -3520,17 +208,17 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 28);
-	    var Entity = __webpack_require__(/*! famous/core/Entity */ 20);
-	    var ViewSequence = __webpack_require__(/*! famous/core/ViewSequence */ 32);
-	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 30);
-	    var EventHandler = __webpack_require__(/*! famous/core/EventHandler */ 23);
-	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 33);
-	    var LayoutNodeManager = __webpack_require__(/*! ./LayoutNodeManager */ 34);
-	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 36);
-	    var FlowLayoutNode = __webpack_require__(/*! ./FlowLayoutNode */ 37);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
-	    __webpack_require__(/*! ./helpers/LayoutDockHelper */ 44);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 2);
+	    var Entity = __webpack_require__(/*! famous/core/Entity */ 3);
+	    var ViewSequence = __webpack_require__(/*! famous/core/ViewSequence */ 4);
+	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 5);
+	    var EventHandler = __webpack_require__(/*! famous/core/EventHandler */ 6);
+	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 8);
+	    var LayoutNodeManager = __webpack_require__(/*! ./LayoutNodeManager */ 9);
+	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 11);
+	    var FlowLayoutNode = __webpack_require__(/*! ./FlowLayoutNode */ 13);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 12);
+	    __webpack_require__(/*! ./helpers/LayoutDockHelper */ 23);
 	
 	    /**
 	     * @class
@@ -4613,7 +1301,115 @@
 
 
 /***/ },
-/* 32 */
+/* 2 */
+/*!****************************************!*\
+  !*** ../~/famous/utilities/Utility.js ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Utility = {};
+	Utility.Direction = {
+	    X: 0,
+	    Y: 1,
+	    Z: 2
+	};
+	Utility.after = function after(count, callback) {
+	    var counter = count;
+	    return function () {
+	        counter--;
+	        if (counter === 0)
+	            callback.apply(this, arguments);
+	    };
+	};
+	Utility.loadURL = function loadURL(url, callback) {
+	    var xhr = new XMLHttpRequest();
+	    xhr.onreadystatechange = function onreadystatechange() {
+	        if (this.readyState === 4) {
+	            if (callback)
+	                callback(this.responseText);
+	        }
+	    };
+	    xhr.open('GET', url);
+	    xhr.send();
+	};
+	Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
+	    var element = document.createElement('div');
+	    element.innerHTML = html;
+	    var result = document.createDocumentFragment();
+	    while (element.hasChildNodes())
+	        result.appendChild(element.firstChild);
+	    return result;
+	};
+	Utility.clone = function clone(b) {
+	    var a;
+	    if (typeof b === 'object') {
+	        a = b instanceof Array ? [] : {};
+	        for (var key in b) {
+	            if (typeof b[key] === 'object' && b[key] !== null) {
+	                if (b[key] instanceof Array) {
+	                    a[key] = new Array(b[key].length);
+	                    for (var i = 0; i < b[key].length; i++) {
+	                        a[key][i] = Utility.clone(b[key][i]);
+	                    }
+	                } else {
+	                    a[key] = Utility.clone(b[key]);
+	                }
+	            } else {
+	                a[key] = b[key];
+	            }
+	        }
+	    } else {
+	        a = b;
+	    }
+	    return a;
+	};
+	module.exports = Utility;
+
+/***/ },
+/* 3 */
+/*!**********************************!*\
+  !*** ../~/famous/core/Entity.js ***!
+  \**********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var entities = [];
+	function get(id) {
+	    return entities[id];
+	}
+	function set(id, entity) {
+	    entities[id] = entity;
+	}
+	function register(entity) {
+	    var id = entities.length;
+	    set(id, entity);
+	    return id;
+	}
+	function unregister(id) {
+	    set(id, null);
+	}
+	module.exports = {
+	    register: register,
+	    unregister: unregister,
+	    get: get,
+	    set: set
+	};
+
+/***/ },
+/* 4 */
 /*!****************************************!*\
   !*** ../~/famous/core/ViewSequence.js ***!
   \****************************************/
@@ -4869,7 +1665,261 @@
 	module.exports = ViewSequence;
 
 /***/ },
-/* 33 */
+/* 5 */
+/*!******************************************!*\
+  !*** ../~/famous/core/OptionsManager.js ***!
+  \******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 6);
+	function OptionsManager(value) {
+	    this._value = value;
+	    this.eventOutput = null;
+	}
+	OptionsManager.patch = function patchObject(source, data) {
+	    var manager = new OptionsManager(source);
+	    for (var i = 1; i < arguments.length; i++)
+	        manager.patch(arguments[i]);
+	    return source;
+	};
+	function _createEventOutput() {
+	    this.eventOutput = new EventHandler();
+	    this.eventOutput.bindThis(this);
+	    EventHandler.setOutputHandler(this, this.eventOutput);
+	}
+	OptionsManager.prototype.patch = function patch() {
+	    var myState = this._value;
+	    for (var i = 0; i < arguments.length; i++) {
+	        var data = arguments[i];
+	        for (var k in data) {
+	            if (k in myState && (data[k] && data[k].constructor === Object) && (myState[k] && myState[k].constructor === Object)) {
+	                if (!myState.hasOwnProperty(k))
+	                    myState[k] = Object.create(myState[k]);
+	                this.key(k).patch(data[k]);
+	                if (this.eventOutput)
+	                    this.eventOutput.emit('change', {
+	                        id: k,
+	                        value: this.key(k).value()
+	                    });
+	            } else
+	                this.set(k, data[k]);
+	        }
+	    }
+	    return this;
+	};
+	OptionsManager.prototype.setOptions = OptionsManager.prototype.patch;
+	OptionsManager.prototype.key = function key(identifier) {
+	    var result = new OptionsManager(this._value[identifier]);
+	    if (!(result._value instanceof Object) || result._value instanceof Array)
+	        result._value = {};
+	    return result;
+	};
+	OptionsManager.prototype.get = function get(key) {
+	    return key ? this._value[key] : this._value;
+	};
+	OptionsManager.prototype.getOptions = OptionsManager.prototype.get;
+	OptionsManager.prototype.set = function set(key, value) {
+	    var originalValue = this.get(key);
+	    this._value[key] = value;
+	    if (this.eventOutput && value !== originalValue)
+	        this.eventOutput.emit('change', {
+	            id: key,
+	            value: value
+	        });
+	    return this;
+	};
+	OptionsManager.prototype.on = function on() {
+	    _createEventOutput.call(this);
+	    return this.on.apply(this, arguments);
+	};
+	OptionsManager.prototype.removeListener = function removeListener() {
+	    _createEventOutput.call(this);
+	    return this.removeListener.apply(this, arguments);
+	};
+	OptionsManager.prototype.pipe = function pipe() {
+	    _createEventOutput.call(this);
+	    return this.pipe.apply(this, arguments);
+	};
+	OptionsManager.prototype.unpipe = function unpipe() {
+	    _createEventOutput.call(this);
+	    return this.unpipe.apply(this, arguments);
+	};
+	module.exports = OptionsManager;
+
+/***/ },
+/* 6 */
+/*!****************************************!*\
+  !*** ../~/famous/core/EventHandler.js ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var EventEmitter = __webpack_require__(/*! ./EventEmitter */ 7);
+	function EventHandler() {
+	    EventEmitter.apply(this, arguments);
+	    this.downstream = [];
+	    this.downstreamFn = [];
+	    this.upstream = [];
+	    this.upstreamListeners = {};
+	}
+	EventHandler.prototype = Object.create(EventEmitter.prototype);
+	EventHandler.prototype.constructor = EventHandler;
+	EventHandler.setInputHandler = function setInputHandler(object, handler) {
+	    object.trigger = handler.trigger.bind(handler);
+	    if (handler.subscribe && handler.unsubscribe) {
+	        object.subscribe = handler.subscribe.bind(handler);
+	        object.unsubscribe = handler.unsubscribe.bind(handler);
+	    }
+	};
+	EventHandler.setOutputHandler = function setOutputHandler(object, handler) {
+	    if (handler instanceof EventHandler)
+	        handler.bindThis(object);
+	    object.pipe = handler.pipe.bind(handler);
+	    object.unpipe = handler.unpipe.bind(handler);
+	    object.on = handler.on.bind(handler);
+	    object.addListener = object.on;
+	    object.removeListener = handler.removeListener.bind(handler);
+	};
+	EventHandler.prototype.emit = function emit(type, event) {
+	    EventEmitter.prototype.emit.apply(this, arguments);
+	    var i = 0;
+	    for (i = 0; i < this.downstream.length; i++) {
+	        if (this.downstream[i].trigger)
+	            this.downstream[i].trigger(type, event);
+	    }
+	    for (i = 0; i < this.downstreamFn.length; i++) {
+	        this.downstreamFn[i](type, event);
+	    }
+	    return this;
+	};
+	EventHandler.prototype.trigger = EventHandler.prototype.emit;
+	EventHandler.prototype.pipe = function pipe(target) {
+	    if (target.subscribe instanceof Function)
+	        return target.subscribe(this);
+	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
+	    var index = downstreamCtx.indexOf(target);
+	    if (index < 0)
+	        downstreamCtx.push(target);
+	    if (target instanceof Function)
+	        target('pipe', null);
+	    else if (target.trigger)
+	        target.trigger('pipe', null);
+	    return target;
+	};
+	EventHandler.prototype.unpipe = function unpipe(target) {
+	    if (target.unsubscribe instanceof Function)
+	        return target.unsubscribe(this);
+	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
+	    var index = downstreamCtx.indexOf(target);
+	    if (index >= 0) {
+	        downstreamCtx.splice(index, 1);
+	        if (target instanceof Function)
+	            target('unpipe', null);
+	        else if (target.trigger)
+	            target.trigger('unpipe', null);
+	        return target;
+	    } else
+	        return false;
+	};
+	EventHandler.prototype.on = function on(type, handler) {
+	    EventEmitter.prototype.on.apply(this, arguments);
+	    if (!(type in this.upstreamListeners)) {
+	        var upstreamListener = this.trigger.bind(this, type);
+	        this.upstreamListeners[type] = upstreamListener;
+	        for (var i = 0; i < this.upstream.length; i++) {
+	            this.upstream[i].on(type, upstreamListener);
+	        }
+	    }
+	    return this;
+	};
+	EventHandler.prototype.addListener = EventHandler.prototype.on;
+	EventHandler.prototype.subscribe = function subscribe(source) {
+	    var index = this.upstream.indexOf(source);
+	    if (index < 0) {
+	        this.upstream.push(source);
+	        for (var type in this.upstreamListeners) {
+	            source.on(type, this.upstreamListeners[type]);
+	        }
+	    }
+	    return this;
+	};
+	EventHandler.prototype.unsubscribe = function unsubscribe(source) {
+	    var index = this.upstream.indexOf(source);
+	    if (index >= 0) {
+	        this.upstream.splice(index, 1);
+	        for (var type in this.upstreamListeners) {
+	            source.removeListener(type, this.upstreamListeners[type]);
+	        }
+	    }
+	    return this;
+	};
+	module.exports = EventHandler;
+
+/***/ },
+/* 7 */
+/*!****************************************!*\
+  !*** ../~/famous/core/EventEmitter.js ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	function EventEmitter() {
+	    this.listeners = {};
+	    this._owner = this;
+	}
+	EventEmitter.prototype.emit = function emit(type, event) {
+	    var handlers = this.listeners[type];
+	    if (handlers) {
+	        for (var i = 0; i < handlers.length; i++) {
+	            handlers[i].call(this._owner, event);
+	        }
+	    }
+	    return this;
+	};
+	EventEmitter.prototype.on = function on(type, handler) {
+	    if (!(type in this.listeners))
+	        this.listeners[type] = [];
+	    var index = this.listeners[type].indexOf(handler);
+	    if (index < 0)
+	        this.listeners[type].push(handler);
+	    return this;
+	};
+	EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+	EventEmitter.prototype.removeListener = function removeListener(type, handler) {
+	    var listener = this.listeners[type];
+	    if (listener !== undefined) {
+	        var index = listener.indexOf(handler);
+	        if (index >= 0)
+	            listener.splice(index, 1);
+	    }
+	    return this;
+	};
+	EventEmitter.prototype.bindThis = function bindThis(owner) {
+	    this._owner = owner;
+	};
+	module.exports = EventEmitter;
+
+/***/ },
+/* 8 */
 /*!*********************************************!*\
   !*** ../~/famous-flex/src/LayoutUtility.js ***!
   \*********************************************/
@@ -4896,7 +1946,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 28);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 2);
 	
 	    /**
 	     * @class
@@ -5167,7 +2217,7 @@
 
 
 /***/ },
-/* 34 */
+/* 9 */
 /*!*************************************************!*\
   !*** ../~/famous-flex/src/LayoutNodeManager.js ***!
   \*************************************************/
@@ -5200,8 +2250,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutContext = __webpack_require__(/*! ./LayoutContext */ 35);
-	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 33);
+	    var LayoutContext = __webpack_require__(/*! ./LayoutContext */ 10);
+	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 8);
 	
 	    var MAX_POOL_SIZE = 100;
 	
@@ -5934,7 +2984,7 @@
 
 
 /***/ },
-/* 35 */
+/* 10 */
 /*!*********************************************!*\
   !*** ../~/famous-flex/src/LayoutContext.js ***!
   \*********************************************/
@@ -6205,7 +3255,7 @@
 
 
 /***/ },
-/* 36 */
+/* 11 */
 /*!******************************************!*\
   !*** ../~/famous-flex/src/LayoutNode.js ***!
   \******************************************/
@@ -6229,8 +3279,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
-	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 33);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 12);
+	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 8);
 	
 	    /**
 	     * @class
@@ -6414,7 +3464,719 @@
 
 
 /***/ },
-/* 37 */
+/* 12 */
+/*!*************************************!*\
+  !*** ../~/famous/core/Transform.js ***!
+  \*************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Transform = {};
+	Transform.precision = 0.000001;
+	Transform.identity = [
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1
+	];
+	Transform.multiply4x4 = function multiply4x4(a, b) {
+	    return [
+	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2] + a[12] * b[3],
+	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2] + a[13] * b[3],
+	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2] + a[14] * b[3],
+	        a[3] * b[0] + a[7] * b[1] + a[11] * b[2] + a[15] * b[3],
+	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6] + a[12] * b[7],
+	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6] + a[13] * b[7],
+	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6] + a[14] * b[7],
+	        a[3] * b[4] + a[7] * b[5] + a[11] * b[6] + a[15] * b[7],
+	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10] + a[12] * b[11],
+	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10] + a[13] * b[11],
+	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10] + a[14] * b[11],
+	        a[3] * b[8] + a[7] * b[9] + a[11] * b[10] + a[15] * b[11],
+	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12] * b[15],
+	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13] * b[15],
+	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14] * b[15],
+	        a[3] * b[12] + a[7] * b[13] + a[11] * b[14] + a[15] * b[15]
+	    ];
+	};
+	Transform.multiply = function multiply(a, b) {
+	    return [
+	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2],
+	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2],
+	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2],
+	        0,
+	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6],
+	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6],
+	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6],
+	        0,
+	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10],
+	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10],
+	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10],
+	        0,
+	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12],
+	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13],
+	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14],
+	        1
+	    ];
+	};
+	Transform.thenMove = function thenMove(m, t) {
+	    if (!t[2])
+	        t[2] = 0;
+	    return [
+	        m[0],
+	        m[1],
+	        m[2],
+	        0,
+	        m[4],
+	        m[5],
+	        m[6],
+	        0,
+	        m[8],
+	        m[9],
+	        m[10],
+	        0,
+	        m[12] + t[0],
+	        m[13] + t[1],
+	        m[14] + t[2],
+	        1
+	    ];
+	};
+	Transform.moveThen = function moveThen(v, m) {
+	    if (!v[2])
+	        v[2] = 0;
+	    var t0 = v[0] * m[0] + v[1] * m[4] + v[2] * m[8];
+	    var t1 = v[0] * m[1] + v[1] * m[5] + v[2] * m[9];
+	    var t2 = v[0] * m[2] + v[1] * m[6] + v[2] * m[10];
+	    return Transform.thenMove(m, [
+	        t0,
+	        t1,
+	        t2
+	    ]);
+	};
+	Transform.translate = function translate(x, y, z) {
+	    if (z === undefined)
+	        z = 0;
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        x,
+	        y,
+	        z,
+	        1
+	    ];
+	};
+	Transform.thenScale = function thenScale(m, s) {
+	    return [
+	        s[0] * m[0],
+	        s[1] * m[1],
+	        s[2] * m[2],
+	        0,
+	        s[0] * m[4],
+	        s[1] * m[5],
+	        s[2] * m[6],
+	        0,
+	        s[0] * m[8],
+	        s[1] * m[9],
+	        s[2] * m[10],
+	        0,
+	        s[0] * m[12],
+	        s[1] * m[13],
+	        s[2] * m[14],
+	        1
+	    ];
+	};
+	Transform.scale = function scale(x, y, z) {
+	    if (z === undefined)
+	        z = 1;
+	    if (y === undefined)
+	        y = x;
+	    return [
+	        x,
+	        0,
+	        0,
+	        0,
+	        0,
+	        y,
+	        0,
+	        0,
+	        0,
+	        0,
+	        z,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotateX = function rotateX(theta) {
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        cosTheta,
+	        sinTheta,
+	        0,
+	        0,
+	        -sinTheta,
+	        cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotateY = function rotateY(theta) {
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    return [
+	        cosTheta,
+	        0,
+	        -sinTheta,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        sinTheta,
+	        0,
+	        cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotateZ = function rotateZ(theta) {
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    return [
+	        cosTheta,
+	        sinTheta,
+	        0,
+	        0,
+	        -sinTheta,
+	        cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotate = function rotate(phi, theta, psi) {
+	    var cosPhi = Math.cos(phi);
+	    var sinPhi = Math.sin(phi);
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    var cosPsi = Math.cos(psi);
+	    var sinPsi = Math.sin(psi);
+	    var result = [
+	        cosTheta * cosPsi,
+	        cosPhi * sinPsi + sinPhi * sinTheta * cosPsi,
+	        sinPhi * sinPsi - cosPhi * sinTheta * cosPsi,
+	        0,
+	        -cosTheta * sinPsi,
+	        cosPhi * cosPsi - sinPhi * sinTheta * sinPsi,
+	        sinPhi * cosPsi + cosPhi * sinTheta * sinPsi,
+	        0,
+	        sinTheta,
+	        -sinPhi * cosTheta,
+	        cosPhi * cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    return result;
+	};
+	Transform.rotateAxis = function rotateAxis(v, theta) {
+	    var sinTheta = Math.sin(theta);
+	    var cosTheta = Math.cos(theta);
+	    var verTheta = 1 - cosTheta;
+	    var xxV = v[0] * v[0] * verTheta;
+	    var xyV = v[0] * v[1] * verTheta;
+	    var xzV = v[0] * v[2] * verTheta;
+	    var yyV = v[1] * v[1] * verTheta;
+	    var yzV = v[1] * v[2] * verTheta;
+	    var zzV = v[2] * v[2] * verTheta;
+	    var xs = v[0] * sinTheta;
+	    var ys = v[1] * sinTheta;
+	    var zs = v[2] * sinTheta;
+	    var result = [
+	        xxV + cosTheta,
+	        xyV + zs,
+	        xzV - ys,
+	        0,
+	        xyV - zs,
+	        yyV + cosTheta,
+	        yzV + xs,
+	        0,
+	        xzV + ys,
+	        yzV - xs,
+	        zzV + cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    return result;
+	};
+	Transform.aboutOrigin = function aboutOrigin(v, m) {
+	    var t0 = v[0] - (v[0] * m[0] + v[1] * m[4] + v[2] * m[8]);
+	    var t1 = v[1] - (v[0] * m[1] + v[1] * m[5] + v[2] * m[9]);
+	    var t2 = v[2] - (v[0] * m[2] + v[1] * m[6] + v[2] * m[10]);
+	    return Transform.thenMove(m, [
+	        t0,
+	        t1,
+	        t2
+	    ]);
+	};
+	Transform.skew = function skew(phi, theta, psi) {
+	    return [
+	        1,
+	        Math.tan(theta),
+	        0,
+	        0,
+	        Math.tan(psi),
+	        1,
+	        0,
+	        0,
+	        0,
+	        Math.tan(phi),
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.skewX = function skewX(angle) {
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        Math.tan(angle),
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.skewY = function skewY(angle) {
+	    return [
+	        1,
+	        Math.tan(angle),
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.perspective = function perspective(focusZ) {
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        -1 / focusZ,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.getTranslate = function getTranslate(m) {
+	    return [
+	        m[12],
+	        m[13],
+	        m[14]
+	    ];
+	};
+	Transform.inverse = function inverse(m) {
+	    var c0 = m[5] * m[10] - m[6] * m[9];
+	    var c1 = m[4] * m[10] - m[6] * m[8];
+	    var c2 = m[4] * m[9] - m[5] * m[8];
+	    var c4 = m[1] * m[10] - m[2] * m[9];
+	    var c5 = m[0] * m[10] - m[2] * m[8];
+	    var c6 = m[0] * m[9] - m[1] * m[8];
+	    var c8 = m[1] * m[6] - m[2] * m[5];
+	    var c9 = m[0] * m[6] - m[2] * m[4];
+	    var c10 = m[0] * m[5] - m[1] * m[4];
+	    var detM = m[0] * c0 - m[1] * c1 + m[2] * c2;
+	    var invD = 1 / detM;
+	    var result = [
+	        invD * c0,
+	        -invD * c4,
+	        invD * c8,
+	        0,
+	        -invD * c1,
+	        invD * c5,
+	        -invD * c9,
+	        0,
+	        invD * c2,
+	        -invD * c6,
+	        invD * c10,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    result[12] = -m[12] * result[0] - m[13] * result[4] - m[14] * result[8];
+	    result[13] = -m[12] * result[1] - m[13] * result[5] - m[14] * result[9];
+	    result[14] = -m[12] * result[2] - m[13] * result[6] - m[14] * result[10];
+	    return result;
+	};
+	Transform.transpose = function transpose(m) {
+	    return [
+	        m[0],
+	        m[4],
+	        m[8],
+	        m[12],
+	        m[1],
+	        m[5],
+	        m[9],
+	        m[13],
+	        m[2],
+	        m[6],
+	        m[10],
+	        m[14],
+	        m[3],
+	        m[7],
+	        m[11],
+	        m[15]
+	    ];
+	};
+	function _normSquared(v) {
+	    return v.length === 2 ? v[0] * v[0] + v[1] * v[1] : v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+	}
+	function _norm(v) {
+	    return Math.sqrt(_normSquared(v));
+	}
+	function _sign(n) {
+	    return n < 0 ? -1 : 1;
+	}
+	Transform.interpret = function interpret(M) {
+	    var x = [
+	        M[0],
+	        M[1],
+	        M[2]
+	    ];
+	    var sgn = _sign(x[0]);
+	    var xNorm = _norm(x);
+	    var v = [
+	        x[0] + sgn * xNorm,
+	        x[1],
+	        x[2]
+	    ];
+	    var mult = 2 / _normSquared(v);
+	    if (mult >= Infinity) {
+	        return {
+	            translate: Transform.getTranslate(M),
+	            rotate: [
+	                0,
+	                0,
+	                0
+	            ],
+	            scale: [
+	                0,
+	                0,
+	                0
+	            ],
+	            skew: [
+	                0,
+	                0,
+	                0
+	            ]
+	        };
+	    }
+	    var Q1 = [
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    Q1[0] = 1 - mult * v[0] * v[0];
+	    Q1[5] = 1 - mult * v[1] * v[1];
+	    Q1[10] = 1 - mult * v[2] * v[2];
+	    Q1[1] = -mult * v[0] * v[1];
+	    Q1[2] = -mult * v[0] * v[2];
+	    Q1[6] = -mult * v[1] * v[2];
+	    Q1[4] = Q1[1];
+	    Q1[8] = Q1[2];
+	    Q1[9] = Q1[6];
+	    var MQ1 = Transform.multiply(Q1, M);
+	    var x2 = [
+	        MQ1[5],
+	        MQ1[6]
+	    ];
+	    var sgn2 = _sign(x2[0]);
+	    var x2Norm = _norm(x2);
+	    var v2 = [
+	        x2[0] + sgn2 * x2Norm,
+	        x2[1]
+	    ];
+	    var mult2 = 2 / _normSquared(v2);
+	    var Q2 = [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    Q2[5] = 1 - mult2 * v2[0] * v2[0];
+	    Q2[10] = 1 - mult2 * v2[1] * v2[1];
+	    Q2[6] = -mult2 * v2[0] * v2[1];
+	    Q2[9] = Q2[6];
+	    var Q = Transform.multiply(Q2, Q1);
+	    var R = Transform.multiply(Q, M);
+	    var remover = Transform.scale(R[0] < 0 ? -1 : 1, R[5] < 0 ? -1 : 1, R[10] < 0 ? -1 : 1);
+	    R = Transform.multiply(R, remover);
+	    Q = Transform.multiply(remover, Q);
+	    var result = {};
+	    result.translate = Transform.getTranslate(M);
+	    result.rotate = [
+	        Math.atan2(-Q[6], Q[10]),
+	        Math.asin(Q[2]),
+	        Math.atan2(-Q[1], Q[0])
+	    ];
+	    if (!result.rotate[0]) {
+	        result.rotate[0] = 0;
+	        result.rotate[2] = Math.atan2(Q[4], Q[5]);
+	    }
+	    result.scale = [
+	        R[0],
+	        R[5],
+	        R[10]
+	    ];
+	    result.skew = [
+	        Math.atan2(R[9], result.scale[2]),
+	        Math.atan2(R[8], result.scale[2]),
+	        Math.atan2(R[4], result.scale[0])
+	    ];
+	    if (Math.abs(result.rotate[0]) + Math.abs(result.rotate[2]) > 1.5 * Math.PI) {
+	        result.rotate[1] = Math.PI - result.rotate[1];
+	        if (result.rotate[1] > Math.PI)
+	            result.rotate[1] -= 2 * Math.PI;
+	        if (result.rotate[1] < -Math.PI)
+	            result.rotate[1] += 2 * Math.PI;
+	        if (result.rotate[0] < 0)
+	            result.rotate[0] += Math.PI;
+	        else
+	            result.rotate[0] -= Math.PI;
+	        if (result.rotate[2] < 0)
+	            result.rotate[2] += Math.PI;
+	        else
+	            result.rotate[2] -= Math.PI;
+	    }
+	    return result;
+	};
+	Transform.average = function average(M1, M2, t) {
+	    t = t === undefined ? 0.5 : t;
+	    var specM1 = Transform.interpret(M1);
+	    var specM2 = Transform.interpret(M2);
+	    var specAvg = {
+	        translate: [
+	            0,
+	            0,
+	            0
+	        ],
+	        rotate: [
+	            0,
+	            0,
+	            0
+	        ],
+	        scale: [
+	            0,
+	            0,
+	            0
+	        ],
+	        skew: [
+	            0,
+	            0,
+	            0
+	        ]
+	    };
+	    for (var i = 0; i < 3; i++) {
+	        specAvg.translate[i] = (1 - t) * specM1.translate[i] + t * specM2.translate[i];
+	        specAvg.rotate[i] = (1 - t) * specM1.rotate[i] + t * specM2.rotate[i];
+	        specAvg.scale[i] = (1 - t) * specM1.scale[i] + t * specM2.scale[i];
+	        specAvg.skew[i] = (1 - t) * specM1.skew[i] + t * specM2.skew[i];
+	    }
+	    return Transform.build(specAvg);
+	};
+	Transform.build = function build(spec) {
+	    var scaleMatrix = Transform.scale(spec.scale[0], spec.scale[1], spec.scale[2]);
+	    var skewMatrix = Transform.skew(spec.skew[0], spec.skew[1], spec.skew[2]);
+	    var rotateMatrix = Transform.rotate(spec.rotate[0], spec.rotate[1], spec.rotate[2]);
+	    return Transform.thenMove(Transform.multiply(Transform.multiply(rotateMatrix, skewMatrix), scaleMatrix), spec.translate);
+	};
+	Transform.equals = function equals(a, b) {
+	    return !Transform.notEquals(a, b);
+	};
+	Transform.notEquals = function notEquals(a, b) {
+	    if (a === b)
+	        return false;
+	    return !(a && b) || a[12] !== b[12] || a[13] !== b[13] || a[14] !== b[14] || a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2] || a[4] !== b[4] || a[5] !== b[5] || a[6] !== b[6] || a[8] !== b[8] || a[9] !== b[9] || a[10] !== b[10];
+	};
+	Transform.normalizeRotation = function normalizeRotation(rotation) {
+	    var result = rotation.slice(0);
+	    if (result[0] === Math.PI * 0.5 || result[0] === -Math.PI * 0.5) {
+	        result[0] = -result[0];
+	        result[1] = Math.PI - result[1];
+	        result[2] -= Math.PI;
+	    }
+	    if (result[0] > Math.PI * 0.5) {
+	        result[0] = result[0] - Math.PI;
+	        result[1] = Math.PI - result[1];
+	        result[2] -= Math.PI;
+	    }
+	    if (result[0] < -Math.PI * 0.5) {
+	        result[0] = result[0] + Math.PI;
+	        result[1] = -Math.PI - result[1];
+	        result[2] -= Math.PI;
+	    }
+	    while (result[1] < -Math.PI)
+	        result[1] += 2 * Math.PI;
+	    while (result[1] >= Math.PI)
+	        result[1] -= 2 * Math.PI;
+	    while (result[2] < -Math.PI)
+	        result[2] += 2 * Math.PI;
+	    while (result[2] >= Math.PI)
+	        result[2] -= 2 * Math.PI;
+	    return result;
+	};
+	Transform.inFront = [
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0.001,
+	    1
+	];
+	Transform.behind = [
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    -0.001,
+	    1
+	];
+	module.exports = Transform;
+
+/***/ },
+/* 13 */
 /*!**********************************************!*\
   !*** ../~/famous-flex/src/FlowLayoutNode.js ***!
   \**********************************************/
@@ -6438,14 +4200,14 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 30);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
-	    var Vector = __webpack_require__(/*! famous/math/Vector */ 40);
-	    var Particle = __webpack_require__(/*! famous/physics/bodies/Particle */ 41);
-	    var Spring = __webpack_require__(/*! famous/physics/forces/Spring */ 38);
-	    var PhysicsEngine = __webpack_require__(/*! famous/physics/PhysicsEngine */ 43);
-	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 36);
-	    var Transitionable = __webpack_require__(/*! famous/transitions/Transitionable */ 26);
+	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 5);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 12);
+	    var Vector = __webpack_require__(/*! famous/math/Vector */ 16);
+	    var Particle = __webpack_require__(/*! famous/physics/bodies/Particle */ 17);
+	    var Spring = __webpack_require__(/*! famous/physics/forces/Spring */ 14);
+	    var PhysicsEngine = __webpack_require__(/*! famous/physics/PhysicsEngine */ 19);
+	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 11);
+	    var Transitionable = __webpack_require__(/*! famous/transitions/Transitionable */ 20);
 	
 	    /**
 	     * @class
@@ -6982,7 +4744,7 @@
 
 
 /***/ },
-/* 38 */
+/* 14 */
 /*!********************************************!*\
   !*** ../~/famous/physics/forces/Spring.js ***!
   \********************************************/
@@ -6995,8 +4757,8 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Force = __webpack_require__(/*! ./Force */ 39);
-	var Vector = __webpack_require__(/*! ../../math/Vector */ 40);
+	var Force = __webpack_require__(/*! ./Force */ 15);
+	var Vector = __webpack_require__(/*! ../../math/Vector */ 16);
 	function Spring(options) {
 	    Force.call(this);
 	    this.options = Object.create(this.constructor.DEFAULT_OPTIONS);
@@ -7120,7 +4882,7 @@
 	module.exports = Spring;
 
 /***/ },
-/* 39 */
+/* 15 */
 /*!*******************************************!*\
   !*** ../~/famous/physics/forces/Force.js ***!
   \*******************************************/
@@ -7133,8 +4895,8 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Vector = __webpack_require__(/*! ../../math/Vector */ 40);
-	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 23);
+	var Vector = __webpack_require__(/*! ../../math/Vector */ 16);
+	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 6);
 	function Force(force) {
 	    this.force = new Vector(force);
 	    this._eventOutput = new EventHandler();
@@ -7155,7 +4917,7 @@
 	module.exports = Force;
 
 /***/ },
-/* 40 */
+/* 16 */
 /*!**********************************!*\
   !*** ../~/famous/math/Vector.js ***!
   \**********************************/
@@ -7317,7 +5079,7 @@
 	module.exports = Vector;
 
 /***/ },
-/* 41 */
+/* 17 */
 /*!**********************************************!*\
   !*** ../~/famous/physics/bodies/Particle.js ***!
   \**********************************************/
@@ -7330,10 +5092,10 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Vector = __webpack_require__(/*! ../../math/Vector */ 40);
-	var Transform = __webpack_require__(/*! ../../core/Transform */ 22);
-	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 23);
-	var Integrator = __webpack_require__(/*! ../integrators/SymplecticEuler */ 42);
+	var Vector = __webpack_require__(/*! ../../math/Vector */ 16);
+	var Transform = __webpack_require__(/*! ../../core/Transform */ 12);
+	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 6);
+	var Integrator = __webpack_require__(/*! ../integrators/SymplecticEuler */ 18);
 	function Particle(options) {
 	    options = options || {};
 	    var defaults = Particle.DEFAULT_OPTIONS;
@@ -7528,7 +5290,7 @@
 	module.exports = Particle;
 
 /***/ },
-/* 42 */
+/* 18 */
 /*!**********************************************************!*\
   !*** ../~/famous/physics/integrators/SymplecticEuler.js ***!
   \**********************************************************/
@@ -7574,7 +5336,7 @@
 	module.exports = SymplecticEuler;
 
 /***/ },
-/* 43 */
+/* 19 */
 /*!********************************************!*\
   !*** ../~/famous/physics/PhysicsEngine.js ***!
   \********************************************/
@@ -7587,7 +5349,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var EventHandler = __webpack_require__(/*! ../core/EventHandler */ 23);
+	var EventHandler = __webpack_require__(/*! ../core/EventHandler */ 6);
 	function PhysicsEngine(options) {
 	    this.options = Object.create(PhysicsEngine.DEFAULT_OPTIONS);
 	    if (options)
@@ -7856,7 +5618,447 @@
 	module.exports = PhysicsEngine;
 
 /***/ },
-/* 44 */
+/* 20 */
+/*!*************************************************!*\
+  !*** ../~/famous/transitions/Transitionable.js ***!
+  \*************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var MultipleTransition = __webpack_require__(/*! ./MultipleTransition */ 21);
+	var TweenTransition = __webpack_require__(/*! ./TweenTransition */ 22);
+	function Transitionable(start) {
+	    this.currentAction = null;
+	    this.actionQueue = [];
+	    this.callbackQueue = [];
+	    this.state = 0;
+	    this.velocity = undefined;
+	    this._callback = undefined;
+	    this._engineInstance = null;
+	    this._currentMethod = null;
+	    this.set(start);
+	}
+	var transitionMethods = {};
+	Transitionable.register = function register(methods) {
+	    var success = true;
+	    for (var method in methods) {
+	        if (!Transitionable.registerMethod(method, methods[method]))
+	            success = false;
+	    }
+	    return success;
+	};
+	Transitionable.registerMethod = function registerMethod(name, engineClass) {
+	    if (!(name in transitionMethods)) {
+	        transitionMethods[name] = engineClass;
+	        return true;
+	    } else
+	        return false;
+	};
+	Transitionable.unregisterMethod = function unregisterMethod(name) {
+	    if (name in transitionMethods) {
+	        delete transitionMethods[name];
+	        return true;
+	    } else
+	        return false;
+	};
+	function _loadNext() {
+	    if (this._callback) {
+	        var callback = this._callback;
+	        this._callback = undefined;
+	        callback();
+	    }
+	    if (this.actionQueue.length <= 0) {
+	        this.set(this.get());
+	        return;
+	    }
+	    this.currentAction = this.actionQueue.shift();
+	    this._callback = this.callbackQueue.shift();
+	    var method = null;
+	    var endValue = this.currentAction[0];
+	    var transition = this.currentAction[1];
+	    if (transition instanceof Object && transition.method) {
+	        method = transition.method;
+	        if (typeof method === 'string')
+	            method = transitionMethods[method];
+	    } else {
+	        method = TweenTransition;
+	    }
+	    if (this._currentMethod !== method) {
+	        if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
+	            this._engineInstance = new method();
+	        } else {
+	            this._engineInstance = new MultipleTransition(method);
+	        }
+	        this._currentMethod = method;
+	    }
+	    this._engineInstance.reset(this.state, this.velocity);
+	    if (this.velocity !== undefined)
+	        transition.velocity = this.velocity;
+	    this._engineInstance.set(endValue, transition, _loadNext.bind(this));
+	}
+	Transitionable.prototype.set = function set(endState, transition, callback) {
+	    if (!transition) {
+	        this.reset(endState);
+	        if (callback)
+	            callback();
+	        return this;
+	    }
+	    var action = [
+	        endState,
+	        transition
+	    ];
+	    this.actionQueue.push(action);
+	    this.callbackQueue.push(callback);
+	    if (!this.currentAction)
+	        _loadNext.call(this);
+	    return this;
+	};
+	Transitionable.prototype.reset = function reset(startState, startVelocity) {
+	    this._currentMethod = null;
+	    this._engineInstance = null;
+	    this._callback = undefined;
+	    this.state = startState;
+	    this.velocity = startVelocity;
+	    this.currentAction = null;
+	    this.actionQueue = [];
+	    this.callbackQueue = [];
+	};
+	Transitionable.prototype.delay = function delay(duration, callback) {
+	    var endValue;
+	    if (this.actionQueue.length)
+	        endValue = this.actionQueue[this.actionQueue.length - 1][0];
+	    else if (this.currentAction)
+	        endValue = this.currentAction[0];
+	    else
+	        endValue = this.get();
+	    return this.set(endValue, {
+	        duration: duration,
+	        curve: function () {
+	            return 0;
+	        }
+	    }, callback);
+	};
+	Transitionable.prototype.get = function get(timestamp) {
+	    if (this._engineInstance) {
+	        if (this._engineInstance.getVelocity)
+	            this.velocity = this._engineInstance.getVelocity();
+	        this.state = this._engineInstance.get(timestamp);
+	    }
+	    return this.state;
+	};
+	Transitionable.prototype.isActive = function isActive() {
+	    return !!this.currentAction;
+	};
+	Transitionable.prototype.halt = function halt() {
+	    return this.set(this.get());
+	};
+	module.exports = Transitionable;
+
+/***/ },
+/* 21 */
+/*!*****************************************************!*\
+  !*** ../~/famous/transitions/MultipleTransition.js ***!
+  \*****************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 2);
+	function MultipleTransition(method) {
+	    this.method = method;
+	    this._instances = [];
+	    this.state = [];
+	}
+	MultipleTransition.SUPPORTS_MULTIPLE = true;
+	MultipleTransition.prototype.get = function get() {
+	    for (var i = 0; i < this._instances.length; i++) {
+	        this.state[i] = this._instances[i].get();
+	    }
+	    return this.state;
+	};
+	MultipleTransition.prototype.set = function set(endState, transition, callback) {
+	    var _allCallback = Utility.after(endState.length, callback);
+	    for (var i = 0; i < endState.length; i++) {
+	        if (!this._instances[i])
+	            this._instances[i] = new this.method();
+	        this._instances[i].set(endState[i], transition, _allCallback);
+	    }
+	};
+	MultipleTransition.prototype.reset = function reset(startState) {
+	    for (var i = 0; i < startState.length; i++) {
+	        if (!this._instances[i])
+	            this._instances[i] = new this.method();
+	        this._instances[i].reset(startState[i]);
+	    }
+	};
+	module.exports = MultipleTransition;
+
+/***/ },
+/* 22 */
+/*!**************************************************!*\
+  !*** ../~/famous/transitions/TweenTransition.js ***!
+  \**************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	function TweenTransition(options) {
+	    this.options = Object.create(TweenTransition.DEFAULT_OPTIONS);
+	    if (options)
+	        this.setOptions(options);
+	    this._startTime = 0;
+	    this._startValue = 0;
+	    this._updateTime = 0;
+	    this._endValue = 0;
+	    this._curve = undefined;
+	    this._duration = 0;
+	    this._active = false;
+	    this._callback = undefined;
+	    this.state = 0;
+	    this.velocity = undefined;
+	}
+	TweenTransition.Curves = {
+	    linear: function (t) {
+	        return t;
+	    },
+	    easeIn: function (t) {
+	        return t * t;
+	    },
+	    easeOut: function (t) {
+	        return t * (2 - t);
+	    },
+	    easeInOut: function (t) {
+	        if (t <= 0.5)
+	            return 2 * t * t;
+	        else
+	            return -2 * t * t + 4 * t - 1;
+	    },
+	    easeOutBounce: function (t) {
+	        return t * (3 - 2 * t);
+	    },
+	    spring: function (t) {
+	        return (1 - t) * Math.sin(6 * Math.PI * t) + t;
+	    }
+	};
+	TweenTransition.SUPPORTS_MULTIPLE = true;
+	TweenTransition.DEFAULT_OPTIONS = {
+	    curve: TweenTransition.Curves.linear,
+	    duration: 500,
+	    speed: 0
+	};
+	var registeredCurves = {};
+	TweenTransition.registerCurve = function registerCurve(curveName, curve) {
+	    if (!registeredCurves[curveName]) {
+	        registeredCurves[curveName] = curve;
+	        return true;
+	    } else {
+	        return false;
+	    }
+	};
+	TweenTransition.unregisterCurve = function unregisterCurve(curveName) {
+	    if (registeredCurves[curveName]) {
+	        delete registeredCurves[curveName];
+	        return true;
+	    } else {
+	        return false;
+	    }
+	};
+	TweenTransition.getCurve = function getCurve(curveName) {
+	    var curve = registeredCurves[curveName];
+	    if (curve !== undefined)
+	        return curve;
+	    else
+	        throw new Error('curve not registered');
+	};
+	TweenTransition.getCurves = function getCurves() {
+	    return registeredCurves;
+	};
+	function _interpolate(a, b, t) {
+	    return (1 - t) * a + t * b;
+	}
+	function _clone(obj) {
+	    if (obj instanceof Object) {
+	        if (obj instanceof Array)
+	            return obj.slice(0);
+	        else
+	            return Object.create(obj);
+	    } else
+	        return obj;
+	}
+	function _normalize(transition, defaultTransition) {
+	    var result = { curve: defaultTransition.curve };
+	    if (defaultTransition.duration)
+	        result.duration = defaultTransition.duration;
+	    if (defaultTransition.speed)
+	        result.speed = defaultTransition.speed;
+	    if (transition instanceof Object) {
+	        if (transition.duration !== undefined)
+	            result.duration = transition.duration;
+	        if (transition.curve)
+	            result.curve = transition.curve;
+	        if (transition.speed)
+	            result.speed = transition.speed;
+	    }
+	    if (typeof result.curve === 'string')
+	        result.curve = TweenTransition.getCurve(result.curve);
+	    return result;
+	}
+	TweenTransition.prototype.setOptions = function setOptions(options) {
+	    if (options.curve !== undefined)
+	        this.options.curve = options.curve;
+	    if (options.duration !== undefined)
+	        this.options.duration = options.duration;
+	    if (options.speed !== undefined)
+	        this.options.speed = options.speed;
+	};
+	TweenTransition.prototype.set = function set(endValue, transition, callback) {
+	    if (!transition) {
+	        this.reset(endValue);
+	        if (callback)
+	            callback();
+	        return;
+	    }
+	    this._startValue = _clone(this.get());
+	    transition = _normalize(transition, this.options);
+	    if (transition.speed) {
+	        var startValue = this._startValue;
+	        if (startValue instanceof Object) {
+	            var variance = 0;
+	            for (var i in startValue)
+	                variance += (endValue[i] - startValue[i]) * (endValue[i] - startValue[i]);
+	            transition.duration = Math.sqrt(variance) / transition.speed;
+	        } else {
+	            transition.duration = Math.abs(endValue - startValue) / transition.speed;
+	        }
+	    }
+	    this._startTime = Date.now();
+	    this._endValue = _clone(endValue);
+	    this._startVelocity = _clone(transition.velocity);
+	    this._duration = transition.duration;
+	    this._curve = transition.curve;
+	    this._active = true;
+	    this._callback = callback;
+	};
+	TweenTransition.prototype.reset = function reset(startValue, startVelocity) {
+	    if (this._callback) {
+	        var callback = this._callback;
+	        this._callback = undefined;
+	        callback();
+	    }
+	    this.state = _clone(startValue);
+	    this.velocity = _clone(startVelocity);
+	    this._startTime = 0;
+	    this._duration = 0;
+	    this._updateTime = 0;
+	    this._startValue = this.state;
+	    this._startVelocity = this.velocity;
+	    this._endValue = this.state;
+	    this._active = false;
+	};
+	TweenTransition.prototype.getVelocity = function getVelocity() {
+	    return this.velocity;
+	};
+	TweenTransition.prototype.get = function get(timestamp) {
+	    this.update(timestamp);
+	    return this.state;
+	};
+	function _calculateVelocity(current, start, curve, duration, t) {
+	    var velocity;
+	    var eps = 1e-7;
+	    var speed = (curve(t) - curve(t - eps)) / eps;
+	    if (current instanceof Array) {
+	        velocity = [];
+	        for (var i = 0; i < current.length; i++) {
+	            if (typeof current[i] === 'number')
+	                velocity[i] = speed * (current[i] - start[i]) / duration;
+	            else
+	                velocity[i] = 0;
+	        }
+	    } else
+	        velocity = speed * (current - start) / duration;
+	    return velocity;
+	}
+	function _calculateState(start, end, t) {
+	    var state;
+	    if (start instanceof Array) {
+	        state = [];
+	        for (var i = 0; i < start.length; i++) {
+	            if (typeof start[i] === 'number')
+	                state[i] = _interpolate(start[i], end[i], t);
+	            else
+	                state[i] = start[i];
+	        }
+	    } else
+	        state = _interpolate(start, end, t);
+	    return state;
+	}
+	TweenTransition.prototype.update = function update(timestamp) {
+	    if (!this._active) {
+	        if (this._callback) {
+	            var callback = this._callback;
+	            this._callback = undefined;
+	            callback();
+	        }
+	        return;
+	    }
+	    if (!timestamp)
+	        timestamp = Date.now();
+	    if (this._updateTime >= timestamp)
+	        return;
+	    this._updateTime = timestamp;
+	    var timeSinceStart = timestamp - this._startTime;
+	    if (timeSinceStart >= this._duration) {
+	        this.state = this._endValue;
+	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, 1);
+	        this._active = false;
+	    } else if (timeSinceStart < 0) {
+	        this.state = this._startValue;
+	        this.velocity = this._startVelocity;
+	    } else {
+	        var t = timeSinceStart / this._duration;
+	        this.state = _calculateState(this._startValue, this._endValue, this._curve(t));
+	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, t);
+	    }
+	};
+	TweenTransition.prototype.isActive = function isActive() {
+	    return this._active;
+	};
+	TweenTransition.prototype.halt = function halt() {
+	    this.reset(this.get());
+	};
+	TweenTransition.registerCurve('linear', TweenTransition.Curves.linear);
+	TweenTransition.registerCurve('easeIn', TweenTransition.Curves.easeIn);
+	TweenTransition.registerCurve('easeOut', TweenTransition.Curves.easeOut);
+	TweenTransition.registerCurve('easeInOut', TweenTransition.Curves.easeInOut);
+	TweenTransition.registerCurve('easeOutBounce', TweenTransition.Curves.easeOutBounce);
+	TweenTransition.registerCurve('spring', TweenTransition.Curves.spring);
+	TweenTransition.customCurve = function customCurve(v1, v2) {
+	    v1 = v1 || 0;
+	    v2 = v2 || 0;
+	    return function (t) {
+	        return v1 * t + (-2 * v1 - v2 + 3) * t * t + (v1 + v2 - 2) * t * t * t;
+	    };
+	};
+	module.exports = TweenTransition;
+
+/***/ },
+/* 23 */
 /*!********************************************************!*\
   !*** ../~/famous-flex/src/helpers/LayoutDockHelper.js ***!
   \********************************************************/
@@ -7910,7 +6112,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 33);
+	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 8);
 	
 	    /**
 	     * @class
@@ -8130,76 +6332,1894 @@
 
 
 /***/ },
-/* 45 */
-/*!*******************************!*\
-  !*** ../~/cassowary/bin/c.js ***!
-  \*******************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(module) {/**
-	 * Parts Copyright (C) 2011-2012, Alex Russell (slightlyoff@chromium.org)
-	 * Parts Copyright (C) Copyright (C) 1998-2000 Greg J. Badros
-	 *
-	 * Use of this source code is governed by the LGPL, which can be found in the
-	 * COPYING.LGPL file.
-	 *
-	 * This is a compiled version of Cassowary/JS. For source versions or to
-	 * contribute, see the github project:
-	 *
-	 *  https://github.com/slightlyoff/cassowary-js-refactor
-	 *
-	 */
-	
-	(function() {
-	(function(a){"use strict";try{(function(){}).bind(a)}catch(b){Object.defineProperty(Function.prototype,"bind",{value:function(a){var b=this;return function(){return b.apply(a,arguments)}},enumerable:!1,configurable:!0,writable:!0})}var c=a.HTMLElement!==void 0,d=function(a){for(var b=null;a&&a!=Object.prototype;){if(a.tagName){b=a.tagName;break}a=a.prototype}return b||"div"},e=1e-8,f={},g=function(a,b){if(a&&b){if("function"==typeof a[b])return a[b];var c=a.prototype;if(c&&"function"==typeof c[b])return c[b];if(c!==Object.prototype&&c!==Function.prototype)return"function"==typeof a.__super__?g(a.__super__,b):void 0}},h=a.c={debug:!1,trace:!1,verbose:!1,traceAdded:!1,GC:!1,GEQ:1,LEQ:2,inherit:function(b){var e=null,g=null;b["extends"]&&(g=b["extends"],delete b["extends"]),b.initialize&&(e=b.initialize,delete b.initialize);var h=e||function(){};Object.defineProperty(h,"__super__",{value:g?g:Object,enumerable:!1,configurable:!0,writable:!1}),b._t&&(f[b._t]=h);var i=h.prototype=Object.create(g?g.prototype:Object.prototype);if(this.extend(i,b),c&&g&&g.prototype instanceof a.HTMLElement){var j=h,k=d(i),l=function(a){return a.__proto__=i,j.apply(a,arguments),i.created&&a.created(),i.decorate&&a.decorate(),a};this.extend(i,{upgrade:l}),h=function(){return l(a.document.createElement(k))},h.prototype=i,this.extend(h,{ctor:j})}return h},extend:function(a,b){return this.own(b,function(c){var d=Object.getOwnPropertyDescriptor(b,c);try{"function"==typeof d.get||"function"==typeof d.set?Object.defineProperty(a,c,d):"function"==typeof d.value||"_"===c.charAt(0)?(d.writable=!0,d.configurable=!0,d.enumerable=!1,Object.defineProperty(a,c,d)):a[c]=b[c]}catch(e){}}),a},own:function(b,c,d){return Object.getOwnPropertyNames(b).forEach(c,d||a),b},traceprint:function(a){h.verbose&&console.log(a)},fnenterprint:function(a){console.log("* "+a)},fnexitprint:function(a){console.log("- "+a)},assert:function(a,b){if(!a)throw new h.InternalError("Assertion failed: "+b)},plus:function(a,b){return a instanceof h.Expression||(a=new h.Expression(a)),b instanceof h.Expression||(b=new h.Expression(b)),a.plus(b)},minus:function(a,b){return a instanceof h.Expression||(a=new h.Expression(a)),b instanceof h.Expression||(b=new h.Expression(b)),a.minus(b)},times:function(a,b){return("number"==typeof a||a instanceof h.Variable)&&(a=new h.Expression(a)),("number"==typeof b||b instanceof h.Variable)&&(b=new h.Expression(b)),a.times(b)},divide:function(a,b){return("number"==typeof a||a instanceof h.Variable)&&(a=new h.Expression(a)),("number"==typeof b||b instanceof h.Variable)&&(b=new h.Expression(b)),a.divide(b)},approx:function(a,b){if(a===b)return!0;var c,d;return c=a instanceof h.Variable?a.value:a,d=b instanceof h.Variable?b.value:b,0==c?e>Math.abs(d):0==d?e>Math.abs(c):Math.abs(c-d)<Math.abs(c)*e},_inc:function(a){return function(){return a++}}(0),parseJSON:function(a){return JSON.parse(a,function(a,b){if("object"!=typeof b||"string"!=typeof b._t)return b;var c=b._t,d=f[c];if(c&&d){var e=g(d,"fromJSON");if(e)return e(b,d)}return b})}};"function"=="function"&&"undefined"!=typeof module&&"undefined"==typeof load&&(a.exports=h)})(this),function(a){"use strict";var b=function(a){var b=a.hashCode?a.hashCode:""+a;return b},c=function(a,b){Object.keys(a).forEach(function(c){b[c]=a[c]})},d={};a.HashTable=a.inherit({initialize:function(){this.size=0,this._store={},this._keyStrMap={},this._deleted=0},set:function(a,c){var d=b(a);this._store.hasOwnProperty(d)||this.size++,this._store[d]=c,this._keyStrMap[d]=a},get:function(a){if(!this.size)return null;a=b(a);var c=this._store[a];return c!==void 0?this._store[a]:null},clear:function(){this.size=0,this._store={},this._keyStrMap={}},_compact:function(){var a={};c(this._store,a),this._store=a},_compactThreshold:100,_perhapsCompact:function(){this._size>64||this._deleted>this._compactThreshold&&(this._compact(),this._deleted=0)},"delete":function(a){a=b(a),this._store.hasOwnProperty(a)&&(this._deleted++,delete this._store[a],this.size>0&&this.size--)},each:function(a,b){if(this.size){this._perhapsCompact();var c=this._store,d=this._keyStrMap;Object.keys(this._store).forEach(function(e){a.call(b||null,d[e],c[e])},this)}},escapingEach:function(a,b){if(this.size){this._perhapsCompact();for(var c=this,e=this._store,f=this._keyStrMap,g=d,h=Object.keys(e),i=0;h.length>i;i++)if(function(d){c._store.hasOwnProperty(d)&&(g=a.call(b||null,f[d],e[d]))}(h[i]),g){if(void 0!==g.retval)return g;if(g.brk)break}}},clone:function(){var b=new a.HashTable;return this.size&&(b.size=this.size,c(this._store,b._store),c(this._keyStrMap,b._keyStrMap)),b},equals:function(b){if(b===this)return!0;if(!(b instanceof a.HashTable)||b._size!==this._size)return!1;for(var c=Object.keys(this._store),d=0;c.length>d;d++){var e=c[d];if(this._keyStrMap[e]!==b._keyStrMap[e]||this._store[e]!==b._store[e])return!1}return!0},toString:function(){var b="";return this.each(function(a,c){b+=a+" => "+c+"\n"}),b}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.HashSet=a.inherit({_t:"c.HashSet",initialize:function(){this.storage=[],this.size=0},add:function(a){var b=this.storage;b.indexOf(a),-1==b.indexOf(a)&&b.push(a),this.size=this.storage.length},values:function(){return this.storage},has:function(a){var b=this.storage;return-1!=b.indexOf(a)},"delete":function(a){var b=this.storage.indexOf(a);return-1==b?null:(this.storage.splice(b,1)[0],this.size=this.storage.length,void 0)},clear:function(){this.storage.length=0},each:function(a,b){this.size&&this.storage.forEach(a,b)},escapingEach:function(a,b){this.size&&this.storage.forEach(a,b)},toString:function(){var a=this.size+" {",b=!0;return this.each(function(c){b?b=!1:a+=", ",a+=c}),a+="}\n"},toJSON:function(){var a=[];return this.each(function(b){a.push(b.toJSON())}),{_t:"c.HashSet",data:a}},fromJSON:function(b){var c=new a.HashSet;return b.data&&(c.size=b.data.length,c.storage=b.data),c}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Error=a.inherit({initialize:function(a){a&&(this._description=a)},_name:"c.Error",_description:"An error has occured in Cassowary",set description(a){this._description=a},get description(){return"("+this._name+") "+this._description},get message(){return this.description},toString:function(){return this.description}});var b=function(b,c){return a.inherit({"extends":a.Error,initialize:function(){a.Error.apply(this,arguments)},_name:b||"",_description:c||""})};a.ConstraintNotFound=b("c.ConstraintNotFound","Tried to remove a constraint never added to the tableu"),a.InternalError=b("c.InternalError"),a.NonExpression=b("c.NonExpression","The resulting expression would be non"),a.NotEnoughStays=b("c.NotEnoughStays","There are not enough stays to give specific values to every variable"),a.RequiredFailure=b("c.RequiredFailure","A required constraint cannot be satisfied"),a.TooDifficult=b("c.TooDifficult","The constraints are too difficult to solve")}(this.c||module.parent.exports||{}),function(a){"use strict";var b=1e3;a.SymbolicWeight=a.inherit({_t:"c.SymbolicWeight",initialize:function(){this.value=0;for(var a=1,c=arguments.length-1;c>=0;--c)this.value+=arguments[c]*a,a*=b},toJSON:function(){return{_t:this._t,value:this.value}}})}(this.c||module.parent.exports||{}),function(a){a.Strength=a.inherit({initialize:function(b,c,d,e){this.name=b,this.symbolicWeight=c instanceof a.SymbolicWeight?c:new a.SymbolicWeight(c,d,e)},get required(){return this===a.Strength.required},toString:function(){return this.name+(this.isRequired?"":":"+this.symbolicWeight)}}),a.Strength.required=new a.Strength("<Required>",1e3,1e3,1e3),a.Strength.strong=new a.Strength("strong",1,0,0),a.Strength.medium=new a.Strength("medium",0,1,0),a.Strength.weak=new a.Strength("weak",0,0,1)}(this.c||(true?module.parent.exports.c:{})),function(a){"use strict";a.AbstractVariable=a.inherit({isDummy:!1,isExternal:!1,isPivotable:!1,isRestricted:!1,_init:function(b,c){this.hashCode=a._inc(),this.name=(c||"")+this.hashCode,b&&(b.name!==void 0&&(this.name=b.name),b.value!==void 0&&(this.value=b.value),b.prefix!==void 0&&(this._prefix=b.prefix))},_prefix:"",name:"",value:0,toJSON:function(){var a={};return this._t&&(a._t=this._t),this.name&&(a.name=this.name),this.value!==void 0&&(a.value=this.value),this._prefix&&(a._prefix=this._prefix),this._t&&(a._t=this._t),a},fromJSON:function(b,c){var d=new c;return a.extend(d,b),d},toString:function(){return this._prefix+"["+this.name+":"+this.value+"]"}}),a.Variable=a.inherit({_t:"c.Variable","extends":a.AbstractVariable,initialize:function(b){this._init(b,"v");var c=a.Variable._map;c&&(c[this.name]=this)},isExternal:!0}),a.DummyVariable=a.inherit({_t:"c.DummyVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"d")},isDummy:!0,isRestricted:!0,value:"dummy"}),a.ObjectiveVariable=a.inherit({_t:"c.ObjectiveVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"o")},value:"obj"}),a.SlackVariable=a.inherit({_t:"c.SlackVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"s")},isPivotable:!0,isRestricted:!0,value:"slack"})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Point=a.inherit({initialize:function(b,c,d){if(b instanceof a.Variable)this._x=b;else{var e={value:b};d&&(e.name="x"+d),this._x=new a.Variable(e)}if(c instanceof a.Variable)this._y=c;else{var f={value:c};d&&(f.name="y"+d),this._y=new a.Variable(f)}},get x(){return this._x},set x(b){b instanceof a.Variable?this._x=b:this._x.value=b},get y(){return this._y},set y(b){b instanceof a.Variable?this._y=b:this._y.value=b},toString:function(){return"("+this.x+", "+this.y+")"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Expression=a.inherit({initialize:function(b,c,d){a.GC&&console.log("new c.Expression"),this.constant="number"!=typeof d||isNaN(d)?0:d,this.terms=new a.HashTable,b instanceof a.AbstractVariable?this.setVariable(b,"number"==typeof c?c:1):"number"==typeof b&&(isNaN(b)?console.trace():this.constant=b)},initializeFromHash:function(b,c){return a.verbose&&(console.log("*******************************"),console.log("clone c.initializeFromHash"),console.log("*******************************")),a.GC&&console.log("clone c.Expression"),this.constant=b,this.terms=c.clone(),this},multiplyMe:function(a){this.constant*=a;var b=this.terms;return b.each(function(c,d){b.set(c,d*a)}),this},clone:function(){a.verbose&&(console.log("*******************************"),console.log("clone c.Expression"),console.log("*******************************"));var b=new a.Expression;return b.initializeFromHash(this.constant,this.terms),b},times:function(b){if("number"==typeof b)return this.clone().multiplyMe(b);if(this.isConstant)return b.times(this.constant);if(b.isConstant)return this.times(b.constant);throw new a.NonExpression},plus:function(b){return b instanceof a.Expression?this.clone().addExpression(b,1):b instanceof a.Variable?this.clone().addVariable(b,1):void 0},minus:function(b){return b instanceof a.Expression?this.clone().addExpression(b,-1):b instanceof a.Variable?this.clone().addVariable(b,-1):void 0},divide:function(b){if("number"==typeof b){if(a.approx(b,0))throw new a.NonExpression;return this.times(1/b)}if(b instanceof a.Expression){if(!b.isConstant)throw new a.NonExpression;return this.times(1/b.constant)}},addExpression:function(b,c,d,e){return b instanceof a.AbstractVariable&&(b=new a.Expression(b),a.trace&&console.log("addExpression: Had to cast a var to an expression")),c=c||1,this.constant+=c*b.constant,b.terms.each(function(a,b){this.addVariable(a,b*c,d,e)},this),this},addVariable:function(b,c,d,e){null==c&&(c=1),a.trace&&console.log("c.Expression::addVariable():",b,c);var f=this.terms.get(b);if(f){var g=f+c;0==g||a.approx(g,0)?(e&&e.noteRemovedVariable(b,d),this.terms.delete(b)):this.setVariable(b,g)}else a.approx(c,0)||(this.setVariable(b,c),e&&e.noteAddedVariable(b,d));return this},setVariable:function(a,b){return this.terms.set(a,b),this},anyPivotableVariable:function(){if(this.isConstant)throw new a.InternalError("anyPivotableVariable called on a constant");var b=this.terms.escapingEach(function(a){return a.isPivotable?{retval:a}:void 0});return b&&void 0!==b.retval?b.retval:null},substituteOut:function(b,c,d,e){a.trace&&(a.fnenterprint("CLE:substituteOut: "+b+", "+c+", "+d+", ..."),a.traceprint("this = "+this));var f=this.setVariable.bind(this),g=this.terms,h=g.get(b);g.delete(b),this.constant+=h*c.constant,c.terms.each(function(b,c){var i=g.get(b);if(i){var j=i+h*c;a.approx(j,0)?(e.noteRemovedVariable(b,d),g.delete(b)):f(b,j)}else f(b,h*c),e&&e.noteAddedVariable(b,d)}),a.trace&&a.traceprint("Now this is "+this)},changeSubject:function(a,b){this.setVariable(a,this.newSubject(b))},newSubject:function(b){a.trace&&a.fnenterprint("newSubject:"+b);var c=1/this.terms.get(b);return this.terms.delete(b),this.multiplyMe(-c),c},coefficientFor:function(a){return this.terms.get(a)||0},get isConstant(){return 0==this.terms.size},toString:function(){var b="",c=!1;if(!a.approx(this.constant,0)||this.isConstant){if(b+=this.constant,this.isConstant)return b;c=!0}return this.terms.each(function(a,d){c&&(b+=" + "),b+=d+"*"+a,c=!0}),b},equals:function(b){return b===this?!0:b instanceof a.Expression&&b.constant===this.constant&&b.terms.equals(this.terms)},Plus:function(a,b){return a.plus(b)},Minus:function(a,b){return a.minus(b)},Times:function(a,b){return a.times(b)},Divide:function(a,b){return a.divide(b)}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.AbstractConstraint=a.inherit({initialize:function(b,c){this.hashCode=a._inc(),this.strength=b||a.Strength.required,this.weight=c||1},isEditConstraint:!1,isInequality:!1,isStayConstraint:!1,get required(){return this.strength===a.Strength.required},toString:function(){return this.strength+" {"+this.weight+"} ("+this.expression+")"}});var b=a.AbstractConstraint.prototype.toString,c=function(b,c,d){a.AbstractConstraint.call(this,c||a.Strength.strong,d),this.variable=b,this.expression=new a.Expression(b,-1,b.value)};a.EditConstraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(){c.apply(this,arguments)},isEditConstraint:!0,toString:function(){return"edit:"+b.call(this)}}),a.StayConstraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(){c.apply(this,arguments)},isStayConstraint:!0,toString:function(){return"stay:"+b.call(this)}});var d=a.Constraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(b,c,d){a.AbstractConstraint.call(this,c,d),this.expression=b}});a.Inequality=a.inherit({"extends":a.Constraint,_cloneOrNewCle:function(b){return b.clone?b.clone():new a.Expression(b)},initialize:function(b,c,e,f,g){var h=b instanceof a.Expression,i=e instanceof a.Expression,j=b instanceof a.AbstractVariable,k=e instanceof a.AbstractVariable,l="number"==typeof b,m="number"==typeof e;if((h||l)&&k){var n=b,o=c,p=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(n),q,r),o==a.LEQ)this.expression.multiplyMe(-1),this.expression.addVariable(p);else{if(o!=a.GEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addVariable(p,-1)}}else if(j&&(i||m)){var n=e,o=c,p=b,q=f,r=g;if(d.call(this,this._cloneOrNewCle(n),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addVariable(p);else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addVariable(p,-1)}}else{if(h&&m){var s=b,o=c,t=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(s),q,r),o==a.LEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(t));else{if(o!=a.GEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(t),-1)}return this}if(l&&i){var s=e,o=c,t=b,q=f,r=g;if(d.call(this,this._cloneOrNewCle(s),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(t));else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(t),-1)}return this}if(h&&i){var s=b,o=c,t=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(t),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(s));else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(s),-1)}}else{if(h)return d.call(this,b,c,e);if(c==a.GEQ)d.call(this,new a.Expression(e),f,g),this.expression.multiplyMe(-1),this.expression.addVariable(b);else{if(c!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");d.call(this,new a.Expression(e),f,g),this.expression.addVariable(b,-1)}}}},isInequality:!0,toString:function(){return d.prototype.toString.call(this)+" >= 0) id: "+this.hashCode}}),a.Equation=a.inherit({"extends":a.Constraint,initialize:function(b,c,e,f){if(b instanceof a.Expression&&!c||c instanceof a.Strength)d.call(this,b,c,e);else if(b instanceof a.AbstractVariable&&c instanceof a.Expression){var g=b,h=c,i=e,j=f;d.call(this,h.clone(),i,j),this.expression.addVariable(g,-1)}else if(b instanceof a.AbstractVariable&&"number"==typeof c){var g=b,k=c,i=e,j=f;d.call(this,new a.Expression(k),i,j),this.expression.addVariable(g,-1)}else if(b instanceof a.Expression&&c instanceof a.AbstractVariable){var h=b,g=c,i=e,j=f;d.call(this,h.clone(),i,j),this.expression.addVariable(g,-1)}else{if(!(b instanceof a.Expression||b instanceof a.AbstractVariable||"number"==typeof b)||!(c instanceof a.Expression||c instanceof a.AbstractVariable||"number"==typeof c))throw"Bad initializer to c.Equation";b=b instanceof a.Expression?b.clone():new a.Expression(b),c=c instanceof a.Expression?c.clone():new a.Expression(c),d.call(this,b,e,f),this.expression.addExpression(c,-1)}a.assert(this.strength instanceof a.Strength,"_strength not set")},toString:function(){return d.prototype.toString.call(this)+" = 0)"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.EditInfo=a.inherit({initialize:function(a,b,c,d,e){this.constraint=a,this.editPlus=b,this.editMinus=c,this.prevEditConstant=d,this.index=e},toString:function(){return"<cn="+this.constraint+", ep="+this.editPlus+", em="+this.editMinus+", pec="+this.prevEditConstant+", index="+this.index+">"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Tableau=a.inherit({initialize:function(){this.columns=new a.HashTable,this.rows=new a.HashTable,this._infeasibleRows=new a.HashSet,this._externalRows=new a.HashSet,this._externalParametricVars=new a.HashSet},noteRemovedVariable:function(b,c){a.trace&&console.log("c.Tableau::noteRemovedVariable: ",b,c);var d=this.columns.get(b);c&&d&&d.delete(c)},noteAddedVariable:function(a,b){b&&this.insertColVar(a,b)},getInternalInfo:function(){var a="Tableau Information:\n";return a+="Rows: "+this.rows.size,a+=" (= "+(this.rows.size-1)+" constraints)",a+="\nColumns: "+this.columns.size,a+="\nInfeasible Rows: "+this._infeasibleRows.size,a+="\nExternal basic variables: "+this._externalRows.size,a+="\nExternal parametric variables: ",a+=this._externalParametricVars.size,a+="\n"},toString:function(){var a="Tableau:\n";return this.rows.each(function(b,c){a+=b,a+=" <==> ",a+=c,a+="\n"}),a+="\nColumns:\n",a+=this.columns,a+="\nInfeasible rows: ",a+=this._infeasibleRows,a+="External basic variables: ",a+=this._externalRows,a+="External parametric variables: ",a+=this._externalParametricVars},insertColVar:function(b,c){var d=this.columns.get(b);d||(d=new a.HashSet,this.columns.set(b,d)),d.add(c)},addRow:function(b,c){a.trace&&a.fnenterprint("addRow: "+b+", "+c),this.rows.set(b,c),c.terms.each(function(a){this.insertColVar(a,b),a.isExternal&&this._externalParametricVars.add(a)},this),b.isExternal&&this._externalRows.add(b),a.trace&&a.traceprint(""+this)},removeColumn:function(b){a.trace&&a.fnenterprint("removeColumn:"+b);var c=this.columns.get(b);c?(this.columns.delete(b),c.each(function(a){var c=this.rows.get(a);c.terms.delete(b)},this)):a.trace&&console.log("Could not find var",b,"in columns"),b.isExternal&&(this._externalRows.delete(b),this._externalParametricVars.delete(b))},removeRow:function(b){a.trace&&a.fnenterprint("removeRow:"+b);var c=this.rows.get(b);return a.assert(null!=c),c.terms.each(function(c){var e=this.columns.get(c);null!=e&&(a.trace&&console.log("removing from varset:",b),e.delete(b))},this),this._infeasibleRows.delete(b),b.isExternal&&this._externalRows.delete(b),this.rows.delete(b),a.trace&&a.fnexitprint("returning "+c),c},substituteOut:function(b,c){a.trace&&a.fnenterprint("substituteOut:"+b+", "+c),a.trace&&a.traceprint(""+this);var d=this.columns.get(b);d.each(function(a){var d=this.rows.get(a);d.substituteOut(b,c,a,this),a.isRestricted&&0>d.constant&&this._infeasibleRows.add(a)},this),b.isExternal&&(this._externalRows.add(b),this._externalParametricVars.delete(b)),this.columns.delete(b)},columnsHasKey:function(a){return!!this.columns.get(a)}})}(this.c||module.parent.exports||{}),function(a){var b=a.Tableau,c=b.prototype,d=1e-8,e=a.Strength.weak;a.SimplexSolver=a.inherit({"extends":a.Tableau,initialize:function(){a.Tableau.call(this),this._stayMinusErrorVars=[],this._stayPlusErrorVars=[],this._errorVars=new a.HashTable,this._markerVars=new a.HashTable,this._objective=new a.ObjectiveVariable({name:"Z"}),this._editVarMap=new a.HashTable,this._editVarList=[],this._slackCounter=0,this._artificialCounter=0,this._dummyCounter=0,this.autoSolve=!0,this._fNeedsSolving=!1,this._optimizeCount=0,this.rows.set(this._objective,new a.Expression),this._stkCedcns=[0],a.trace&&a.traceprint("objective expr == "+this.rows.get(this._objective))},addLowerBound:function(b,c){var d=new a.Inequality(b,a.GEQ,new a.Expression(c));return this.addConstraint(d)},addUpperBound:function(b,c){var d=new a.Inequality(b,a.LEQ,new a.Expression(c));return this.addConstraint(d)},addBounds:function(a,b,c){return this.addLowerBound(a,b),this.addUpperBound(a,c),this},add:function(){for(var a=0;arguments.length>a;a++)this.addConstraint(arguments[a]);return this},addConstraint:function(b){a.trace&&a.fnenterprint("addConstraint: "+b);var c=Array(2),d=Array(1),e=this.newExpression(b,c,d);if(d=d[0],this.tryAddingDirectly(e)||this.addWithArtificialVariable(e),this._fNeedsSolving=!0,b.isEditConstraint){var f=this._editVarMap.size,g=c[0],h=c[1];!g instanceof a.SlackVariable&&console.warn("cvEplus not a slack variable =",g),!h instanceof a.SlackVariable&&console.warn("cvEminus not a slack variable =",h),a.debug&&console.log("new c.EditInfo("+b+", "+g+", "+h+", "+d+", "+f+")");var i=new a.EditInfo(b,g,h,d,f);this._editVarMap.set(b.variable,i),this._editVarList[f]={v:b.variable,info:i}}return this.autoSolve&&(this.optimize(this._objective),this._setExternalVariables()),this},addConstraintNoException:function(b){a.trace&&a.fnenterprint("addConstraintNoException: "+b);try{return this.addConstraint(b),!0}catch(c){return!1}},addEditVar:function(b,c){return a.trace&&a.fnenterprint("addEditVar: "+b+" @ "+c),this.addConstraint(new a.EditConstraint(b,c||a.Strength.strong))},beginEdit:function(){return a.assert(this._editVarMap.size>0,"_editVarMap.size > 0"),this._infeasibleRows.clear(),this._resetStayConstants(),this._stkCedcns.push(this._editVarMap.size),this},endEdit:function(){return a.assert(this._editVarMap.size>0,"_editVarMap.size > 0"),this.resolve(),this._stkCedcns.pop(),this.removeEditVarsTo(this._stkCedcns[this._stkCedcns.length-1]),this},removeAllEditVars:function(){return this.removeEditVarsTo(0)},removeEditVarsTo:function(b){try{for(var c=this._editVarList.length,d=b;c>d;d++)this._editVarList[d]&&this.removeConstraint(this._editVarMap.get(this._editVarList[d].v).constraint);return this._editVarList.length=b,a.assert(this._editVarMap.size==b,"_editVarMap.size == n"),this}catch(e){throw new a.InternalError("Constraint not found in removeEditVarsTo")}},addPointStays:function(b){return a.trace&&console.log("addPointStays",b),b.forEach(function(a,b){this.addStay(a.x,e,Math.pow(2,b)),this.addStay(a.y,e,Math.pow(2,b))},this),this},addStay:function(b,c,d){var f=new a.StayConstraint(b,c||e,d||1);return this.addConstraint(f)},removeConstraint:function(a){return this.removeConstraintInternal(a),this},removeConstraintInternal:function(b){a.trace&&a.fnenterprint("removeConstraintInternal: "+b),a.trace&&a.traceprint(""+this),this._fNeedsSolving=!0,this._resetStayConstants();var c=this.rows.get(this._objective),d=this._errorVars.get(b);a.trace&&a.traceprint("eVars == "+d),null!=d&&d.each(function(e){var f=this.rows.get(e);null==f?c.addVariable(e,-b.weight*b.strength.symbolicWeight.value,this._objective,this):c.addExpression(f,-b.weight*b.strength.symbolicWeight.value,this._objective,this),a.trace&&a.traceprint("now eVars == "+d)},this);var e=this._markerVars.get(b);if(this._markerVars.delete(b),null==e)throw new a.InternalError("Constraint not found in removeConstraintInternal");if(a.trace&&a.traceprint("Looking to remove var "+e),null==this.rows.get(e)){var f=this.columns.get(e);a.trace&&a.traceprint("Must pivot -- columns are "+f);var g=null,h=0;f.each(function(b){if(b.isRestricted){var c=this.rows.get(b),d=c.coefficientFor(e);if(a.trace&&a.traceprint("Marker "+e+"'s coefficient in "+c+" is "+d),0>d){var f=-c.constant/d;(null==g||h>f||a.approx(f,h)&&b.hashCode<g.hashCode)&&(h=f,g=b)}}},this),null==g&&(a.trace&&a.traceprint("exitVar is still null"),f.each(function(a){if(a.isRestricted){var b=this.rows.get(a),c=b.coefficientFor(e),d=b.constant/c;(null==g||h>d)&&(h=d,g=a)}},this)),null==g&&(0==f.size?this.removeColumn(e):f.escapingEach(function(a){return a!=this._objective?(g=a,{brk:!0}):void 0},this)),null!=g&&this.pivot(e,g)}if(null!=this.rows.get(e)&&this.removeRow(e),null!=d&&d.each(function(a){a!=e&&this.removeColumn(a)},this),b.isStayConstraint){if(null!=d)for(var j=0;this._stayPlusErrorVars.length>j;j++)d.delete(this._stayPlusErrorVars[j]),d.delete(this._stayMinusErrorVars[j])}else if(b.isEditConstraint){a.assert(null!=d,"eVars != null");var k=this._editVarMap.get(b.variable);this.removeColumn(k.editMinus),this._editVarMap.delete(b.variable)}return null!=d&&this._errorVars.delete(d),this.autoSolve&&(this.optimize(this._objective),this._setExternalVariables()),this},reset:function(){throw a.trace&&a.fnenterprint("reset"),new a.InternalError("reset not implemented")},resolveArray:function(b){a.trace&&a.fnenterprint("resolveArray"+b);var c=b.length;this._editVarMap.each(function(a,d){var e=d.index;c>e&&this.suggestValue(a,b[e])},this),this.resolve()},resolvePair:function(a,b){this.suggestValue(this._editVarList[0].v,a),this.suggestValue(this._editVarList[1].v,b),this.resolve()},resolve:function(){a.trace&&a.fnenterprint("resolve()"),this.dualOptimize(),this._setExternalVariables(),this._infeasibleRows.clear(),this._resetStayConstants()},suggestValue:function(b,c){a.trace&&console.log("suggestValue("+b+", "+c+")");var d=this._editVarMap.get(b);if(!d)throw new a.Error("suggestValue for variable "+b+", but var is not an edit variable");var e=c-d.prevEditConstant;return d.prevEditConstant=c,this.deltaEditConstant(e,d.editPlus,d.editMinus),this},solve:function(){return this._fNeedsSolving&&(this.optimize(this._objective),this._setExternalVariables()),this},setEditedValue:function(b,c){if(!this.columnsHasKey(b)&&null==this.rows.get(b))return b.value=c,this;if(!a.approx(c,b.value)){this.addEditVar(b),this.beginEdit();try{this.suggestValue(b,c)}catch(d){throw new a.InternalError("Error in setEditedValue")}this.endEdit()}return this},addVar:function(b){if(!this.columnsHasKey(b)&&null==this.rows.get(b)){try{this.addStay(b)}catch(c){throw new a.InternalError("Error in addVar -- required failure is impossible")}a.trace&&a.traceprint("added initial stay on "+b)}return this},getInternalInfo:function(){var a=c.getInternalInfo.call(this);return a+="\nSolver info:\n",a+="Stay Error Variables: ",a+=this._stayPlusErrorVars.length+this._stayMinusErrorVars.length,a+=" ("+this._stayPlusErrorVars.length+" +, ",a+=this._stayMinusErrorVars.length+" -)\n",a+="Edit Variables: "+this._editVarMap.size,a+="\n"},getDebugInfo:function(){return""+this+this.getInternalInfo()+"\n"},toString:function(){var a=c.getInternalInfo.call(this);return a+="\n_stayPlusErrorVars: ",a+="["+this._stayPlusErrorVars+"]",a+="\n_stayMinusErrorVars: ",a+="["+this._stayMinusErrorVars+"]",a+="\n",a+="_editVarMap:\n"+this._editVarMap,a+="\n"},getConstraintMap:function(){return this._markerVars},addWithArtificialVariable:function(b){a.trace&&a.fnenterprint("addWithArtificialVariable: "+b);var c=new a.SlackVariable({value:++this._artificialCounter,prefix:"a"}),d=new a.ObjectiveVariable({name:"az"}),e=b.clone();a.trace&&a.traceprint("before addRows:\n"+this),this.addRow(d,e),this.addRow(c,b),a.trace&&a.traceprint("after addRows:\n"+this),this.optimize(d);var f=this.rows.get(d);if(a.trace&&a.traceprint("azTableauRow.constant == "+f.constant),!a.approx(f.constant,0))throw this.removeRow(d),this.removeColumn(c),new a.RequiredFailure;var g=this.rows.get(c);if(null!=g){if(g.isConstant)return this.removeRow(c),this.removeRow(d),void 0;var h=g.anyPivotableVariable();this.pivot(h,c)}a.assert(null==this.rows.get(c),"rowExpression(av) == null"),this.removeColumn(c),this.removeRow(d)},tryAddingDirectly:function(b){a.trace&&a.fnenterprint("tryAddingDirectly: "+b);var c=this.chooseSubject(b);return null==c?(a.trace&&a.fnexitprint("returning false"),!1):(b.newSubject(c),this.columnsHasKey(c)&&this.substituteOut(c,b),this.addRow(c,b),a.trace&&a.fnexitprint("returning true"),!0)},chooseSubject:function(b){a.trace&&a.fnenterprint("chooseSubject: "+b);var c=null,d=!1,e=!1,f=b.terms,g=f.escapingEach(function(a,b){if(d){if(!a.isRestricted&&!this.columnsHasKey(a))return{retval:a}}else if(a.isRestricted){if(!e&&!a.isDummy&&0>b){var f=this.columns.get(a);(null==f||1==f.size&&this.columnsHasKey(this._objective))&&(c=a,e=!0)}}else c=a,d=!0},this);if(g&&void 0!==g.retval)return g.retval;if(null!=c)return c;var h=0,g=f.escapingEach(function(a,b){return a.isDummy?(this.columnsHasKey(a)||(c=a,h=b),void 0):{retval:null}},this);if(g&&void 0!==g.retval)return g.retval;if(!a.approx(b.constant,0))throw new a.RequiredFailure;return h>0&&b.multiplyMe(-1),c},deltaEditConstant:function(b,c,d){a.trace&&a.fnenterprint("deltaEditConstant :"+b+", "+c+", "+d);var e=this.rows.get(c);if(null!=e)return e.constant+=b,0>e.constant&&this._infeasibleRows.add(c),void 0;var f=this.rows.get(d);if(null!=f)return f.constant+=-b,0>f.constant&&this._infeasibleRows.add(d),void 0;var g=this.columns.get(d);g||console.log("columnVars is null -- tableau is:\n"+this),g.each(function(a){var c=this.rows.get(a),e=c.coefficientFor(d);c.constant+=e*b,a.isRestricted&&0>c.constant&&this._infeasibleRows.add(a)},this)},dualOptimize:function(){a.trace&&a.fnenterprint("dualOptimize:");for(var b=this.rows.get(this._objective);this._infeasibleRows.size;){var c=this._infeasibleRows.values()[0];this._infeasibleRows.delete(c);var d=null,e=this.rows.get(c);if(e&&0>e.constant){var g,f=Number.MAX_VALUE,h=e.terms;if(h.each(function(c,e){if(e>0&&c.isPivotable){var h=b.coefficientFor(c);g=h/e,(f>g||a.approx(g,f)&&c.hashCode<d.hashCode)&&(d=c,f=g)}}),f==Number.MAX_VALUE)throw new a.InternalError("ratio == nil (MAX_VALUE) in dualOptimize");this.pivot(d,c)}}},newExpression:function(b,c,d){a.trace&&(a.fnenterprint("newExpression: "+b),a.traceprint("cn.isInequality == "+b.isInequality),a.traceprint("cn.required == "+b.required));var e=b.expression,f=new a.Expression(e.constant),g=new a.SlackVariable,h=new a.DummyVariable,i=new a.SlackVariable,j=new a.SlackVariable,k=e.terms;if(k.each(function(a,b){var c=this.rows.get(a);c?f.addExpression(c,b):f.addVariable(a,b)},this),b.isInequality){if(a.trace&&a.traceprint("Inequality, adding slack"),++this._slackCounter,g=new a.SlackVariable({value:this._slackCounter,prefix:"s"}),f.setVariable(g,-1),this._markerVars.set(b,g),!b.required){++this._slackCounter,i=new a.SlackVariable({value:this._slackCounter,prefix:"em"}),f.setVariable(i,1);
-	var l=this.rows.get(this._objective);l.setVariable(i,b.strength.symbolicWeight.value*b.weight),this.insertErrorVar(b,i),this.noteAddedVariable(i,this._objective)}}else if(b.required)a.trace&&a.traceprint("Equality, required"),++this._dummyCounter,h=new a.DummyVariable({value:this._dummyCounter,prefix:"d"}),f.setVariable(h,1),this._markerVars.set(b,h),a.trace&&a.traceprint("Adding dummyVar == d"+this._dummyCounter);else{a.trace&&a.traceprint("Equality, not required"),++this._slackCounter,j=new a.SlackVariable({value:this._slackCounter,prefix:"ep"}),i=new a.SlackVariable({value:this._slackCounter,prefix:"em"}),f.setVariable(j,-1),f.setVariable(i,1),this._markerVars.set(b,j);var l=this.rows.get(this._objective);a.trace&&console.log(l);var m=b.strength.symbolicWeight.value*b.weight;0==m&&(a.trace&&a.traceprint("cn == "+b),a.trace&&a.traceprint("adding "+j+" and "+i+" with swCoeff == "+m)),l.setVariable(j,m),this.noteAddedVariable(j,this._objective),l.setVariable(i,m),this.noteAddedVariable(i,this._objective),this.insertErrorVar(b,i),this.insertErrorVar(b,j),b.isStayConstraint?(this._stayPlusErrorVars.push(j),this._stayMinusErrorVars.push(i)):b.isEditConstraint&&(c[0]=j,c[1]=i,d[0]=e.constant)}return 0>f.constant&&f.multiplyMe(-1),a.trace&&a.fnexitprint("returning "+f),f},optimize:function(b){a.trace&&a.fnenterprint("optimize: "+b),a.trace&&a.traceprint(""+this),this._optimizeCount++;var c=this.rows.get(b);a.assert(null!=c,"zRow != null");for(var g,h,e=null,f=null;;){if(g=0,h=c.terms,h.escapingEach(function(a,b){return a.isPivotable&&g>b?(g=b,e=a,{brk:1}):void 0},this),g>=-d)return;a.trace&&console.log("entryVar:",e,"objectiveCoeff:",g);var i=Number.MAX_VALUE,j=this.columns.get(e),k=0;if(j.each(function(b){if(a.trace&&a.traceprint("Checking "+b),b.isPivotable){var c=this.rows.get(b),d=c.coefficientFor(e);a.trace&&a.traceprint("pivotable, coeff = "+d),0>d&&(k=-c.constant/d,(i>k||a.approx(k,i)&&b.hashCode<f.hashCode)&&(i=k,f=b))}},this),i==Number.MAX_VALUE)throw new a.InternalError("Objective function is unbounded in optimize");this.pivot(e,f),a.trace&&a.traceprint(""+this)}},pivot:function(b,c){a.trace&&console.log("pivot: ",b,c);var d=!1;d&&console.time(" SimplexSolver::pivot"),null==b&&console.warn("pivot: entryVar == null"),null==c&&console.warn("pivot: exitVar == null"),d&&console.time("  removeRow");var e=this.removeRow(c);d&&console.timeEnd("  removeRow"),d&&console.time("  changeSubject"),e.changeSubject(c,b),d&&console.timeEnd("  changeSubject"),d&&console.time("  substituteOut"),this.substituteOut(b,e),d&&console.timeEnd("  substituteOut"),d&&console.time("  addRow"),this.addRow(b,e),d&&console.timeEnd("  addRow"),d&&console.timeEnd(" SimplexSolver::pivot")},_resetStayConstants:function(){a.trace&&console.log("_resetStayConstants");for(var b=0;this._stayPlusErrorVars.length>b;b++){var c=this.rows.get(this._stayPlusErrorVars[b]);null==c&&(c=this.rows.get(this._stayMinusErrorVars[b])),null!=c&&(c.constant=0)}},_setExternalVariables:function(){a.trace&&a.fnenterprint("_setExternalVariables:"),a.trace&&a.traceprint(""+this),this._externalParametricVars.each(function(b){null!=this.rows.get(b)?a.trace&&console.log("Error: variable"+b+" in _externalParametricVars is basic"):b.value=0},this),this._externalRows.each(function(a){var b=this.rows.get(a);a.value!=b.constant&&(a.value=b.constant)},this),this._fNeedsSolving=!1,this.onsolved()},onsolved:function(){},insertErrorVar:function(b,c){a.trace&&a.fnenterprint("insertErrorVar:"+b+", "+c);var d=this._errorVars.get(c);d||(d=new a.HashSet,this._errorVars.set(b,d)),d.add(c)}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Timer=a.inherit({initialize:function(){this.isRunning=!1,this._elapsedMs=0},start:function(){return this.isRunning=!0,this._startReading=new Date,this},stop:function(){return this.isRunning=!1,this._elapsedMs+=new Date-this._startReading,this},reset:function(){return this.isRunning=!1,this._elapsedMs=0,this},elapsedTime:function(){return this.isRunning?(this._elapsedMs+(new Date-this._startReading))/1e3:this._elapsedMs/1e3}})}(this.c||module.parent.exports||{}),__cassowary_parser=function(){function a(a){return'"'+a.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\x08/g,"\\b").replace(/\t/g,"\\t").replace(/\n/g,"\\n").replace(/\f/g,"\\f").replace(/\r/g,"\\r").replace(/[\x00-\x07\x0B\x0E-\x1F\x80-\uFFFF]/g,escape)+'"'}var b={parse:function(b,c){function k(a){g>e||(e>g&&(g=e,h=[]),h.push(a))}function l(){var a,b,c,d,f;if(d=e,f=e,a=z(),null!==a){if(c=m(),null!==c)for(b=[];null!==c;)b.push(c),c=m();else b=null;null!==b?(c=z(),null!==c?a=[a,b,c]:(a=null,e=f)):(a=null,e=f)}else a=null,e=f;return null!==a&&(a=function(a,b){return b}(d,a[1])),null===a&&(e=d),a}function m(){var a,b,c,d;return c=e,d=e,a=P(),null!==a?(b=s(),null!==b?a=[a,b]:(a=null,e=d)):(a=null,e=d),null!==a&&(a=function(a,b){return b}(c,a[0])),null===a&&(e=c),a}function n(){var a;return b.length>e?(a=b.charAt(e),e++):(a=null,0===f&&k("any character")),a}function o(){var a;return/^[a-zA-Z]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[a-zA-Z]")),null===a&&(36===b.charCodeAt(e)?(a="$",e++):(a=null,0===f&&k('"$"')),null===a&&(95===b.charCodeAt(e)?(a="_",e++):(a=null,0===f&&k('"_"')))),a}function p(){var a;return f++,/^[\t\x0B\f \xA0\uFEFF]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[\\t\\x0B\\f \\xA0\\uFEFF]")),f--,0===f&&null===a&&k("whitespace"),a}function q(){var a;return/^[\n\r\u2028\u2029]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[\\n\\r\\u2028\\u2029]")),a}function r(){var a;return f++,10===b.charCodeAt(e)?(a="\n",e++):(a=null,0===f&&k('"\\n"')),null===a&&("\r\n"===b.substr(e,2)?(a="\r\n",e+=2):(a=null,0===f&&k('"\\r\\n"')),null===a&&(13===b.charCodeAt(e)?(a="\r",e++):(a=null,0===f&&k('"\\r"')),null===a&&(8232===b.charCodeAt(e)?(a="\u2028",e++):(a=null,0===f&&k('"\\u2028"')),null===a&&(8233===b.charCodeAt(e)?(a="\u2029",e++):(a=null,0===f&&k('"\\u2029"')))))),f--,0===f&&null===a&&k("end of line"),a}function s(){var a,c,d;return d=e,a=z(),null!==a?(59===b.charCodeAt(e)?(c=";",e++):(c=null,0===f&&k('";"')),null!==c?a=[a,c]:(a=null,e=d)):(a=null,e=d),null===a&&(d=e,a=y(),null!==a?(c=r(),null!==c?a=[a,c]:(a=null,e=d)):(a=null,e=d),null===a&&(d=e,a=z(),null!==a?(c=t(),null!==c?a=[a,c]:(a=null,e=d)):(a=null,e=d))),a}function t(){var a,c;return c=e,f++,b.length>e?(a=b.charAt(e),e++):(a=null,0===f&&k("any character")),f--,null===a?a="":(a=null,e=c),a}function u(){var a;return f++,a=v(),null===a&&(a=x()),f--,0===f&&null===a&&k("comment"),a}function v(){var a,c,d,g,h,i,j;if(h=e,"/*"===b.substr(e,2)?(a="/*",e+=2):(a=null,0===f&&k('"/*"')),null!==a){for(c=[],i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==d;)c.push(d),i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==c?("*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null!==d?a=[a,c,d]:(a=null,e=h)):(a=null,e=h)}else a=null,e=h;return a}function w(){var a,c,d,g,h,i,j;if(h=e,"/*"===b.substr(e,2)?(a="/*",e+=2):(a=null,0===f&&k('"/*"')),null!==a){for(c=[],i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null===d&&(d=q()),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==d;)c.push(d),i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null===d&&(d=q()),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==c?("*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null!==d?a=[a,c,d]:(a=null,e=h)):(a=null,e=h)}else a=null,e=h;return a}function x(){var a,c,d,g,h,i,j;if(h=e,"//"===b.substr(e,2)?(a="//",e+=2):(a=null,0===f&&k('"//"')),null!==a){for(c=[],i=e,j=e,f++,d=q(),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==d;)c.push(d),i=e,j=e,f++,d=q(),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==c?a=[a,c]:(a=null,e=h)}else a=null,e=h;return a}function y(){var a,b;for(a=[],b=p(),null===b&&(b=w(),null===b&&(b=x()));null!==b;)a.push(b),b=p(),null===b&&(b=w(),null===b&&(b=x()));return a}function z(){var a,b;for(a=[],b=p(),null===b&&(b=r(),null===b&&(b=u()));null!==b;)a.push(b),b=p(),null===b&&(b=r(),null===b&&(b=u()));return a}function A(){var a,b;return b=e,a=C(),null===a&&(a=B()),null!==a&&(a=function(a,b){return{type:"NumericLiteral",value:b}}(b,a)),null===a&&(e=b),a}function B(){var a,c,d;if(d=e,/^[0-9]/.test(b.charAt(e))?(c=b.charAt(e),e++):(c=null,0===f&&k("[0-9]")),null!==c)for(a=[];null!==c;)a.push(c),/^[0-9]/.test(b.charAt(e))?(c=b.charAt(e),e++):(c=null,0===f&&k("[0-9]"));else a=null;return null!==a&&(a=function(a,b){return parseInt(b.join(""))}(d,a)),null===a&&(e=d),a}function C(){var a,c,d,g,h;return g=e,h=e,a=B(),null!==a?(46===b.charCodeAt(e)?(c=".",e++):(c=null,0===f&&k('"."')),null!==c?(d=B(),null!==d?a=[a,c,d]:(a=null,e=h)):(a=null,e=h)):(a=null,e=h),null!==a&&(a=function(a,b){return parseFloat(b.join(""))}(g,a)),null===a&&(e=g),a}function D(){var a,c,d,g;if(g=e,/^[\-+]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[\\-+]")),a=null!==a?a:"",null!==a){if(/^[0-9]/.test(b.charAt(e))?(d=b.charAt(e),e++):(d=null,0===f&&k("[0-9]")),null!==d)for(c=[];null!==d;)c.push(d),/^[0-9]/.test(b.charAt(e))?(d=b.charAt(e),e++):(d=null,0===f&&k("[0-9]"));else c=null;null!==c?a=[a,c]:(a=null,e=g)}else a=null,e=g;return a}function E(){var a,b;return f++,b=e,a=F(),null!==a&&(a=function(a,b){return b}(b,a)),null===a&&(e=b),f--,0===f&&null===a&&k("identifier"),a}function F(){var a,b,c,d,g;if(f++,d=e,g=e,a=o(),null!==a){for(b=[],c=o();null!==c;)b.push(c),c=o();null!==b?a=[a,b]:(a=null,e=g)}else a=null,e=g;return null!==a&&(a=function(a,b,c){return b+c.join("")}(d,a[0],a[1])),null===a&&(e=d),f--,0===f&&null===a&&k("identifier"),a}function G(){var a,c,d,g,h,i,j;return i=e,a=E(),null!==a&&(a=function(a,b){return{type:"Variable",name:b}}(i,a)),null===a&&(e=i),null===a&&(a=A(),null===a&&(i=e,j=e,40===b.charCodeAt(e)?(a="(",e++):(a=null,0===f&&k('"("')),null!==a?(c=z(),null!==c?(d=P(),null!==d?(g=z(),null!==g?(41===b.charCodeAt(e)?(h=")",e++):(h=null,0===f&&k('")"')),null!==h?a=[a,c,d,g,h]:(a=null,e=j)):(a=null,e=j)):(a=null,e=j)):(a=null,e=j)):(a=null,e=j),null!==a&&(a=function(a,b){return b}(i,a[2])),null===a&&(e=i))),a}function H(){var a,b,c,d,f;return a=G(),null===a&&(d=e,f=e,a=I(),null!==a?(b=z(),null!==b?(c=H(),null!==c?a=[a,b,c]:(a=null,e=f)):(a=null,e=f)):(a=null,e=f),null!==a&&(a=function(a,b,c){return{type:"UnaryExpression",operator:b,expression:c}}(d,a[0],a[2])),null===a&&(e=d)),a}function I(){var a;return 43===b.charCodeAt(e)?(a="+",e++):(a=null,0===f&&k('"+"')),null===a&&(45===b.charCodeAt(e)?(a="-",e++):(a=null,0===f&&k('"-"')),null===a&&(33===b.charCodeAt(e)?(a="!",e++):(a=null,0===f&&k('"!"')))),a}function J(){var a,b,c,d,f,g,h,i,j;if(h=e,i=e,a=H(),null!==a){for(b=[],j=e,c=z(),null!==c?(d=K(),null!==d?(f=z(),null!==f?(g=H(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==c;)b.push(c),j=e,c=z(),null!==c?(d=K(),null!==d?(f=z(),null!==f?(g=H(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==b?a=[a,b]:(a=null,e=i)}else a=null,e=i;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"MultiplicativeExpression",operator:c[e][1],left:d,right:c[e][3]};return d}(h,a[0],a[1])),null===a&&(e=h),a}function K(){var a;return 42===b.charCodeAt(e)?(a="*",e++):(a=null,0===f&&k('"*"')),null===a&&(47===b.charCodeAt(e)?(a="/",e++):(a=null,0===f&&k('"/"'))),a}function L(){var a,b,c,d,f,g,h,i,j;if(h=e,i=e,a=J(),null!==a){for(b=[],j=e,c=z(),null!==c?(d=M(),null!==d?(f=z(),null!==f?(g=J(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==c;)b.push(c),j=e,c=z(),null!==c?(d=M(),null!==d?(f=z(),null!==f?(g=J(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==b?a=[a,b]:(a=null,e=i)}else a=null,e=i;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"AdditiveExpression",operator:c[e][1],left:d,right:c[e][3]};return d}(h,a[0],a[1])),null===a&&(e=h),a}function M(){var a;return 43===b.charCodeAt(e)?(a="+",e++):(a=null,0===f&&k('"+"')),null===a&&(45===b.charCodeAt(e)?(a="-",e++):(a=null,0===f&&k('"-"'))),a}function N(){var a,b,c,d,f,g,h,i,j;if(h=e,i=e,a=L(),null!==a){for(b=[],j=e,c=z(),null!==c?(d=O(),null!==d?(f=z(),null!==f?(g=L(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==c;)b.push(c),j=e,c=z(),null!==c?(d=O(),null!==d?(f=z(),null!==f?(g=L(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==b?a=[a,b]:(a=null,e=i)}else a=null,e=i;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"Inequality",operator:c[e][1],left:d,right:c[e][3]};return d}(h,a[0],a[1])),null===a&&(e=h),a}function O(){var a;return"<="===b.substr(e,2)?(a="<=",e+=2):(a=null,0===f&&k('"<="')),null===a&&(">="===b.substr(e,2)?(a=">=",e+=2):(a=null,0===f&&k('">="')),null===a&&(60===b.charCodeAt(e)?(a="<",e++):(a=null,0===f&&k('"<"')),null===a&&(62===b.charCodeAt(e)?(a=">",e++):(a=null,0===f&&k('">"'))))),a}function P(){var a,c,d,g,h,i,j,l,m;if(j=e,l=e,a=N(),null!==a){for(c=[],m=e,d=z(),null!==d?("=="===b.substr(e,2)?(g="==",e+=2):(g=null,0===f&&k('"=="')),null!==g?(h=z(),null!==h?(i=N(),null!==i?d=[d,g,h,i]:(d=null,e=m)):(d=null,e=m)):(d=null,e=m)):(d=null,e=m);null!==d;)c.push(d),m=e,d=z(),null!==d?("=="===b.substr(e,2)?(g="==",e+=2):(g=null,0===f&&k('"=="')),null!==g?(h=z(),null!==h?(i=N(),null!==i?d=[d,g,h,i]:(d=null,e=m)):(d=null,e=m)):(d=null,e=m)):(d=null,e=m);null!==c?a=[a,c]:(a=null,e=l)}else a=null,e=l;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"Equality",operator:c[e][1],left:d,right:c[e][3]};return d}(j,a[0],a[1])),null===a&&(e=j),a}function Q(a){a.sort();for(var b=null,c=[],d=0;a.length>d;d++)a[d]!==b&&(c.push(a[d]),b=a[d]);return c}function R(){for(var a=1,c=1,d=!1,f=0;Math.max(e,g)>f;f++){var h=b.charAt(f);"\n"===h?(d||a++,c=1,d=!1):"\r"===h||"\u2028"===h||"\u2029"===h?(a++,c=1,d=!0):(c++,d=!1)}return{line:a,column:c}}var d={start:l,Statement:m,SourceCharacter:n,IdentifierStart:o,WhiteSpace:p,LineTerminator:q,LineTerminatorSequence:r,EOS:s,EOF:t,Comment:u,MultiLineComment:v,MultiLineCommentNoLineTerminator:w,SingleLineComment:x,_:y,__:z,Literal:A,Integer:B,Real:C,SignedInteger:D,Identifier:E,IdentifierName:F,PrimaryExpression:G,UnaryExpression:H,UnaryOperator:I,MultiplicativeExpression:J,MultiplicativeOperator:K,AdditiveExpression:L,AdditiveOperator:M,InequalityExpression:N,InequalityOperator:O,LinearExpression:P};if(void 0!==c){if(void 0===d[c])throw Error("Invalid rule name: "+a(c)+".")}else c="start";var e=0,f=0,g=0,h=[],S=d[c]();if(null===S||e!==b.length){var T=Math.max(e,g),U=b.length>T?b.charAt(T):null,V=R();throw new this.SyntaxError(Q(h),U,T,V.line,V.column)}return S},toSource:function(){return this._source}};return b.SyntaxError=function(b,c,d,e,f){function g(b,c){var d,e;switch(b.length){case 0:d="end of input";break;case 1:d=b[0];break;default:d=b.slice(0,b.length-1).join(", ")+" or "+b[b.length-1]}return e=c?a(c):"end of input","Expected "+d+" but "+e+" found."}this.name="SyntaxError",this.expected=b,this.found=c,this.message=g(b,c),this.offset=d,this.line=e,this.column=f},b.SyntaxError.prototype=Error.prototype,b}();
-	}).call(
-	  (true) ?
-	      (module.compiled = true && module) : this
-	);
-	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ../~/webpack/buildin/module.js */ 46)(module)))
-
-/***/ },
-/* 46 */
+/* 24 */
 /*!**************************************!*\
-  !*** ../~/webpack/buildin/module.js ***!
+  !*** ../~/famous-polyfills/index.js ***!
   \**************************************/
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = function(module) {
-		if(!module.webpackPolyfill) {
-			module.deprecate = function() {};
-			module.paths = [];
-			// module.parent = undefined by default
-			module.children = [];
-			module.webpackPolyfill = 1;
-		}
-		return module;
+	__webpack_require__(/*! ./classList.js */ 25);
+	__webpack_require__(/*! ./functionPrototypeBind.js */ 26);
+	__webpack_require__(/*! ./requestAnimationFrame.js */ 27);
+
+/***/ },
+/* 25 */
+/*!******************************************!*\
+  !*** ../~/famous-polyfills/classList.js ***!
+  \******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	
+	/*
+	 * classList.js: Cross-browser full element.classList implementation.
+	 * 2011-06-15
+	 *
+	 * By Eli Grey, http://eligrey.com
+	 * Public Domain.
+	 * NO WARRANTY EXPRESSED OR IMPLIED. USE AT YOUR OWN RISK.
+	 */
+	
+	/*global self, document, DOMException */
+	
+	/*! @source http://purl.eligrey.com/github/classList.js/blob/master/classList.js*/
+	
+	if (typeof document !== "undefined" && !("classList" in document.createElement("a"))) {
+	
+	(function (view) {
+	
+	"use strict";
+	
+	var
+	      classListProp = "classList"
+	    , protoProp = "prototype"
+	    , elemCtrProto = (view.HTMLElement || view.Element)[protoProp]
+	    , objCtr = Object
+	    , strTrim = String[protoProp].trim || function () {
+	        return this.replace(/^\s+|\s+$/g, "");
+	    }
+	    , arrIndexOf = Array[protoProp].indexOf || function (item) {
+	        var
+	              i = 0
+	            , len = this.length
+	        ;
+	        for (; i < len; i++) {
+	            if (i in this && this[i] === item) {
+	                return i;
+	            }
+	        }
+	        return -1;
+	    }
+	    // Vendors: please allow content code to instantiate DOMExceptions
+	    , DOMEx = function (type, message) {
+	        this.name = type;
+	        this.code = DOMException[type];
+	        this.message = message;
+	    }
+	    , checkTokenAndGetIndex = function (classList, token) {
+	        if (token === "") {
+	            throw new DOMEx(
+	                  "SYNTAX_ERR"
+	                , "An invalid or illegal string was specified"
+	            );
+	        }
+	        if (/\s/.test(token)) {
+	            throw new DOMEx(
+	                  "INVALID_CHARACTER_ERR"
+	                , "String contains an invalid character"
+	            );
+	        }
+	        return arrIndexOf.call(classList, token);
+	    }
+	    , ClassList = function (elem) {
+	        var
+	              trimmedClasses = strTrim.call(elem.className)
+	            , classes = trimmedClasses ? trimmedClasses.split(/\s+/) : []
+	            , i = 0
+	            , len = classes.length
+	        ;
+	        for (; i < len; i++) {
+	            this.push(classes[i]);
+	        }
+	        this._updateClassName = function () {
+	            elem.className = this.toString();
+	        };
+	    }
+	    , classListProto = ClassList[protoProp] = []
+	    , classListGetter = function () {
+	        return new ClassList(this);
+	    }
+	;
+	// Most DOMException implementations don't allow calling DOMException's toString()
+	// on non-DOMExceptions. Error's toString() is sufficient here.
+	DOMEx[protoProp] = Error[protoProp];
+	classListProto.item = function (i) {
+	    return this[i] || null;
+	};
+	classListProto.contains = function (token) {
+	    token += "";
+	    return checkTokenAndGetIndex(this, token) !== -1;
+	};
+	classListProto.add = function (token) {
+	    token += "";
+	    if (checkTokenAndGetIndex(this, token) === -1) {
+	        this.push(token);
+	        this._updateClassName();
+	    }
+	};
+	classListProto.remove = function (token) {
+	    token += "";
+	    var index = checkTokenAndGetIndex(this, token);
+	    if (index !== -1) {
+	        this.splice(index, 1);
+	        this._updateClassName();
+	    }
+	};
+	classListProto.toggle = function (token) {
+	    token += "";
+	    if (checkTokenAndGetIndex(this, token) === -1) {
+	        this.add(token);
+	    } else {
+	        this.remove(token);
+	    }
+	};
+	classListProto.toString = function () {
+	    return this.join(" ");
+	};
+	
+	if (objCtr.defineProperty) {
+	    var classListPropDesc = {
+	          get: classListGetter
+	        , enumerable: true
+	        , configurable: true
+	    };
+	    try {
+	        objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
+	    } catch (ex) { // IE 8 doesn't support enumerable:true
+	        if (ex.number === -0x7FF5EC54) {
+	            classListPropDesc.enumerable = false;
+	            objCtr.defineProperty(elemCtrProto, classListProp, classListPropDesc);
+	        }
+	    }
+	} else if (objCtr[protoProp].__defineGetter__) {
+	    elemCtrProto.__defineGetter__(classListProp, classListGetter);
+	}
+	
+	}(self));
+	
 	}
 
 
 /***/ },
-/* 47 */
+/* 26 */
+/*!******************************************************!*\
+  !*** ../~/famous-polyfills/functionPrototypeBind.js ***!
+  \******************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	if (!Function.prototype.bind) {
+	    Function.prototype.bind = function (oThis) {
+	        if (typeof this !== "function") {
+	            // closest thing possible to the ECMAScript 5 internal IsCallable function
+	            throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+	        }
+	
+	        var aArgs = Array.prototype.slice.call(arguments, 1),
+	        fToBind = this,
+	        fNOP = function () {},
+	        fBound = function () {
+	            return fToBind.apply(this instanceof fNOP && oThis
+	                ? this
+	                : oThis,
+	                aArgs.concat(Array.prototype.slice.call(arguments)));
+	        };
+	
+	        fNOP.prototype = this.prototype;
+	        fBound.prototype = new fNOP();
+	
+	        return fBound;
+	    };
+	}
+
+
+/***/ },
+/* 27 */
+/*!******************************************************!*\
+  !*** ../~/famous-polyfills/requestAnimationFrame.js ***!
+  \******************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	// adds requestAnimationFrame functionality
+	// Source: http://strd6.com/2011/05/better-window-requestanimationframe-shim/
+	
+	window.requestAnimationFrame || (window.requestAnimationFrame =
+	  window.webkitRequestAnimationFrame ||
+	  window.mozRequestAnimationFrame    ||
+	  window.oRequestAnimationFrame      ||
+	  window.msRequestAnimationFrame     ||
+	  function(callback, element) {
+	    return window.setTimeout(function() {
+	      callback(+new Date());
+	  }, 1000 / 60);
+	});
+
+
+/***/ },
+/* 28 */
+/*!***********************************!*\
+  !*** ../~/famous/core/famous.css ***!
+  \***********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 29)
+		// The css code:
+		(__webpack_require__(/*! !../~/css-loader!../~/famous/core/famous.css */ 30));
+	// Hot Module Replacement
+	if(false) {
+		module.hot.accept();
+		module.hot.dispose(dispose);
+	}
+
+/***/ },
+/* 29 */
+/*!*************************************!*\
+  !*** ../~/style-loader/addStyle.js ***!
+  \*************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/*
+		MIT License http://www.opensource.org/licenses/mit-license.php
+		Author Tobias Koppers @sokra
+	*/
+	module.exports = function addStyle(cssCode) {
+		if(true) {
+			if(typeof document !== "object") throw new Error("The style-loader cannot be used in a non-browser environment");
+		}
+		var styleElement = document.createElement("style");
+		styleElement.type = "text/css";
+		var head = document.getElementsByTagName("head")[0];
+		head.appendChild(styleElement);
+		if (styleElement.styleSheet) {
+			styleElement.styleSheet.cssText = cssCode;
+		} else {
+			styleElement.appendChild(document.createTextNode(cssCode));
+		}
+		return function() {
+			head.removeChild(styleElement);
+		};
+	}
+
+
+/***/ },
+/* 30 */
+/*!***************************************************!*\
+  !*** ../~/css-loader!../~/famous/core/famous.css ***!
+  \***************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports =
+		"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\n *\n * Owner: mark@famo.us\n * @license MPL 2.0\n * @copyright Famous Industries, Inc. 2015\n */\n\n.famous-root {\n    width: 100%;\n    height: 100%;\n    margin: 0px;\n    padding: 0px;\n    opacity: .999999; /* ios8 hotfix */\n    overflow: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n}\n\n.famous-container, .famous-group {\n    position: absolute;\n    top: 0px;\n    left: 0px;\n    bottom: 0px;\n    right: 0px;\n    overflow: visible;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-backface-visibility: visible;\n    backface-visibility: visible;\n    pointer-events: none;\n}\n\n.famous-group {\n    width: 0px;\n    height: 0px;\n    margin: 0px;\n    padding: 0px;\n}\n\n.famous-surface {\n    position: absolute;\n    -webkit-transform-origin: center center;\n    transform-origin: center center;\n    -webkit-backface-visibility: hidden;\n    backface-visibility: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-box-sizing: border-box;\n    -moz-box-sizing: border-box;\n    box-sizing: border-box;\n    -webkit-tap-highlight-color: transparent;\n    pointer-events: auto;\n}\n\n.famous-container-group {\n    position: relative;\n    width: 100%;\n    height: 100%;\n}\n";
+
+/***/ },
+/* 31 */
+/*!***********************************************!*\
+  !*** ../~/famous-flex/src/widgets/styles.css ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 29)
+		// The css code:
+		(__webpack_require__(/*! !../~/css-loader!../~/famous-flex/src/widgets/styles.css */ 32));
+	// Hot Module Replacement
+	if(false) {
+		module.hot.accept();
+		module.hot.dispose(dispose);
+	}
+
+/***/ },
+/* 32 */
+/*!***************************************************************!*\
+  !*** ../~/css-loader!../~/famous-flex/src/widgets/styles.css ***!
+  \***************************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports =
+		"/**\n * This Source Code is licensed under the MIT license. If a copy of the\n * MIT-license was not distributed with this file, You can obtain one at:\n * http://opensource.org/licenses/mit-license.html.\n *\n * @author: Hein Rutjes (IjzerenHein)\n * @license MIT\n * @copyright Gloey Apps, 2015\n */\n\n/* datepicker */\n.ff-datepicker.item {\n  text-align: center;\n}\n.ff-datepicker.item > div {\n  /* align content vertically */\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n.ff-datepicker.top, .ff-datepicker.middle, .ff-datepicker.bottom {\n  pointer-events: none;\n}\n\n\n/* tabbar common */\n.ff-tabbar.item {\n  text-align: center;\n  white-space: nowrap;\n  color: #333333;\n  cursor: pointer;\n}\n.ff-tabbar.item > div {\n  /* align content vertically */\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 6px solid #1185c3;\n}\n";
+
+/***/ },
+/* 33 */
+/*!********************!*\
+  !*** ./styles.css ***!
+  \********************/
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 29)
+		// The css code:
+		(__webpack_require__(/*! !../~/css-loader!./styles.css */ 34));
+	// Hot Module Replacement
+	if(false) {
+		module.hot.accept();
+		module.hot.dispose(dispose);
+	}
+
+/***/ },
+/* 34 */
+/*!************************************!*\
+  !*** ../~/css-loader!./styles.css ***!
+  \************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports =
+		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 35)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 36)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'DancingScriptOT';\n  src: url("+__webpack_require__(/*! ./fonts/dancing-script-ot/DancingScript-Regular.otf */ 37)+");\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n  -moz-tab-size: 2;\n  -o-tab-size: 2;\n  tab-size: 2;\n}\ntextarea {\n  padding: 5px;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n  z-index: 10;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n.banner .subTitle {\n  font-family: DancingScriptOT;\n  font-weight: bold;\n  font-size: 26px;\n  color: orange;\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 3px solid orange;\n}\n.ff-tabbar.item > div {\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n}\n.ff-tabbar.item.selected {\n  color: orange;\n  font-weight: bold;\n}\n.setting.text {\n  text-align: right;\n}\n\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  background-color: #CCCCCC;\n  text-align: center;\n}\n";
+
+/***/ },
+/* 35 */
+/*!**************************************************!*\
+  !*** ./fonts/montserrat/Montserrat-Hairline.otf ***!
+  \**************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Hairline.otf"
+
+/***/ },
+/* 36 */
+/*!***********************************************!*\
+  !*** ./fonts/montserrat/Montserrat-Light.otf ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Light.otf"
+
+/***/ },
+/* 37 */
+/*!***********************************************************!*\
+  !*** ./fonts/dancing-script-ot/DancingScript-Regular.otf ***!
+  \***********************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "fonts/dancing-script-ot/DancingScript-Regular.otf"
+
+/***/ },
+/* 38 */
+/*!********************!*\
+  !*** ./index.html ***!
+  \********************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__.p + "index.html"
+
+/***/ },
+/* 39 */
+/*!***************************************!*\
+  !*** ../~/fastclick/lib/fastclick.js ***!
+  \***************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;;(function () {
+		'use strict';
+	
+		/**
+		 * @preserve FastClick: polyfill to remove click delays on browsers with touch UIs.
+		 *
+		 * @codingstandard ftlabs-jsv2
+		 * @copyright The Financial Times Limited [All Rights Reserved]
+		 * @license MIT License (see LICENSE.txt)
+		 */
+	
+		/*jslint browser:true, node:true*/
+		/*global define, Event, Node*/
+	
+	
+		/**
+		 * Instantiate fast-clicking listeners on the specified layer.
+		 *
+		 * @constructor
+		 * @param {Element} layer The layer to listen on
+		 * @param {Object} [options={}] The options to override the defaults
+		 */
+		function FastClick(layer, options) {
+			var oldOnClick;
+	
+			options = options || {};
+	
+			/**
+			 * Whether a click is currently being tracked.
+			 *
+			 * @type boolean
+			 */
+			this.trackingClick = false;
+	
+	
+			/**
+			 * Timestamp for when click tracking started.
+			 *
+			 * @type number
+			 */
+			this.trackingClickStart = 0;
+	
+	
+			/**
+			 * The element being tracked for a click.
+			 *
+			 * @type EventTarget
+			 */
+			this.targetElement = null;
+	
+	
+			/**
+			 * X-coordinate of touch start event.
+			 *
+			 * @type number
+			 */
+			this.touchStartX = 0;
+	
+	
+			/**
+			 * Y-coordinate of touch start event.
+			 *
+			 * @type number
+			 */
+			this.touchStartY = 0;
+	
+	
+			/**
+			 * ID of the last touch, retrieved from Touch.identifier.
+			 *
+			 * @type number
+			 */
+			this.lastTouchIdentifier = 0;
+	
+	
+			/**
+			 * Touchmove boundary, beyond which a click will be cancelled.
+			 *
+			 * @type number
+			 */
+			this.touchBoundary = options.touchBoundary || 10;
+	
+	
+			/**
+			 * The FastClick layer.
+			 *
+			 * @type Element
+			 */
+			this.layer = layer;
+	
+			/**
+			 * The minimum time between tap(touchstart and touchend) events
+			 *
+			 * @type number
+			 */
+			this.tapDelay = options.tapDelay || 200;
+	
+			/**
+			 * The maximum time for a tap
+			 *
+			 * @type number
+			 */
+			this.tapTimeout = options.tapTimeout || 700;
+	
+			if (FastClick.notNeeded(layer)) {
+				return;
+			}
+	
+			// Some old versions of Android don't have Function.prototype.bind
+			function bind(method, context) {
+				return function() { return method.apply(context, arguments); };
+			}
+	
+	
+			var methods = ['onMouse', 'onClick', 'onTouchStart', 'onTouchMove', 'onTouchEnd', 'onTouchCancel'];
+			var context = this;
+			for (var i = 0, l = methods.length; i < l; i++) {
+				context[methods[i]] = bind(context[methods[i]], context);
+			}
+	
+			// Set up event handlers as required
+			if (deviceIsAndroid) {
+				layer.addEventListener('mouseover', this.onMouse, true);
+				layer.addEventListener('mousedown', this.onMouse, true);
+				layer.addEventListener('mouseup', this.onMouse, true);
+			}
+	
+			layer.addEventListener('click', this.onClick, true);
+			layer.addEventListener('touchstart', this.onTouchStart, false);
+			layer.addEventListener('touchmove', this.onTouchMove, false);
+			layer.addEventListener('touchend', this.onTouchEnd, false);
+			layer.addEventListener('touchcancel', this.onTouchCancel, false);
+	
+			// Hack is required for browsers that don't support Event#stopImmediatePropagation (e.g. Android 2)
+			// which is how FastClick normally stops click events bubbling to callbacks registered on the FastClick
+			// layer when they are cancelled.
+			if (!Event.prototype.stopImmediatePropagation) {
+				layer.removeEventListener = function(type, callback, capture) {
+					var rmv = Node.prototype.removeEventListener;
+					if (type === 'click') {
+						rmv.call(layer, type, callback.hijacked || callback, capture);
+					} else {
+						rmv.call(layer, type, callback, capture);
+					}
+				};
+	
+				layer.addEventListener = function(type, callback, capture) {
+					var adv = Node.prototype.addEventListener;
+					if (type === 'click') {
+						adv.call(layer, type, callback.hijacked || (callback.hijacked = function(event) {
+							if (!event.propagationStopped) {
+								callback(event);
+							}
+						}), capture);
+					} else {
+						adv.call(layer, type, callback, capture);
+					}
+				};
+			}
+	
+			// If a handler is already declared in the element's onclick attribute, it will be fired before
+			// FastClick's onClick handler. Fix this by pulling out the user-defined handler function and
+			// adding it as listener.
+			if (typeof layer.onclick === 'function') {
+	
+				// Android browser on at least 3.2 requires a new reference to the function in layer.onclick
+				// - the old one won't work if passed to addEventListener directly.
+				oldOnClick = layer.onclick;
+				layer.addEventListener('click', function(event) {
+					oldOnClick(event);
+				}, false);
+				layer.onclick = null;
+			}
+		}
+	
+		/**
+		* Windows Phone 8.1 fakes user agent string to look like Android and iPhone.
+		*
+		* @type boolean
+		*/
+		var deviceIsWindowsPhone = navigator.userAgent.indexOf("Windows Phone") >= 0;
+	
+		/**
+		 * Android requires exceptions.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsAndroid = navigator.userAgent.indexOf('Android') > 0 && !deviceIsWindowsPhone;
+	
+	
+		/**
+		 * iOS requires exceptions.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsIOS = /iP(ad|hone|od)/.test(navigator.userAgent) && !deviceIsWindowsPhone;
+	
+	
+		/**
+		 * iOS 4 requires an exception for select elements.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsIOS4 = deviceIsIOS && (/OS 4_\d(_\d)?/).test(navigator.userAgent);
+	
+	
+		/**
+		 * iOS 6.0-7.* requires the target element to be manually derived
+		 *
+		 * @type boolean
+		 */
+		var deviceIsIOSWithBadTarget = deviceIsIOS && (/OS [6-7]_\d/).test(navigator.userAgent);
+	
+		/**
+		 * BlackBerry requires exceptions.
+		 *
+		 * @type boolean
+		 */
+		var deviceIsBlackBerry10 = navigator.userAgent.indexOf('BB10') > 0;
+	
+		/**
+		 * Determine whether a given element requires a native click.
+		 *
+		 * @param {EventTarget|Element} target Target DOM element
+		 * @returns {boolean} Returns true if the element needs a native click
+		 */
+		FastClick.prototype.needsClick = function(target) {
+			switch (target.nodeName.toLowerCase()) {
+	
+			// Don't send a synthetic click to disabled inputs (issue #62)
+			case 'button':
+			case 'select':
+			case 'textarea':
+				if (target.disabled) {
+					return true;
+				}
+	
+				break;
+			case 'input':
+	
+				// File inputs need real clicks on iOS 6 due to a browser bug (issue #68)
+				if ((deviceIsIOS && target.type === 'file') || target.disabled) {
+					return true;
+				}
+	
+				break;
+			case 'label':
+			case 'iframe': // iOS8 homescreen apps can prevent events bubbling into frames
+			case 'video':
+				return true;
+			}
+	
+			return (/\bneedsclick\b/).test(target.className);
+		};
+	
+	
+		/**
+		 * Determine whether a given element requires a call to focus to simulate click into element.
+		 *
+		 * @param {EventTarget|Element} target Target DOM element
+		 * @returns {boolean} Returns true if the element requires a call to focus to simulate native click.
+		 */
+		FastClick.prototype.needsFocus = function(target) {
+			switch (target.nodeName.toLowerCase()) {
+			case 'textarea':
+				return true;
+			case 'select':
+				return !deviceIsAndroid;
+			case 'input':
+				switch (target.type) {
+				case 'button':
+				case 'checkbox':
+				case 'file':
+				case 'image':
+				case 'radio':
+				case 'submit':
+					return false;
+				}
+	
+				// No point in attempting to focus disabled inputs
+				return !target.disabled && !target.readOnly;
+			default:
+				return (/\bneedsfocus\b/).test(target.className);
+			}
+		};
+	
+	
+		/**
+		 * Send a click event to the specified element.
+		 *
+		 * @param {EventTarget|Element} targetElement
+		 * @param {Event} event
+		 */
+		FastClick.prototype.sendClick = function(targetElement, event) {
+			var clickEvent, touch;
+	
+			// On some Android devices activeElement needs to be blurred otherwise the synthetic click will have no effect (#24)
+			if (document.activeElement && document.activeElement !== targetElement) {
+				document.activeElement.blur();
+			}
+	
+			touch = event.changedTouches[0];
+	
+			// Synthesise a click event, with an extra attribute so it can be tracked
+			clickEvent = document.createEvent('MouseEvents');
+			clickEvent.initMouseEvent(this.determineEventType(targetElement), true, true, window, 1, touch.screenX, touch.screenY, touch.clientX, touch.clientY, false, false, false, false, 0, null);
+			clickEvent.forwardedTouchEvent = true;
+			targetElement.dispatchEvent(clickEvent);
+		};
+	
+		FastClick.prototype.determineEventType = function(targetElement) {
+	
+			//Issue #159: Android Chrome Select Box does not open with a synthetic click event
+			if (deviceIsAndroid && targetElement.tagName.toLowerCase() === 'select') {
+				return 'mousedown';
+			}
+	
+			return 'click';
+		};
+	
+	
+		/**
+		 * @param {EventTarget|Element} targetElement
+		 */
+		FastClick.prototype.focus = function(targetElement) {
+			var length;
+	
+			// Issue #160: on iOS 7, some input elements (e.g. date datetime month) throw a vague TypeError on setSelectionRange. These elements don't have an integer value for the selectionStart and selectionEnd properties, but unfortunately that can't be used for detection because accessing the properties also throws a TypeError. Just check the type instead. Filed as Apple bug #15122724.
+			if (deviceIsIOS && targetElement.setSelectionRange && targetElement.type.indexOf('date') !== 0 && targetElement.type !== 'time' && targetElement.type !== 'month') {
+				length = targetElement.value.length;
+				targetElement.setSelectionRange(length, length);
+			} else {
+				targetElement.focus();
+			}
+		};
+	
+	
+		/**
+		 * Check whether the given target element is a child of a scrollable layer and if so, set a flag on it.
+		 *
+		 * @param {EventTarget|Element} targetElement
+		 */
+		FastClick.prototype.updateScrollParent = function(targetElement) {
+			var scrollParent, parentElement;
+	
+			scrollParent = targetElement.fastClickScrollParent;
+	
+			// Attempt to discover whether the target element is contained within a scrollable layer. Re-check if the
+			// target element was moved to another parent.
+			if (!scrollParent || !scrollParent.contains(targetElement)) {
+				parentElement = targetElement;
+				do {
+					if (parentElement.scrollHeight > parentElement.offsetHeight) {
+						scrollParent = parentElement;
+						targetElement.fastClickScrollParent = parentElement;
+						break;
+					}
+	
+					parentElement = parentElement.parentElement;
+				} while (parentElement);
+			}
+	
+			// Always update the scroll top tracker if possible.
+			if (scrollParent) {
+				scrollParent.fastClickLastScrollTop = scrollParent.scrollTop;
+			}
+		};
+	
+	
+		/**
+		 * @param {EventTarget} targetElement
+		 * @returns {Element|EventTarget}
+		 */
+		FastClick.prototype.getTargetElementFromEventTarget = function(eventTarget) {
+	
+			// On some older browsers (notably Safari on iOS 4.1 - see issue #56) the event target may be a text node.
+			if (eventTarget.nodeType === Node.TEXT_NODE) {
+				return eventTarget.parentNode;
+			}
+	
+			return eventTarget;
+		};
+	
+	
+		/**
+		 * On touch start, record the position and scroll offset.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onTouchStart = function(event) {
+			var targetElement, touch, selection;
+	
+			// Ignore multiple touches, otherwise pinch-to-zoom is prevented if both fingers are on the FastClick element (issue #111).
+			if (event.targetTouches.length > 1) {
+				return true;
+			}
+	
+			targetElement = this.getTargetElementFromEventTarget(event.target);
+			touch = event.targetTouches[0];
+	
+			if (deviceIsIOS) {
+	
+				// Only trusted events will deselect text on iOS (issue #49)
+				selection = window.getSelection();
+				if (selection.rangeCount && !selection.isCollapsed) {
+					return true;
+				}
+	
+				if (!deviceIsIOS4) {
+	
+					// Weird things happen on iOS when an alert or confirm dialog is opened from a click event callback (issue #23):
+					// when the user next taps anywhere else on the page, new touchstart and touchend events are dispatched
+					// with the same identifier as the touch event that previously triggered the click that triggered the alert.
+					// Sadly, there is an issue on iOS 4 that causes some normal touch events to have the same identifier as an
+					// immediately preceeding touch event (issue #52), so this fix is unavailable on that platform.
+					// Issue 120: touch.identifier is 0 when Chrome dev tools 'Emulate touch events' is set with an iOS device UA string,
+					// which causes all touch events to be ignored. As this block only applies to iOS, and iOS identifiers are always long,
+					// random integers, it's safe to to continue if the identifier is 0 here.
+					if (touch.identifier && touch.identifier === this.lastTouchIdentifier) {
+						event.preventDefault();
+						return false;
+					}
+	
+					this.lastTouchIdentifier = touch.identifier;
+	
+					// If the target element is a child of a scrollable layer (using -webkit-overflow-scrolling: touch) and:
+					// 1) the user does a fling scroll on the scrollable layer
+					// 2) the user stops the fling scroll with another tap
+					// then the event.target of the last 'touchend' event will be the element that was under the user's finger
+					// when the fling scroll was started, causing FastClick to send a click event to that layer - unless a check
+					// is made to ensure that a parent layer was not scrolled before sending a synthetic click (issue #42).
+					this.updateScrollParent(targetElement);
+				}
+			}
+	
+			this.trackingClick = true;
+			this.trackingClickStart = event.timeStamp;
+			this.targetElement = targetElement;
+	
+			this.touchStartX = touch.pageX;
+			this.touchStartY = touch.pageY;
+	
+			// Prevent phantom clicks on fast double-tap (issue #36)
+			if ((event.timeStamp - this.lastClickTime) < this.tapDelay) {
+				event.preventDefault();
+			}
+	
+			return true;
+		};
+	
+	
+		/**
+		 * Based on a touchmove event object, check whether the touch has moved past a boundary since it started.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.touchHasMoved = function(event) {
+			var touch = event.changedTouches[0], boundary = this.touchBoundary;
+	
+			if (Math.abs(touch.pageX - this.touchStartX) > boundary || Math.abs(touch.pageY - this.touchStartY) > boundary) {
+				return true;
+			}
+	
+			return false;
+		};
+	
+	
+		/**
+		 * Update the last position.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onTouchMove = function(event) {
+			if (!this.trackingClick) {
+				return true;
+			}
+	
+			// If the touch has moved, cancel the click tracking
+			if (this.targetElement !== this.getTargetElementFromEventTarget(event.target) || this.touchHasMoved(event)) {
+				this.trackingClick = false;
+				this.targetElement = null;
+			}
+	
+			return true;
+		};
+	
+	
+		/**
+		 * Attempt to find the labelled control for the given label element.
+		 *
+		 * @param {EventTarget|HTMLLabelElement} labelElement
+		 * @returns {Element|null}
+		 */
+		FastClick.prototype.findControl = function(labelElement) {
+	
+			// Fast path for newer browsers supporting the HTML5 control attribute
+			if (labelElement.control !== undefined) {
+				return labelElement.control;
+			}
+	
+			// All browsers under test that support touch events also support the HTML5 htmlFor attribute
+			if (labelElement.htmlFor) {
+				return document.getElementById(labelElement.htmlFor);
+			}
+	
+			// If no for attribute exists, attempt to retrieve the first labellable descendant element
+			// the list of which is defined here: http://www.w3.org/TR/html5/forms.html#category-label
+			return labelElement.querySelector('button, input:not([type=hidden]), keygen, meter, output, progress, select, textarea');
+		};
+	
+	
+		/**
+		 * On touch end, determine whether to send a click event at once.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onTouchEnd = function(event) {
+			var forElement, trackingClickStart, targetTagName, scrollParent, touch, targetElement = this.targetElement;
+	
+			if (!this.trackingClick) {
+				return true;
+			}
+	
+			// Prevent phantom clicks on fast double-tap (issue #36)
+			if ((event.timeStamp - this.lastClickTime) < this.tapDelay) {
+				this.cancelNextClick = true;
+				return true;
+			}
+	
+			if ((event.timeStamp - this.trackingClickStart) > this.tapTimeout) {
+				return true;
+			}
+	
+			// Reset to prevent wrong click cancel on input (issue #156).
+			this.cancelNextClick = false;
+	
+			this.lastClickTime = event.timeStamp;
+	
+			trackingClickStart = this.trackingClickStart;
+			this.trackingClick = false;
+			this.trackingClickStart = 0;
+	
+			// On some iOS devices, the targetElement supplied with the event is invalid if the layer
+			// is performing a transition or scroll, and has to be re-detected manually. Note that
+			// for this to function correctly, it must be called *after* the event target is checked!
+			// See issue #57; also filed as rdar://13048589 .
+			if (deviceIsIOSWithBadTarget) {
+				touch = event.changedTouches[0];
+	
+				// In certain cases arguments of elementFromPoint can be negative, so prevent setting targetElement to null
+				targetElement = document.elementFromPoint(touch.pageX - window.pageXOffset, touch.pageY - window.pageYOffset) || targetElement;
+				targetElement.fastClickScrollParent = this.targetElement.fastClickScrollParent;
+			}
+	
+			targetTagName = targetElement.tagName.toLowerCase();
+			if (targetTagName === 'label') {
+				forElement = this.findControl(targetElement);
+				if (forElement) {
+					this.focus(targetElement);
+					if (deviceIsAndroid) {
+						return false;
+					}
+	
+					targetElement = forElement;
+				}
+			} else if (this.needsFocus(targetElement)) {
+	
+				// Case 1: If the touch started a while ago (best guess is 100ms based on tests for issue #36) then focus will be triggered anyway. Return early and unset the target element reference so that the subsequent click will be allowed through.
+				// Case 2: Without this exception for input elements tapped when the document is contained in an iframe, then any inputted text won't be visible even though the value attribute is updated as the user types (issue #37).
+				if ((event.timeStamp - trackingClickStart) > 100 || (deviceIsIOS && window.top !== window && targetTagName === 'input')) {
+					this.targetElement = null;
+					return false;
+				}
+	
+				this.focus(targetElement);
+				this.sendClick(targetElement, event);
+	
+				// Select elements need the event to go through on iOS 4, otherwise the selector menu won't open.
+				// Also this breaks opening selects when VoiceOver is active on iOS6, iOS7 (and possibly others)
+				if (!deviceIsIOS || targetTagName !== 'select') {
+					this.targetElement = null;
+					event.preventDefault();
+				}
+	
+				return false;
+			}
+	
+			if (deviceIsIOS && !deviceIsIOS4) {
+	
+				// Don't send a synthetic click event if the target element is contained within a parent layer that was scrolled
+				// and this tap is being used to stop the scrolling (usually initiated by a fling - issue #42).
+				scrollParent = targetElement.fastClickScrollParent;
+				if (scrollParent && scrollParent.fastClickLastScrollTop !== scrollParent.scrollTop) {
+					return true;
+				}
+			}
+	
+			// Prevent the actual click from going though - unless the target node is marked as requiring
+			// real clicks or if it is in the whitelist in which case only non-programmatic clicks are permitted.
+			if (!this.needsClick(targetElement)) {
+				event.preventDefault();
+				this.sendClick(targetElement, event);
+			}
+	
+			return false;
+		};
+	
+	
+		/**
+		 * On touch cancel, stop tracking the click.
+		 *
+		 * @returns {void}
+		 */
+		FastClick.prototype.onTouchCancel = function() {
+			this.trackingClick = false;
+			this.targetElement = null;
+		};
+	
+	
+		/**
+		 * Determine mouse events which should be permitted.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onMouse = function(event) {
+	
+			// If a target element was never set (because a touch event was never fired) allow the event
+			if (!this.targetElement) {
+				return true;
+			}
+	
+			if (event.forwardedTouchEvent) {
+				return true;
+			}
+	
+			// Programmatically generated events targeting a specific element should be permitted
+			if (!event.cancelable) {
+				return true;
+			}
+	
+			// Derive and check the target element to see whether the mouse event needs to be permitted;
+			// unless explicitly enabled, prevent non-touch click events from triggering actions,
+			// to prevent ghost/doubleclicks.
+			if (!this.needsClick(this.targetElement) || this.cancelNextClick) {
+	
+				// Prevent any user-added listeners declared on FastClick element from being fired.
+				if (event.stopImmediatePropagation) {
+					event.stopImmediatePropagation();
+				} else {
+	
+					// Part of the hack for browsers that don't support Event#stopImmediatePropagation (e.g. Android 2)
+					event.propagationStopped = true;
+				}
+	
+				// Cancel the event
+				event.stopPropagation();
+				event.preventDefault();
+	
+				return false;
+			}
+	
+			// If the mouse event is permitted, return true for the action to go through.
+			return true;
+		};
+	
+	
+		/**
+		 * On actual clicks, determine whether this is a touch-generated click, a click action occurring
+		 * naturally after a delay after a touch (which needs to be cancelled to avoid duplication), or
+		 * an actual click which should be permitted.
+		 *
+		 * @param {Event} event
+		 * @returns {boolean}
+		 */
+		FastClick.prototype.onClick = function(event) {
+			var permitted;
+	
+			// It's possible for another FastClick-like library delivered with third-party code to fire a click event before FastClick does (issue #44). In that case, set the click-tracking flag back to false and return early. This will cause onTouchEnd to return early.
+			if (this.trackingClick) {
+				this.targetElement = null;
+				this.trackingClick = false;
+				return true;
+			}
+	
+			// Very odd behaviour on iOS (issue #18): if a submit element is present inside a form and the user hits enter in the iOS simulator or clicks the Go button on the pop-up OS keyboard the a kind of 'fake' click event will be triggered with the submit-type input element as the target.
+			if (event.target.type === 'submit' && event.detail === 0) {
+				return true;
+			}
+	
+			permitted = this.onMouse(event);
+	
+			// Only unset targetElement if the click is not permitted. This will ensure that the check for !targetElement in onMouse fails and the browser's click doesn't go through.
+			if (!permitted) {
+				this.targetElement = null;
+			}
+	
+			// If clicks are permitted, return true for the action to go through.
+			return permitted;
+		};
+	
+	
+		/**
+		 * Remove all FastClick's event listeners.
+		 *
+		 * @returns {void}
+		 */
+		FastClick.prototype.destroy = function() {
+			var layer = this.layer;
+	
+			if (deviceIsAndroid) {
+				layer.removeEventListener('mouseover', this.onMouse, true);
+				layer.removeEventListener('mousedown', this.onMouse, true);
+				layer.removeEventListener('mouseup', this.onMouse, true);
+			}
+	
+			layer.removeEventListener('click', this.onClick, true);
+			layer.removeEventListener('touchstart', this.onTouchStart, false);
+			layer.removeEventListener('touchmove', this.onTouchMove, false);
+			layer.removeEventListener('touchend', this.onTouchEnd, false);
+			layer.removeEventListener('touchcancel', this.onTouchCancel, false);
+		};
+	
+	
+		/**
+		 * Check whether FastClick is needed.
+		 *
+		 * @param {Element} layer The layer to listen on
+		 */
+		FastClick.notNeeded = function(layer) {
+			var metaViewport;
+			var chromeVersion;
+			var blackberryVersion;
+			var firefoxVersion;
+	
+			// Devices that don't support touch don't need FastClick
+			if (typeof window.ontouchstart === 'undefined') {
+				return true;
+			}
+	
+			// Chrome version - zero for other browsers
+			chromeVersion = +(/Chrome\/([0-9]+)/.exec(navigator.userAgent) || [,0])[1];
+	
+			if (chromeVersion) {
+	
+				if (deviceIsAndroid) {
+					metaViewport = document.querySelector('meta[name=viewport]');
+	
+					if (metaViewport) {
+						// Chrome on Android with user-scalable="no" doesn't need FastClick (issue #89)
+						if (metaViewport.content.indexOf('user-scalable=no') !== -1) {
+							return true;
+						}
+						// Chrome 32 and above with width=device-width or less don't need FastClick
+						if (chromeVersion > 31 && document.documentElement.scrollWidth <= window.outerWidth) {
+							return true;
+						}
+					}
+	
+				// Chrome desktop doesn't need FastClick (issue #15)
+				} else {
+					return true;
+				}
+			}
+	
+			if (deviceIsBlackBerry10) {
+				blackberryVersion = navigator.userAgent.match(/Version\/([0-9]*)\.([0-9]*)/);
+	
+				// BlackBerry 10.3+ does not require Fastclick library.
+				// https://github.com/ftlabs/fastclick/issues/251
+				if (blackberryVersion[1] >= 10 && blackberryVersion[2] >= 3) {
+					metaViewport = document.querySelector('meta[name=viewport]');
+	
+					if (metaViewport) {
+						// user-scalable=no eliminates click delay.
+						if (metaViewport.content.indexOf('user-scalable=no') !== -1) {
+							return true;
+						}
+						// width=device-width (or less than device-width) eliminates click delay.
+						if (document.documentElement.scrollWidth <= window.outerWidth) {
+							return true;
+						}
+					}
+				}
+			}
+	
+			// IE10 with -ms-touch-action: none or manipulation, which disables double-tap-to-zoom (issue #97)
+			if (layer.style.msTouchAction === 'none' || layer.style.touchAction === 'manipulation') {
+				return true;
+			}
+	
+			// Firefox version - zero for other browsers
+			firefoxVersion = +(/Firefox\/([0-9]+)/.exec(navigator.userAgent) || [,0])[1];
+	
+			if (firefoxVersion >= 27) {
+				// Firefox 27+ does not have tap delay if the content is not zoomable - https://bugzilla.mozilla.org/show_bug.cgi?id=922896
+	
+				metaViewport = document.querySelector('meta[name=viewport]');
+				if (metaViewport && (metaViewport.content.indexOf('user-scalable=no') !== -1 || document.documentElement.scrollWidth <= window.outerWidth)) {
+					return true;
+				}
+			}
+	
+			// IE11: prefixed -ms-touch-action is no longer supported and it's recomended to use non-prefixed version
+			// http://msdn.microsoft.com/en-us/library/windows/apps/Hh767313.aspx
+			if (layer.style.touchAction === 'none' || layer.style.touchAction === 'manipulation') {
+				return true;
+			}
+	
+			return false;
+		};
+	
+	
+		/**
+		 * Factory method for creating a FastClick object
+		 *
+		 * @param {Element} layer The layer to listen on
+		 * @param {Object} [options={}] The options to override the defaults
+		 */
+		FastClick.attach = function(layer, options) {
+			return new FastClick(layer, options);
+		};
+	
+	
+		if (true) {
+	
+			// AMD. Register as an anonymous module.
+			!(__WEBPACK_AMD_DEFINE_RESULT__ = function() {
+				return FastClick;
+			}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+		} else if (typeof module !== 'undefined' && module.exports) {
+			module.exports = FastClick.attach;
+			module.exports.FastClick = FastClick;
+		} else {
+			window.FastClick = FastClick;
+		}
+	}());
+
+
+/***/ },
+/* 40 */
+/*!**********************************!*\
+  !*** ../~/famous/core/Engine.js ***!
+  \**********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Context = __webpack_require__(/*! ./Context */ 41);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 6);
+	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 5);
+	var Engine = {};
+	var contexts = [];
+	var nextTickQueue = [];
+	var currentFrame = 0;
+	var nextTickFrame = 0;
+	var deferQueue = [];
+	var lastTime = Date.now();
+	var frameTime;
+	var frameTimeLimit;
+	var loopEnabled = true;
+	var eventForwarders = {};
+	var eventHandler = new EventHandler();
+	var options = {
+	    containerType: 'div',
+	    containerClass: 'famous-container',
+	    fpsCap: undefined,
+	    runLoop: true,
+	    appMode: true
+	};
+	var optionsManager = new OptionsManager(options);
+	var MAX_DEFER_FRAME_TIME = 10;
+	Engine.step = function step() {
+	    currentFrame++;
+	    nextTickFrame = currentFrame;
+	    var currentTime = Date.now();
+	    if (frameTimeLimit && currentTime - lastTime < frameTimeLimit)
+	        return;
+	    var i = 0;
+	    frameTime = currentTime - lastTime;
+	    lastTime = currentTime;
+	    eventHandler.emit('prerender');
+	    var numFunctions = nextTickQueue.length;
+	    while (numFunctions--)
+	        nextTickQueue.shift()(currentFrame);
+	    while (deferQueue.length && Date.now() - currentTime < MAX_DEFER_FRAME_TIME) {
+	        deferQueue.shift().call(this);
+	    }
+	    for (i = 0; i < contexts.length; i++)
+	        contexts[i].update();
+	    eventHandler.emit('postrender');
+	};
+	function loop() {
+	    if (options.runLoop) {
+	        Engine.step();
+	        window.requestAnimationFrame(loop);
+	    } else
+	        loopEnabled = false;
+	}
+	window.requestAnimationFrame(loop);
+	function handleResize(event) {
+	    for (var i = 0; i < contexts.length; i++) {
+	        contexts[i].emit('resize');
+	    }
+	    eventHandler.emit('resize');
+	}
+	window.addEventListener('resize', handleResize, false);
+	handleResize();
+	function initialize() {
+	    window.addEventListener('touchmove', function (event) {
+	        event.preventDefault();
+	    }, true);
+	    addRootClasses();
+	}
+	var initialized = false;
+	function addRootClasses() {
+	    if (!document.body) {
+	        Engine.nextTick(addRootClasses);
+	        return;
+	    }
+	    document.body.classList.add('famous-root');
+	    document.documentElement.classList.add('famous-root');
+	}
+	Engine.pipe = function pipe(target) {
+	    if (target.subscribe instanceof Function)
+	        return target.subscribe(Engine);
+	    else
+	        return eventHandler.pipe(target);
+	};
+	Engine.unpipe = function unpipe(target) {
+	    if (target.unsubscribe instanceof Function)
+	        return target.unsubscribe(Engine);
+	    else
+	        return eventHandler.unpipe(target);
+	};
+	Engine.on = function on(type, handler) {
+	    if (!(type in eventForwarders)) {
+	        eventForwarders[type] = eventHandler.emit.bind(eventHandler, type);
+	        addEngineListener(type, eventForwarders[type]);
+	    }
+	    return eventHandler.on(type, handler);
+	};
+	function addEngineListener(type, forwarder) {
+	    if (!document.body) {
+	        Engine.nextTick(addEventListener.bind(this, type, forwarder));
+	        return;
+	    }
+	    document.body.addEventListener(type, forwarder);
+	}
+	Engine.emit = function emit(type, event) {
+	    return eventHandler.emit(type, event);
+	};
+	Engine.removeListener = function removeListener(type, handler) {
+	    return eventHandler.removeListener(type, handler);
+	};
+	Engine.getFPS = function getFPS() {
+	    return 1000 / frameTime;
+	};
+	Engine.setFPSCap = function setFPSCap(fps) {
+	    frameTimeLimit = Math.floor(1000 / fps);
+	};
+	Engine.getOptions = function getOptions(key) {
+	    return optionsManager.getOptions(key);
+	};
+	Engine.setOptions = function setOptions(options) {
+	    return optionsManager.setOptions.apply(optionsManager, arguments);
+	};
+	Engine.createContext = function createContext(el) {
+	    if (!initialized && options.appMode)
+	        Engine.nextTick(initialize);
+	    var needMountContainer = false;
+	    if (!el) {
+	        el = document.createElement(options.containerType);
+	        el.classList.add(options.containerClass);
+	        needMountContainer = true;
+	    }
+	    var context = new Context(el);
+	    Engine.registerContext(context);
+	    if (needMountContainer)
+	        mount(context, el);
+	    return context;
+	};
+	function mount(context, el) {
+	    if (!document.body) {
+	        Engine.nextTick(mount.bind(this, context, el));
+	        return;
+	    }
+	    document.body.appendChild(el);
+	    context.emit('resize');
+	}
+	Engine.registerContext = function registerContext(context) {
+	    contexts.push(context);
+	    return context;
+	};
+	Engine.getContexts = function getContexts() {
+	    return contexts;
+	};
+	Engine.deregisterContext = function deregisterContext(context) {
+	    var i = contexts.indexOf(context);
+	    if (i >= 0)
+	        contexts.splice(i, 1);
+	};
+	Engine.nextTick = function nextTick(fn) {
+	    nextTickQueue.push(fn);
+	};
+	Engine.defer = function defer(fn) {
+	    deferQueue.push(fn);
+	};
+	optionsManager.on('change', function (data) {
+	    if (data.id === 'fpsCap')
+	        Engine.setFPSCap(data.value);
+	    else if (data.id === 'runLoop') {
+	        if (!loopEnabled && data.value) {
+	            loopEnabled = true;
+	            window.requestAnimationFrame(loop);
+	        }
+	    }
+	});
+	module.exports = Engine;
+
+/***/ },
+/* 41 */
+/*!***********************************!*\
+  !*** ../~/famous/core/Context.js ***!
+  \***********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var RenderNode = __webpack_require__(/*! ./RenderNode */ 42);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 6);
+	var ElementAllocator = __webpack_require__(/*! ./ElementAllocator */ 44);
+	var Transform = __webpack_require__(/*! ./Transform */ 12);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 20);
+	var _zeroZero = [
+	    0,
+	    0
+	];
+	var usePrefix = !('perspective' in document.documentElement.style);
+	function _getElementSize() {
+	    var element = this.container;
+	    return [
+	        element.clientWidth,
+	        element.clientHeight
+	    ];
+	}
+	var _setPerspective = usePrefix ? function (element, perspective) {
+	    element.style.webkitPerspective = perspective ? perspective.toFixed() + 'px' : '';
+	} : function (element, perspective) {
+	    element.style.perspective = perspective ? perspective.toFixed() + 'px' : '';
+	};
+	function Context(container) {
+	    this.container = container;
+	    this._allocator = new ElementAllocator(container);
+	    this._node = new RenderNode();
+	    this._eventOutput = new EventHandler();
+	    this._size = _getElementSize.call(this);
+	    this._perspectiveState = new Transitionable(0);
+	    this._perspective = undefined;
+	    this._nodeContext = {
+	        allocator: this._allocator,
+	        transform: Transform.identity,
+	        opacity: 1,
+	        origin: _zeroZero,
+	        align: _zeroZero,
+	        size: this._size
+	    };
+	    this._eventOutput.on('resize', function () {
+	        this.setSize(_getElementSize.call(this));
+	    }.bind(this));
+	}
+	Context.prototype.getAllocator = function getAllocator() {
+	    return this._allocator;
+	};
+	Context.prototype.add = function add(obj) {
+	    return this._node.add(obj);
+	};
+	Context.prototype.migrate = function migrate(container) {
+	    if (container === this.container)
+	        return;
+	    this.container = container;
+	    this._allocator.migrate(container);
+	};
+	Context.prototype.getSize = function getSize() {
+	    return this._size;
+	};
+	Context.prototype.setSize = function setSize(size) {
+	    if (!size)
+	        size = _getElementSize.call(this);
+	    this._size[0] = size[0];
+	    this._size[1] = size[1];
+	};
+	Context.prototype.update = function update(contextParameters) {
+	    if (contextParameters) {
+	        if (contextParameters.transform)
+	            this._nodeContext.transform = contextParameters.transform;
+	        if (contextParameters.opacity)
+	            this._nodeContext.opacity = contextParameters.opacity;
+	        if (contextParameters.origin)
+	            this._nodeContext.origin = contextParameters.origin;
+	        if (contextParameters.align)
+	            this._nodeContext.align = contextParameters.align;
+	        if (contextParameters.size)
+	            this._nodeContext.size = contextParameters.size;
+	    }
+	    var perspective = this._perspectiveState.get();
+	    if (perspective !== this._perspective) {
+	        _setPerspective(this.container, perspective);
+	        this._perspective = perspective;
+	    }
+	    this._node.commit(this._nodeContext);
+	};
+	Context.prototype.getPerspective = function getPerspective() {
+	    return this._perspectiveState.get();
+	};
+	Context.prototype.setPerspective = function setPerspective(perspective, transition, callback) {
+	    return this._perspectiveState.set(perspective, transition, callback);
+	};
+	Context.prototype.emit = function emit(type, event) {
+	    return this._eventOutput.emit(type, event);
+	};
+	Context.prototype.on = function on(type, handler) {
+	    return this._eventOutput.on(type, handler);
+	};
+	Context.prototype.removeListener = function removeListener(type, handler) {
+	    return this._eventOutput.removeListener(type, handler);
+	};
+	Context.prototype.pipe = function pipe(target) {
+	    return this._eventOutput.pipe(target);
+	};
+	Context.prototype.unpipe = function unpipe(target) {
+	    return this._eventOutput.unpipe(target);
+	};
+	module.exports = Context;
+
+/***/ },
+/* 42 */
+/*!**************************************!*\
+  !*** ../~/famous/core/RenderNode.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Entity = __webpack_require__(/*! ./Entity */ 3);
+	var SpecParser = __webpack_require__(/*! ./SpecParser */ 43);
+	function RenderNode(object) {
+	    this._object = null;
+	    this._child = null;
+	    this._hasMultipleChildren = false;
+	    this._isRenderable = false;
+	    this._isModifier = false;
+	    this._resultCache = {};
+	    this._prevResults = {};
+	    this._childResult = null;
+	    if (object)
+	        this.set(object);
+	}
+	RenderNode.prototype.add = function add(child) {
+	    var childNode = child instanceof RenderNode ? child : new RenderNode(child);
+	    if (this._child instanceof Array)
+	        this._child.push(childNode);
+	    else if (this._child) {
+	        this._child = [
+	            this._child,
+	            childNode
+	        ];
+	        this._hasMultipleChildren = true;
+	        this._childResult = [];
+	    } else
+	        this._child = childNode;
+	    return childNode;
+	};
+	RenderNode.prototype.get = function get() {
+	    return this._object || (this._hasMultipleChildren ? null : this._child ? this._child.get() : null);
+	};
+	RenderNode.prototype.set = function set(child) {
+	    this._childResult = null;
+	    this._hasMultipleChildren = false;
+	    this._isRenderable = child.render ? true : false;
+	    this._isModifier = child.modify ? true : false;
+	    this._object = child;
+	    this._child = null;
+	    if (child instanceof RenderNode)
+	        return child;
+	    else
+	        return this;
+	};
+	RenderNode.prototype.getSize = function getSize() {
+	    var result = null;
+	    var target = this.get();
+	    if (target && target.getSize)
+	        result = target.getSize();
+	    if (!result && this._child && this._child.getSize)
+	        result = this._child.getSize();
+	    return result;
+	};
+	function _applyCommit(spec, context, cacheStorage) {
+	    var result = SpecParser.parse(spec, context);
+	    var keys = Object.keys(result);
+	    for (var i = 0; i < keys.length; i++) {
+	        var id = keys[i];
+	        var childNode = Entity.get(id);
+	        var commitParams = result[id];
+	        commitParams.allocator = context.allocator;
+	        var commitResult = childNode.commit(commitParams);
+	        if (commitResult)
+	            _applyCommit(commitResult, context, cacheStorage);
+	        else
+	            cacheStorage[id] = commitParams;
+	    }
+	}
+	RenderNode.prototype.commit = function commit(context) {
+	    var prevKeys = Object.keys(this._prevResults);
+	    for (var i = 0; i < prevKeys.length; i++) {
+	        var id = prevKeys[i];
+	        if (this._resultCache[id] === undefined) {
+	            var object = Entity.get(id);
+	            if (object.cleanup)
+	                object.cleanup(context.allocator);
+	        }
+	    }
+	    this._prevResults = this._resultCache;
+	    this._resultCache = {};
+	    _applyCommit(this.render(), context, this._resultCache);
+	};
+	RenderNode.prototype.render = function render() {
+	    if (this._isRenderable)
+	        return this._object.render();
+	    var result = null;
+	    if (this._hasMultipleChildren) {
+	        result = this._childResult;
+	        var children = this._child;
+	        for (var i = 0; i < children.length; i++) {
+	            result[i] = children[i].render();
+	        }
+	    } else if (this._child)
+	        result = this._child.render();
+	    return this._isModifier ? this._object.modify(result) : result;
+	};
+	module.exports = RenderNode;
+
+/***/ },
+/* 43 */
+/*!**************************************!*\
+  !*** ../~/famous/core/SpecParser.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Transform = __webpack_require__(/*! ./Transform */ 12);
+	function SpecParser() {
+	    this.result = {};
+	}
+	SpecParser._instance = new SpecParser();
+	SpecParser.parse = function parse(spec, context) {
+	    return SpecParser._instance.parse(spec, context);
+	};
+	SpecParser.prototype.parse = function parse(spec, context) {
+	    this.reset();
+	    this._parseSpec(spec, context, Transform.identity);
+	    return this.result;
+	};
+	SpecParser.prototype.reset = function reset() {
+	    this.result = {};
+	};
+	function _vecInContext(v, m) {
+	    return [
+	        v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
+	        v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
+	        v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
+	    ];
+	}
+	var _zeroZero = [
+	    0,
+	    0
+	];
+	SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
+	    var id;
+	    var target;
+	    var transform;
+	    var opacity;
+	    var origin;
+	    var align;
+	    var size;
+	    if (typeof spec === 'number') {
+	        id = spec;
+	        transform = parentContext.transform;
+	        align = parentContext.align || _zeroZero;
+	        if (parentContext.size && align && (align[0] || align[1])) {
+	            var alignAdjust = [
+	                align[0] * parentContext.size[0],
+	                align[1] * parentContext.size[1],
+	                0
+	            ];
+	            transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
+	        }
+	        this.result[id] = {
+	            transform: transform,
+	            opacity: parentContext.opacity,
+	            origin: parentContext.origin || _zeroZero,
+	            align: parentContext.align || _zeroZero,
+	            size: parentContext.size
+	        };
+	    } else if (!spec) {
+	        return;
+	    } else if (spec instanceof Array) {
+	        for (var i = 0; i < spec.length; i++) {
+	            this._parseSpec(spec[i], parentContext, sizeContext);
+	        }
+	    } else {
+	        target = spec.target;
+	        transform = parentContext.transform;
+	        opacity = parentContext.opacity;
+	        origin = parentContext.origin;
+	        align = parentContext.align;
+	        size = parentContext.size;
+	        var nextSizeContext = sizeContext;
+	        if (spec.opacity !== undefined)
+	            opacity = parentContext.opacity * spec.opacity;
+	        if (spec.transform)
+	            transform = Transform.multiply(parentContext.transform, spec.transform);
+	        if (spec.origin) {
+	            origin = spec.origin;
+	            nextSizeContext = parentContext.transform;
+	        }
+	        if (spec.align)
+	            align = spec.align;
+	        if (spec.size || spec.proportions) {
+	            var parentSize = size;
+	            size = [
+	                size[0],
+	                size[1]
+	            ];
+	            if (spec.size) {
+	                if (spec.size[0] !== undefined)
+	                    size[0] = spec.size[0];
+	                if (spec.size[1] !== undefined)
+	                    size[1] = spec.size[1];
+	            }
+	            if (spec.proportions) {
+	                if (spec.proportions[0] !== undefined)
+	                    size[0] = size[0] * spec.proportions[0];
+	                if (spec.proportions[1] !== undefined)
+	                    size[1] = size[1] * spec.proportions[1];
+	            }
+	            if (parentSize) {
+	                if (align && (align[0] || align[1]))
+	                    transform = Transform.thenMove(transform, _vecInContext([
+	                        align[0] * parentSize[0],
+	                        align[1] * parentSize[1],
+	                        0
+	                    ], sizeContext));
+	                if (origin && (origin[0] || origin[1]))
+	                    transform = Transform.moveThen([
+	                        -origin[0] * size[0],
+	                        -origin[1] * size[1],
+	                        0
+	                    ], transform);
+	            }
+	            nextSizeContext = parentContext.transform;
+	            origin = null;
+	            align = null;
+	        }
+	        this._parseSpec(target, {
+	            transform: transform,
+	            opacity: opacity,
+	            origin: origin,
+	            align: align,
+	            size: size
+	        }, nextSizeContext);
+	    }
+	};
+	module.exports = SpecParser;
+
+/***/ },
+/* 44 */
+/*!********************************************!*\
+  !*** ../~/famous/core/ElementAllocator.js ***!
+  \********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	function ElementAllocator(container) {
+	    if (!container)
+	        container = document.createDocumentFragment();
+	    this.container = container;
+	    this.detachedNodes = {};
+	    this.nodeCount = 0;
+	}
+	ElementAllocator.prototype.migrate = function migrate(container) {
+	    var oldContainer = this.container;
+	    if (container === oldContainer)
+	        return;
+	    if (oldContainer instanceof DocumentFragment) {
+	        container.appendChild(oldContainer);
+	    } else {
+	        while (oldContainer.hasChildNodes()) {
+	            container.appendChild(oldContainer.firstChild);
+	        }
+	    }
+	    this.container = container;
+	};
+	ElementAllocator.prototype.allocate = function allocate(type) {
+	    type = type.toLowerCase();
+	    if (!(type in this.detachedNodes))
+	        this.detachedNodes[type] = [];
+	    var nodeStore = this.detachedNodes[type];
+	    var result;
+	    if (nodeStore.length > 0) {
+	        result = nodeStore.pop();
+	    } else {
+	        result = document.createElement(type);
+	        this.container.appendChild(result);
+	    }
+	    this.nodeCount++;
+	    return result;
+	};
+	ElementAllocator.prototype.deallocate = function deallocate(element) {
+	    var nodeType = element.nodeName.toLowerCase();
+	    var nodeStore = this.detachedNodes[nodeType];
+	    nodeStore.push(element);
+	    this.nodeCount--;
+	};
+	ElementAllocator.prototype.getNodeCount = function getNodeCount() {
+	    return this.nodeCount;
+	};
+	module.exports = ElementAllocator;
+
+/***/ },
+/* 45 */
 /*!*********************************************!*\
-  !*** ../~/autolayout.js/dist/autolayout.js ***!
+  !*** ../~/autolayout.js/src/AutoLayout.es6 ***!
   \*********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
-	var require;var require;/* WEBPACK VAR INJECTION */(function(global) {/**
-	* This Source Code is licensed under the MIT license. If a copy of the
-	* MIT-license was not distributed with this file, You can obtain one at:
-	* http://opensource.org/licenses/mit-license.html.
-	*
-	* @author: Hein Rutjes (IjzerenHein)
-	* @license MIT
-	* @copyright Gloey Apps, 2015
-	*
-	* @library autolayout.js
-	* @version 0.0.1
-	* @generated 08-06-2015
-	*/
-	(function(f){if(true){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.AutoLayout = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return require(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 46);
+	
+	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
+	
+	var _RelationEs6 = __webpack_require__(/*! ./Relation.es6 */ 47);
+	
+	var _RelationEs62 = _interopRequireDefault(_RelationEs6);
+	
+	var _VisualFormatEs6 = __webpack_require__(/*! ./VisualFormat.es6 */ 48);
+	
+	var _VisualFormatEs62 = _interopRequireDefault(_VisualFormatEs6);
+	
+	var _ViewEs6 = __webpack_require__(/*! ./View.es6 */ 51);
+	
+	var _ViewEs62 = _interopRequireDefault(_ViewEs6);
+	
+	var _SubViewEs6 = __webpack_require__(/*! ./SubView.es6 */ 54);
+	
+	var _SubViewEs62 = _interopRequireDefault(_SubViewEs6);
+	
+	/**
+	 * AutoLayout.
+	 *
+	 * @namespace AutoLayout
+	 * @property {Attribute} Attribute
+	 * @property {Relation} Relation
+	 * @property {VisualFormat} VisualFormat
+	 * @property {View} View
+	 * @property {SubView} SubView
+	 */
+	var AutoLayout = {
+	  Attribute: _AttributeEs62['default'],
+	  Relation: _RelationEs62['default'],
+	  VisualFormat: _VisualFormatEs62['default'],
+	  View: _ViewEs62['default'],
+	  SubView: _SubViewEs62['default']
+	};
+	
+	exports['default'] = AutoLayout;
+	module.exports = exports['default'];
+
+/***/ },
+/* 46 */
+/*!********************************************!*\
+  !*** ../~/autolayout.js/src/Attribute.es6 ***!
+  \********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
 	/**
 	 * Layout attributes.
 	 * @enum {String}
@@ -8228,58 +8248,14 @@
 	};
 	exports['default'] = Attribute;
 	module.exports = exports['default'];
-	
-	},{}],2:[function(require,module,exports){
-	'use strict';
-	
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-	
-	var _Attribute = require('./Attribute');
-	
-	var _Attribute2 = _interopRequireDefault(_Attribute);
-	
-	var _Relation = require('./Relation');
-	
-	var _Relation2 = _interopRequireDefault(_Relation);
-	
-	var _VisualFormat = require('./VisualFormat');
-	
-	var _VisualFormat2 = _interopRequireDefault(_VisualFormat);
-	
-	var _View = require('./View');
-	
-	var _View2 = _interopRequireDefault(_View);
-	
-	var _SubView = require('./SubView');
-	
-	var _SubView2 = _interopRequireDefault(_SubView);
-	
-	/**
-	 * AutoLayout.
-	 *
-	 * @namespace AutoLayout
-	 * @property {Attribute} Attribute
-	 * @property {Relation} Relation
-	 * @property {VisualFormat} VisualFormat
-	 * @property {View} View
-	 * @property {SubView} SubView
-	 */
-	var AutoLayout = {
-	  Attribute: _Attribute2['default'],
-	  Relation: _Relation2['default'],
-	  VisualFormat: _VisualFormat2['default'],
-	  View: _View2['default'],
-	  SubView: _SubView2['default']
-	};
-	
-	exports['default'] = AutoLayout;
-	module.exports = exports['default'];
-	
-	},{"./Attribute":1,"./Relation":3,"./SubView":4,"./View":5,"./VisualFormat":6}],3:[function(require,module,exports){
+
+/***/ },
+/* 47 */
+/*!*******************************************!*\
+  !*** ../~/autolayout.js/src/Relation.es6 ***!
+  \*******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
 	/**
 	 * Relation types.
 	 * @enum {String}
@@ -8299,9 +8275,14 @@
 	};
 	exports['default'] = Relation;
 	module.exports = exports['default'];
-	
-	},{}],4:[function(require,module,exports){
-	(function (global){
+
+/***/ },
+/* 48 */
+/*!***********************************************!*\
+  !*** ../~/autolayout.js/src/VisualFormat.es6 ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
 	'use strict';
 	
 	Object.defineProperty(exports, '__esModule', {
@@ -8314,221 +8295,2149 @@
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 	
-	var _cassowaryBinC = (typeof window !== "undefined" ? window.c : typeof global !== "undefined" ? global.c : null);
+	var _parserParser = __webpack_require__(/*! ./parser/parser */ 49);
 	
-	var _cassowaryBinC2 = _interopRequireDefault(_cassowaryBinC);
+	var _parserParser2 = _interopRequireDefault(_parserParser);
 	
-	var _Attribute = require('./Attribute');
+	var _parserParserExt = __webpack_require__(/*! ./parser/parserExt */ 50);
 	
-	var _Attribute2 = _interopRequireDefault(_Attribute);
+	var _parserParserExt2 = _interopRequireDefault(_parserParserExt);
+	
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 46);
+	
+	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
 	
 	/**
-	 * A SubView is automatically generated when constraints are added to a View.
+	 * VisualFormat
 	 *
-	 * @class SubView
+	 * @namespace VisualFormat
 	 */
 	
-	var SubView = (function () {
-	    function SubView(options) {
-	        _classCallCheck(this, SubView);
-	
-	        this._name = options.name;
-	        this._solver = options.solver;
-	        this._attr = {};
-	        if (!options.name) {
-	            this._attr[_Attribute2['default'].LEFT] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_Attribute2['default'].LEFT], _cassowaryBinC2['default'].Strength.required, 0));
-	            this._attr[_Attribute2['default'].TOP] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_Attribute2['default'].TOP], _cassowaryBinC2['default'].Strength.required, 0));
-	            this._attr[_Attribute2['default'].WIDTH] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addEditVar(this._attr[_Attribute2['default'].WIDTH]);
-	            this._attr[_Attribute2['default'].HEIGHT] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addEditVar(this._attr[_Attribute2['default'].HEIGHT]);
-	        }
+	var VisualFormat = (function () {
+	    function VisualFormat() {
+	        _classCallCheck(this, VisualFormat);
 	    }
 	
-	    _createClass(SubView, [{
-	        key: 'toJSON',
-	        value: function toJSON() {
-	            return {
-	                name: this.name,
-	                left: this.left,
-	                top: this.top,
-	                width: this.width,
-	                height: this.height
-	            };
-	        }
-	    }, {
-	        key: 'toString',
-	        value: function toString() {
-	            JSON.stringify(this.toJSON(), undefined, 2);
-	        }
-	    }, {
-	        key: 'name',
+	    _createClass(VisualFormat, null, [{
+	        key: 'parseLine',
 	
 	        /**
-	         * Name of the sub-view.
-	         * @readonly
-	         * @type {String}
-	         */
-	        get: function () {
-	            return this._name;
-	        }
-	    }, {
-	        key: 'left',
-	
-	        /**
-	         * Left value (`Attribute.LEFT`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].LEFT).value;
-	        }
-	    }, {
-	        key: 'right',
-	
-	        /**
-	         * Right value (`Attribute.RIGHT`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].RIGHT).value;
-	        }
-	    }, {
-	        key: 'width',
-	
-	        /**
-	         * Width value (`Attribute.WIDTH`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].WIDTH).value;
-	        }
-	    }, {
-	        key: 'height',
-	
-	        /**
-	         * Height value (`Attribute.HEIGHT`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].HEIGHT).value;
-	        }
-	    }, {
-	        key: 'top',
-	
-	        /**
-	         * Top value (`Attribute.TOP`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].TOP).value;
-	        }
-	    }, {
-	        key: 'bottom',
-	
-	        /**
-	         * Bottom value (`Attribute.BOTTOM`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].BOTTOM).value;
-	        }
-	    }, {
-	        key: 'centerX',
-	
-	        /**
-	         * Horizontal center (`Attribute.CENTERX`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].CENTERX).value;
-	        }
-	    }, {
-	        key: 'centerY',
-	
-	        /**
-	         * Vertical center (`Attribute.CENTERY`).
-	         * @readonly
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._getAttr(_Attribute2['default'].CENTERY).value;
-	        }
-	    }, {
-	        key: 'getValue',
-	
-	        /**
-	         * Gets the value of one of the attributes.
+	         * Parses a single line of vfl into an array of constraint definitions.
 	         *
-	         * @param {String|Attribute} attr Attribute name (e.g. 'right', 'centerY', Attribute.TOP).
-	         * @return {Number} value or `undefined`
+	         * @param {String} visualFormat Visual format string (cannot contain line-endings!).
+	         * @param {Object} [options] Configuration options.
+	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
+	         * @return {Array} Array of constraint definitions.
 	         */
-	        value: function getValue(attr) {
-	            return this._attr[attr] ? this._attr[attr].value : undefined;
+	        value: function parseLine(visualFormat, options) {
+	            if (visualFormat.length === 0) {
+	                return [];
+	            }
+	            var constraints = [];
+	            var res = options && options.extended ? _parserParserExt2['default'].parse(visualFormat) : _parserParser2['default'].parse(visualFormat);
+	            if (options && options.outFormat === 'raw') {
+	                return [res];
+	            }
+	            var horizontal = res.orientation === 'horizontal';
+	            var view1 = undefined;
+	            var view2 = undefined;
+	            var relation = undefined;
+	            var attr1 = undefined;
+	            var attr2 = undefined;
+	            var item = undefined;
+	            for (var i = 0; i < res.cascade.length; i++) {
+	                item = res.cascade[i];
+	                if (!Array.isArray(item) && item.hasOwnProperty('view')) {
+	                    view1 = view2;
+	                    view2 = item.view;
+	                    if (view1 !== undefined && view2 !== undefined && relation) {
+	                        attr1 = horizontal ? _AttributeEs62['default'].RIGHT : _AttributeEs62['default'].BOTTOM;
+	                        attr2 = horizontal ? _AttributeEs62['default'].LEFT : _AttributeEs62['default'].TOP;
+	                        if (!view1) {
+	                            attr1 = horizontal ? _AttributeEs62['default'].LEFT : _AttributeEs62['default'].TOP;
+	                        }
+	                        if (!view2) {
+	                            attr2 = horizontal ? _AttributeEs62['default'].RIGHT : _AttributeEs62['default'].BOTTOM;
+	                        }
+	                        constraints.push({
+	                            view1: view1,
+	                            attr1: attr1,
+	                            relation: relation.relation,
+	                            view2: view2,
+	                            attr2: attr2,
+	                            multiplier: relation.multiplier,
+	                            constant: relation.constant
+	                            //,variable: relation.variable
+	                        });
+	                    }
+	                    relation = undefined;
+	
+	                    // process view size constraints
+	                    if (item.constraints) {
+	                        for (var n = 0; n < item.constraints.length; n++) {
+	                            attr1 = horizontal ? _AttributeEs62['default'].WIDTH : _AttributeEs62['default'].HEIGHT;
+	                            attr2 = item.constraints[n].view || item.constraints[n].multiplier ? attr1 : item.constraints[n].variable ? _AttributeEs62['default'].VARIABLE : _AttributeEs62['default'].CONST;
+	                            constraints.push({
+	                                view1: item.view,
+	                                attr1: attr1,
+	                                relation: item.constraints[n].relation,
+	                                view2: item.constraints[n].view,
+	                                attr2: attr2,
+	                                multiplier: item.constraints[n].multiplier,
+	                                constant: item.constraints[n].constant
+	                                //,variable: item.constraints[n].variable
+	                            });
+	                        }
+	                    }
+	                } else {
+	                    relation = item[0];
+	                }
+	            }
+	            return constraints;
 	        }
 	    }, {
-	        key: '_getAttr',
+	        key: 'parse',
 	
 	        /**
-	         * @private
+	         * Parses one or more visual format strings into an array of constraint definitions.
+	         *
+	         * @param {String|Array} visualFormat One or more visual format strings.
+	         * @param {Object} [options] Configuration options.
+	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
+	         * @param {String} [options.lineSeperator] String that defines the end of a line (default `\n`).
+	         * @param {String} [options.outFormat] Output format ('constraints' or 'raw') (default: 'constraints').
+	         * @return {Array} Array of constraint definitions.
 	         */
-	        value: function _getAttr(attr) {
-	            if (this._attr[attr]) {
-	                return this._attr[attr];
+	        value: function parse(visualFormat, options) {
+	            var lineSeperator = options && options.lineSeperator ? options.lineSeperator : '\n';
+	            if (!Array.isArray(visualFormat) && visualFormat.indexOf(lineSeperator) < 0) {
+	                try {
+	                    return this.parseLine(visualFormat, options);
+	                } catch (err) {
+	                    err.source = visualFormat;
+	                    throw err;
+	                }
 	            }
-	            switch (attr) {
-	                case _Attribute2['default'].LEFT:
-	                case _Attribute2['default'].TOP:
-	                case _Attribute2['default'].WIDTH:
-	                case _Attribute2['default'].HEIGHT:
-	                    this._attr[attr] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	                    break;
-	                case _Attribute2['default'].RIGHT:
-	                    this._getAttr(_Attribute2['default'].LEFT);
-	                    this._getAttr(_Attribute2['default'].WIDTH);
-	                    this._attr[_Attribute2['default'].RIGHT] = new _cassowaryBinC2['default'].Variable();
-	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_Attribute2['default'].RIGHT], _cassowaryBinC2['default'].plus(this._attr[_Attribute2['default'].LEFT], this._attr[_Attribute2['default'].WIDTH])));
-	                    break;
-	                case _Attribute2['default'].BOTTOM:
-	                    this._getAttr(_Attribute2['default'].TOP);
-	                    this._getAttr(_Attribute2['default'].HEIGHT);
-	                    this._attr[_Attribute2['default'].BOTTOM] = new _cassowaryBinC2['default'].Variable();
-	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_Attribute2['default'].BOTTOM], _cassowaryBinC2['default'].plus(this._attr[_Attribute2['default'].TOP], this._attr[_Attribute2['default'].HEIGHT])));
-	                    break;
-	                case _Attribute2['default'].CENTERX:
-	                    this._getAttr(_Attribute2['default'].LEFT);
-	                    this._getAttr(_Attribute2['default'].WIDTH);
-	                    this._attr[_Attribute2['default'].CENTERX] = new _cassowaryBinC2['default'].Variable();
-	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_Attribute2['default'].CENTERX], _cassowaryBinC2['default'].plus(this._attr[_Attribute2['default'].LEFT], _cassowaryBinC2['default'].divide(this._attr[_Attribute2['default'].WIDTH], 2))));
-	                    break;
-	                case _Attribute2['default'].CENTERY:
-	                    this._getAttr(_Attribute2['default'].TOP);
-	                    this._getAttr(_Attribute2['default'].HEIGHT);
-	                    this._attr[_Attribute2['default'].CENTERY] = new _cassowaryBinC2['default'].Variable();
-	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_Attribute2['default'].CENTERY], _cassowaryBinC2['default'].plus(this._attr[_Attribute2['default'].TOP], _cassowaryBinC2['default'].divide(this._attr[_Attribute2['default'].HEIGHT], 2))));
-	                    break;
+	
+	            // Decompose visual-format into an array of strings, and within those strings
+	            // search for line-endings, and treat each line as a seperate visual-format.
+	            visualFormat = Array.isArray(visualFormat) ? visualFormat : [visualFormat];
+	            var lines = undefined;
+	            var constraints = [];
+	            var lineIndex = 0;
+	            var line = undefined;
+	            try {
+	                for (var i = 0; i < visualFormat.length; i++) {
+	                    lines = visualFormat[i].split(lineSeperator);
+	                    for (var j = 0; j < lines.length; j++) {
+	                        line = lines[j];
+	                        lineIndex++;
+	                        constraints = constraints.concat(this.parseLine(line, options));
+	                    }
+	                }
+	            } catch (err) {
+	                err.source = line;
+	                err.line = lineIndex;
+	                throw err;
 	            }
-	            return this._attr[attr];
+	            return constraints;
 	        }
 	    }]);
 	
-	    return SubView;
+	    return VisualFormat;
 	})();
 	
-	exports['default'] = SubView;
+	exports['default'] = VisualFormat;
 	module.exports = exports['default'];
+
+/***/ },
+/* 49 */
+/*!***********************************************!*\
+  !*** ../~/autolayout.js/src/parser/parser.js ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = (function() {
+	  /*
+	   * Generated by PEG.js 0.8.0.
+	   *
+	   * http://pegjs.majda.cz/
+	   */
 	
-	}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-	},{"./Attribute":1}],5:[function(require,module,exports){
-	(function (global){
+	  function peg$subclass(child, parent) {
+	    function ctor() { this.constructor = child; }
+	    ctor.prototype = parent.prototype;
+	    child.prototype = new ctor();
+	  }
+	
+	  function SyntaxError(message, expected, found, offset, line, column) {
+	    this.message  = message;
+	    this.expected = expected;
+	    this.found    = found;
+	    this.offset   = offset;
+	    this.line     = line;
+	    this.column   = column;
+	
+	    this.name     = "SyntaxError";
+	  }
+	
+	  peg$subclass(SyntaxError, Error);
+	
+	  function parse(input) {
+	    var options = arguments.length > 1 ? arguments[1] : {},
+	
+	        peg$FAILED = {},
+	
+	        peg$startRuleFunctions = { visualFormatString: peg$parsevisualFormatString },
+	        peg$startRuleFunction  = peg$parsevisualFormatString,
+	
+	        peg$c0 = peg$FAILED,
+	        peg$c1 = null,
+	        peg$c2 = ":",
+	        peg$c3 = { type: "literal", value: ":", description: "\":\"" },
+	        peg$c4 = [],
+	        peg$c5 = function(o, superto, view, views, tosuper) { return {
+	              orientation: o ? o[0] : 'horizontal',
+	              cascade: (superto || []).concat(
+	                [view],
+	                [].concat.apply([], views),
+	                (tosuper || [])
+	              )
+	            }
+	          },
+	        peg$c6 = "H",
+	        peg$c7 = { type: "literal", value: "H", description: "\"H\"" },
+	        peg$c8 = "V",
+	        peg$c9 = { type: "literal", value: "V", description: "\"V\"" },
+	        peg$c10 = function(orient) { return orient == 'H' ? 'horizontal' : 'vertical' },
+	        peg$c11 = "|",
+	        peg$c12 = { type: "literal", value: "|", description: "\"|\"" },
+	        peg$c13 = function() { return { view: null } },
+	        peg$c14 = "[",
+	        peg$c15 = { type: "literal", value: "[", description: "\"[\"" },
+	        peg$c16 = "]",
+	        peg$c17 = { type: "literal", value: "]", description: "\"]\"" },
+	        peg$c18 = function(view, predicates) { return extend(view, predicates ? { constraints: predicates } : {}) },
+	        peg$c19 = "-",
+	        peg$c20 = { type: "literal", value: "-", description: "\"-\"" },
+	        peg$c21 = function(predicateList) { return predicateList },
+	        peg$c22 = function() { return [{ relation: 'equ', constant: 'default', $parserOffset: offset() }] },
+	        peg$c23 = "",
+	        peg$c24 = function() { return [{ relation: 'equ', constant: 0, $parserOffset: offset() }] },
+	        peg$c25 = function(n) { return [{ relation: 'equ', constant: n, $parserOffset: offset() }] },
+	        peg$c26 = "(",
+	        peg$c27 = { type: "literal", value: "(", description: "\"(\"" },
+	        peg$c28 = ",",
+	        peg$c29 = { type: "literal", value: ",", description: "\",\"" },
+	        peg$c30 = ")",
+	        peg$c31 = { type: "literal", value: ")", description: "\")\"" },
+	        peg$c32 = function(p, ps) { return [p].concat(ps.map(function(p){ return p[1] })) },
+	        peg$c33 = "@",
+	        peg$c34 = { type: "literal", value: "@", description: "\"@\"" },
+	        peg$c35 = function(r, o, p) { return extend({ relation: 'equ' }, (r || {}), o, (p ? p[1]: {})) },
+	        peg$c36 = "==",
+	        peg$c37 = { type: "literal", value: "==", description: "\"==\"" },
+	        peg$c38 = function() { return { relation: 'equ', $parserOffset: offset() } },
+	        peg$c39 = "<=",
+	        peg$c40 = { type: "literal", value: "<=", description: "\"<=\"" },
+	        peg$c41 = function() { return { relation: 'leq', $parserOffset: offset() } },
+	        peg$c42 = ">=",
+	        peg$c43 = { type: "literal", value: ">=", description: "\">=\"" },
+	        peg$c44 = function() { return { relation: 'geq', $parserOffset: offset() } },
+	        peg$c45 = function(n) { return { priority: n } },
+	        peg$c46 = function(n) { return { constant: n } },
+	        peg$c47 = /^[a-zA-Z0-9\-_]/,
+	        peg$c48 = { type: "class", value: "[a-zA-Z0-9\\-_]", description: "[a-zA-Z0-9\\-_]" },
+	        peg$c49 = function(v) { return { view: v } },
+	        peg$c50 = /^[0-9]/,
+	        peg$c51 = { type: "class", value: "[0-9]", description: "[0-9]" },
+	        peg$c52 = function(digits) { return parseInt(digits.join(""), 10); },
+	
+	        peg$currPos          = 0,
+	        peg$reportedPos      = 0,
+	        peg$cachedPos        = 0,
+	        peg$cachedPosDetails = { line: 1, column: 1, seenCR: false },
+	        peg$maxFailPos       = 0,
+	        peg$maxFailExpected  = [],
+	        peg$silentFails      = 0,
+	
+	        peg$result;
+	
+	    if ("startRule" in options) {
+	      if (!(options.startRule in peg$startRuleFunctions)) {
+	        throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
+	      }
+	
+	      peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
+	    }
+	
+	    function text() {
+	      return input.substring(peg$reportedPos, peg$currPos);
+	    }
+	
+	    function offset() {
+	      return peg$reportedPos;
+	    }
+	
+	    function line() {
+	      return peg$computePosDetails(peg$reportedPos).line;
+	    }
+	
+	    function column() {
+	      return peg$computePosDetails(peg$reportedPos).column;
+	    }
+	
+	    function expected(description) {
+	      throw peg$buildException(
+	        null,
+	        [{ type: "other", description: description }],
+	        peg$reportedPos
+	      );
+	    }
+	
+	    function error(message) {
+	      throw peg$buildException(message, null, peg$reportedPos);
+	    }
+	
+	    function peg$computePosDetails(pos) {
+	      function advance(details, startPos, endPos) {
+	        var p, ch;
+	
+	        for (p = startPos; p < endPos; p++) {
+	          ch = input.charAt(p);
+	          if (ch === "\n") {
+	            if (!details.seenCR) { details.line++; }
+	            details.column = 1;
+	            details.seenCR = false;
+	          } else if (ch === "\r" || ch === "\u2028" || ch === "\u2029") {
+	            details.line++;
+	            details.column = 1;
+	            details.seenCR = true;
+	          } else {
+	            details.column++;
+	            details.seenCR = false;
+	          }
+	        }
+	      }
+	
+	      if (peg$cachedPos !== pos) {
+	        if (peg$cachedPos > pos) {
+	          peg$cachedPos = 0;
+	          peg$cachedPosDetails = { line: 1, column: 1, seenCR: false };
+	        }
+	        advance(peg$cachedPosDetails, peg$cachedPos, pos);
+	        peg$cachedPos = pos;
+	      }
+	
+	      return peg$cachedPosDetails;
+	    }
+	
+	    function peg$fail(expected) {
+	      if (peg$currPos < peg$maxFailPos) { return; }
+	
+	      if (peg$currPos > peg$maxFailPos) {
+	        peg$maxFailPos = peg$currPos;
+	        peg$maxFailExpected = [];
+	      }
+	
+	      peg$maxFailExpected.push(expected);
+	    }
+	
+	    function peg$buildException(message, expected, pos) {
+	      function cleanupExpected(expected) {
+	        var i = 1;
+	
+	        expected.sort(function(a, b) {
+	          if (a.description < b.description) {
+	            return -1;
+	          } else if (a.description > b.description) {
+	            return 1;
+	          } else {
+	            return 0;
+	          }
+	        });
+	
+	        while (i < expected.length) {
+	          if (expected[i - 1] === expected[i]) {
+	            expected.splice(i, 1);
+	          } else {
+	            i++;
+	          }
+	        }
+	      }
+	
+	      function buildMessage(expected, found) {
+	        function stringEscape(s) {
+	          function hex(ch) { return ch.charCodeAt(0).toString(16).toUpperCase(); }
+	
+	          return s
+	            .replace(/\\/g,   '\\\\')
+	            .replace(/"/g,    '\\"')
+	            .replace(/\x08/g, '\\b')
+	            .replace(/\t/g,   '\\t')
+	            .replace(/\n/g,   '\\n')
+	            .replace(/\f/g,   '\\f')
+	            .replace(/\r/g,   '\\r')
+	            .replace(/[\x00-\x07\x0B\x0E\x0F]/g, function(ch) { return '\\x0' + hex(ch); })
+	            .replace(/[\x10-\x1F\x80-\xFF]/g,    function(ch) { return '\\x'  + hex(ch); })
+	            .replace(/[\u0180-\u0FFF]/g,         function(ch) { return '\\u0' + hex(ch); })
+	            .replace(/[\u1080-\uFFFF]/g,         function(ch) { return '\\u'  + hex(ch); });
+	        }
+	
+	        var expectedDescs = new Array(expected.length),
+	            expectedDesc, foundDesc, i;
+	
+	        for (i = 0; i < expected.length; i++) {
+	          expectedDescs[i] = expected[i].description;
+	        }
+	
+	        expectedDesc = expected.length > 1
+	          ? expectedDescs.slice(0, -1).join(", ")
+	              + " or "
+	              + expectedDescs[expected.length - 1]
+	          : expectedDescs[0];
+	
+	        foundDesc = found ? "\"" + stringEscape(found) + "\"" : "end of input";
+	
+	        return "Expected " + expectedDesc + " but " + foundDesc + " found.";
+	      }
+	
+	      var posDetails = peg$computePosDetails(pos),
+	          found      = pos < input.length ? input.charAt(pos) : null;
+	
+	      if (expected !== null) {
+	        cleanupExpected(expected);
+	      }
+	
+	      return new SyntaxError(
+	        message !== null ? message : buildMessage(expected, found),
+	        expected,
+	        found,
+	        pos,
+	        posDetails.line,
+	        posDetails.column
+	      );
+	    }
+	
+	    function peg$parsevisualFormatString() {
+	      var s0, s1, s2, s3, s4, s5, s6, s7;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$currPos;
+	      s2 = peg$parseorientation();
+	      if (s2 !== peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 58) {
+	          s3 = peg$c2;
+	          peg$currPos++;
+	        } else {
+	          s3 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c3); }
+	        }
+	        if (s3 !== peg$FAILED) {
+	          s2 = [s2, s3];
+	          s1 = s2;
+	        } else {
+	          peg$currPos = s1;
+	          s1 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s1;
+	        s1 = peg$c0;
+	      }
+	      if (s1 === peg$FAILED) {
+	        s1 = peg$c1;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$currPos;
+	        s3 = peg$parsesuperview();
+	        if (s3 !== peg$FAILED) {
+	          s4 = peg$parseconnection();
+	          if (s4 !== peg$FAILED) {
+	            s3 = [s3, s4];
+	            s2 = s3;
+	          } else {
+	            peg$currPos = s2;
+	            s2 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s2;
+	          s2 = peg$c0;
+	        }
+	        if (s2 === peg$FAILED) {
+	          s2 = peg$c1;
+	        }
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parseview();
+	          if (s3 !== peg$FAILED) {
+	            s4 = [];
+	            s5 = peg$currPos;
+	            s6 = peg$parseconnection();
+	            if (s6 !== peg$FAILED) {
+	              s7 = peg$parseview();
+	              if (s7 !== peg$FAILED) {
+	                s6 = [s6, s7];
+	                s5 = s6;
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s5;
+	              s5 = peg$c0;
+	            }
+	            while (s5 !== peg$FAILED) {
+	              s4.push(s5);
+	              s5 = peg$currPos;
+	              s6 = peg$parseconnection();
+	              if (s6 !== peg$FAILED) {
+	                s7 = peg$parseview();
+	                if (s7 !== peg$FAILED) {
+	                  s6 = [s6, s7];
+	                  s5 = s6;
+	                } else {
+	                  peg$currPos = s5;
+	                  s5 = peg$c0;
+	                }
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              s5 = peg$currPos;
+	              s6 = peg$parseconnection();
+	              if (s6 !== peg$FAILED) {
+	                s7 = peg$parsesuperview();
+	                if (s7 !== peg$FAILED) {
+	                  s6 = [s6, s7];
+	                  s5 = s6;
+	                } else {
+	                  peg$currPos = s5;
+	                  s5 = peg$c0;
+	                }
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	              if (s5 === peg$FAILED) {
+	                s5 = peg$c1;
+	              }
+	              if (s5 !== peg$FAILED) {
+	                peg$reportedPos = s0;
+	                s1 = peg$c5(s1, s2, s3, s4, s5);
+	                s0 = s1;
+	              } else {
+	                peg$currPos = s0;
+	                s0 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseorientation() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 72) {
+	        s1 = peg$c6;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c7); }
+	      }
+	      if (s1 === peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 86) {
+	          s1 = peg$c8;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c9); }
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c10(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsesuperview() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 124) {
+	        s1 = peg$c11;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c12); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c13();
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parseview() {
+	      var s0, s1, s2, s3, s4;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 91) {
+	        s1 = peg$c14;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c15); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseviewName();
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parsepredicateListWithParens();
+	          if (s3 === peg$FAILED) {
+	            s3 = peg$c1;
+	          }
+	          if (s3 !== peg$FAILED) {
+	            if (input.charCodeAt(peg$currPos) === 93) {
+	              s4 = peg$c16;
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c17); }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c18(s2, s3);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseconnection() {
+	      var s0, s1, s2, s3;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 45) {
+	        s1 = peg$c19;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsepredicateList();
+	        if (s2 !== peg$FAILED) {
+	          if (input.charCodeAt(peg$currPos) === 45) {
+	            s3 = peg$c19;
+	            peg$currPos++;
+	          } else {
+	            s3 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	          }
+	          if (s3 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c21(s2);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.charCodeAt(peg$currPos) === 45) {
+	          s1 = peg$c19;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c22();
+	        }
+	        s0 = s1;
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$currPos;
+	          s1 = peg$c23;
+	          if (s1 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c24();
+	          }
+	          s0 = s1;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicateList() {
+	      var s0;
+	
+	      s0 = peg$parsesimplePredicate();
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$parsepredicateListWithParens();
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsesimplePredicate() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c25(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicateListWithParens() {
+	      var s0, s1, s2, s3, s4, s5, s6;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 40) {
+	        s1 = peg$c26;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c27); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsepredicate();
+	        if (s2 !== peg$FAILED) {
+	          s3 = [];
+	          s4 = peg$currPos;
+	          if (input.charCodeAt(peg$currPos) === 44) {
+	            s5 = peg$c28;
+	            peg$currPos++;
+	          } else {
+	            s5 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c29); }
+	          }
+	          if (s5 !== peg$FAILED) {
+	            s6 = peg$parsepredicate();
+	            if (s6 !== peg$FAILED) {
+	              s5 = [s5, s6];
+	              s4 = s5;
+	            } else {
+	              peg$currPos = s4;
+	              s4 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s4;
+	            s4 = peg$c0;
+	          }
+	          while (s4 !== peg$FAILED) {
+	            s3.push(s4);
+	            s4 = peg$currPos;
+	            if (input.charCodeAt(peg$currPos) === 44) {
+	              s5 = peg$c28;
+	              peg$currPos++;
+	            } else {
+	              s5 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c29); }
+	            }
+	            if (s5 !== peg$FAILED) {
+	              s6 = peg$parsepredicate();
+	              if (s6 !== peg$FAILED) {
+	                s5 = [s5, s6];
+	                s4 = s5;
+	              } else {
+	                peg$currPos = s4;
+	                s4 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s4;
+	              s4 = peg$c0;
+	            }
+	          }
+	          if (s3 !== peg$FAILED) {
+	            if (input.charCodeAt(peg$currPos) === 41) {
+	              s4 = peg$c30;
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c31); }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c32(s2, s3);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicate() {
+	      var s0, s1, s2, s3, s4, s5;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parserelation();
+	      if (s1 === peg$FAILED) {
+	        s1 = peg$c1;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseobjectOfPredicate();
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$currPos;
+	          if (input.charCodeAt(peg$currPos) === 64) {
+	            s4 = peg$c33;
+	            peg$currPos++;
+	          } else {
+	            s4 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c34); }
+	          }
+	          if (s4 !== peg$FAILED) {
+	            s5 = peg$parsepriority();
+	            if (s5 !== peg$FAILED) {
+	              s4 = [s4, s5];
+	              s3 = s4;
+	            } else {
+	              peg$currPos = s3;
+	              s3 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s3;
+	            s3 = peg$c0;
+	          }
+	          if (s3 === peg$FAILED) {
+	            s3 = peg$c1;
+	          }
+	          if (s3 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c35(s1, s2, s3);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parserelation() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.substr(peg$currPos, 2) === peg$c36) {
+	        s1 = peg$c36;
+	        peg$currPos += 2;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c37); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c38();
+	      }
+	      s0 = s1;
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.substr(peg$currPos, 2) === peg$c39) {
+	          s1 = peg$c39;
+	          peg$currPos += 2;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c40); }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c41();
+	        }
+	        s0 = s1;
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$currPos;
+	          if (input.substr(peg$currPos, 2) === peg$c42) {
+	            s1 = peg$c42;
+	            peg$currPos += 2;
+	          } else {
+	            s1 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c43); }
+	          }
+	          if (s1 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c44();
+	          }
+	          s0 = s1;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseobjectOfPredicate() {
+	      var s0;
+	
+	      s0 = peg$parseconstant();
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$parseviewName();
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepriority() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c45(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parseconstant() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c46(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parseviewName() {
+	      var s0, s1, s2, s3;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$currPos;
+	      s2 = [];
+	      if (peg$c47.test(input.charAt(peg$currPos))) {
+	        s3 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s3 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c48); }
+	      }
+	      if (s3 !== peg$FAILED) {
+	        while (s3 !== peg$FAILED) {
+	          s2.push(s3);
+	          if (peg$c47.test(input.charAt(peg$currPos))) {
+	            s3 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s3 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c48); }
+	          }
+	        }
+	      } else {
+	        s2 = peg$c0;
+	      }
+	      if (s2 !== peg$FAILED) {
+	        s2 = input.substring(s1, peg$currPos);
+	      }
+	      s1 = s2;
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c49(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsenumber() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      s1 = [];
+	      if (peg$c50.test(input.charAt(peg$currPos))) {
+	        s2 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s2 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c51); }
+	      }
+	      if (s2 !== peg$FAILED) {
+	        while (s2 !== peg$FAILED) {
+	          s1.push(s2);
+	          if (peg$c50.test(input.charAt(peg$currPos))) {
+	            s2 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s2 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c51); }
+	          }
+	        }
+	      } else {
+	        s1 = peg$c0;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c52(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	
+	      function extend(dst) {
+	        for (var i = 1; i < arguments.length; i++) {
+	          for (var k in arguments[i]) {
+	            dst[k] = arguments[i][k];
+	          }
+	        }
+	        return dst;
+	      }
+	
+	
+	    peg$result = peg$startRuleFunction();
+	
+	    if (peg$result !== peg$FAILED && peg$currPos === input.length) {
+	      return peg$result;
+	    } else {
+	      if (peg$result !== peg$FAILED && peg$currPos < input.length) {
+	        peg$fail({ type: "end", description: "end of input" });
+	      }
+	
+	      throw peg$buildException(null, peg$maxFailExpected, peg$maxFailPos);
+	    }
+	  }
+	
+	  return {
+	    SyntaxError: SyntaxError,
+	    parse:       parse
+	  };
+	})();
+
+/***/ },
+/* 50 */
+/*!**************************************************!*\
+  !*** ../~/autolayout.js/src/parser/parserExt.js ***!
+  \**************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = (function() {
+	  /*
+	   * Generated by PEG.js 0.8.0.
+	   *
+	   * http://pegjs.majda.cz/
+	   */
+	
+	  function peg$subclass(child, parent) {
+	    function ctor() { this.constructor = child; }
+	    ctor.prototype = parent.prototype;
+	    child.prototype = new ctor();
+	  }
+	
+	  function SyntaxError(message, expected, found, offset, line, column) {
+	    this.message  = message;
+	    this.expected = expected;
+	    this.found    = found;
+	    this.offset   = offset;
+	    this.line     = line;
+	    this.column   = column;
+	
+	    this.name     = "SyntaxError";
+	  }
+	
+	  peg$subclass(SyntaxError, Error);
+	
+	  function parse(input) {
+	    var options = arguments.length > 1 ? arguments[1] : {},
+	
+	        peg$FAILED = {},
+	
+	        peg$startRuleFunctions = { visualFormatString: peg$parsevisualFormatString },
+	        peg$startRuleFunction  = peg$parsevisualFormatString,
+	
+	        peg$c0 = peg$FAILED,
+	        peg$c1 = null,
+	        peg$c2 = ":",
+	        peg$c3 = { type: "literal", value: ":", description: "\":\"" },
+	        peg$c4 = [],
+	        peg$c5 = function(o, superto, view, views, tosuper) { return {
+	              orientation: o ? o[0] : 'horizontal',
+	              cascade: (superto || []).concat(
+	                [view],
+	                [].concat.apply([], views),
+	                (tosuper || [])
+	              )
+	            }
+	          },
+	        peg$c6 = "H",
+	        peg$c7 = { type: "literal", value: "H", description: "\"H\"" },
+	        peg$c8 = "V",
+	        peg$c9 = { type: "literal", value: "V", description: "\"V\"" },
+	        peg$c10 = function(orient) { return orient == 'H' ? 'horizontal' : 'vertical' },
+	        peg$c11 = "|",
+	        peg$c12 = { type: "literal", value: "|", description: "\"|\"" },
+	        peg$c13 = function() { return { view: null } },
+	        peg$c14 = "[",
+	        peg$c15 = { type: "literal", value: "[", description: "\"[\"" },
+	        peg$c16 = "]",
+	        peg$c17 = { type: "literal", value: "]", description: "\"]\"" },
+	        peg$c18 = function(view, predicates) { return extend(view, predicates ? { constraints: predicates } : {}) },
+	        peg$c19 = "-",
+	        peg$c20 = { type: "literal", value: "-", description: "\"-\"" },
+	        peg$c21 = function(predicateList) { return predicateList },
+	        peg$c22 = function() { return [{ relation: 'equ', constant: 'default', $parserOffset: offset() }] },
+	        peg$c23 = "",
+	        peg$c24 = function() { return [{ relation: 'equ', constant: 0, $parserOffset: offset() }] },
+	        peg$c25 = function(n) { return [{ relation: 'equ', constant: n, $parserOffset: offset() }] },
+	        peg$c26 = "(",
+	        peg$c27 = { type: "literal", value: "(", description: "\"(\"" },
+	        peg$c28 = ",",
+	        peg$c29 = { type: "literal", value: ",", description: "\",\"" },
+	        peg$c30 = ")",
+	        peg$c31 = { type: "literal", value: ")", description: "\")\"" },
+	        peg$c32 = function(p, ps) { return [p].concat(ps.map(function(p){ return p[1] })) },
+	        peg$c33 = "@",
+	        peg$c34 = { type: "literal", value: "@", description: "\"@\"" },
+	        peg$c35 = function(r, o, p) { return extend({ relation: 'equ' }, (r || {}), o, (p ? p[1]: {})) },
+	        peg$c36 = "==",
+	        peg$c37 = { type: "literal", value: "==", description: "\"==\"" },
+	        peg$c38 = function() { return { relation: 'equ', $parserOffset: offset() } },
+	        peg$c39 = "<=",
+	        peg$c40 = { type: "literal", value: "<=", description: "\"<=\"" },
+	        peg$c41 = function() { return { relation: 'leq', $parserOffset: offset() } },
+	        peg$c42 = ">=",
+	        peg$c43 = { type: "literal", value: ">=", description: "\">=\"" },
+	        peg$c44 = function() { return { relation: 'geq', $parserOffset: offset() } },
+	        peg$c45 = function(n) { return { priority: n } },
+	        peg$c46 = function(n) { return { constant: n } },
+	        peg$c47 = "%",
+	        peg$c48 = { type: "literal", value: "%", description: "\"%\"" },
+	        peg$c49 = function(n) { return { view: null, multiplier: n / 100 } },
+	        peg$c50 = function(vn, m) { return { view: vn.view, multiplier: m ? m : 1 } },
+	        peg$c51 = "/",
+	        peg$c52 = { type: "literal", value: "/", description: "\"/\"" },
+	        peg$c53 = function(n) { return 1 / n; },
+	        peg$c54 = "*",
+	        peg$c55 = { type: "literal", value: "*", description: "\"*\"" },
+	        peg$c56 = function(n) { return n; },
+	        peg$c57 = /^[a-zA-Z0-9\-_]/,
+	        peg$c58 = { type: "class", value: "[a-zA-Z0-9\\-_]", description: "[a-zA-Z0-9\\-_]" },
+	        peg$c59 = function(v) { return { view: v } },
+	        peg$c60 = /^[0-9]/,
+	        peg$c61 = { type: "class", value: "[0-9]", description: "[0-9]" },
+	        peg$c62 = function(digits) { return parseInt(digits.join(""), 10); },
+	
+	        peg$currPos          = 0,
+	        peg$reportedPos      = 0,
+	        peg$cachedPos        = 0,
+	        peg$cachedPosDetails = { line: 1, column: 1, seenCR: false },
+	        peg$maxFailPos       = 0,
+	        peg$maxFailExpected  = [],
+	        peg$silentFails      = 0,
+	
+	        peg$result;
+	
+	    if ("startRule" in options) {
+	      if (!(options.startRule in peg$startRuleFunctions)) {
+	        throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
+	      }
+	
+	      peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
+	    }
+	
+	    function text() {
+	      return input.substring(peg$reportedPos, peg$currPos);
+	    }
+	
+	    function offset() {
+	      return peg$reportedPos;
+	    }
+	
+	    function line() {
+	      return peg$computePosDetails(peg$reportedPos).line;
+	    }
+	
+	    function column() {
+	      return peg$computePosDetails(peg$reportedPos).column;
+	    }
+	
+	    function expected(description) {
+	      throw peg$buildException(
+	        null,
+	        [{ type: "other", description: description }],
+	        peg$reportedPos
+	      );
+	    }
+	
+	    function error(message) {
+	      throw peg$buildException(message, null, peg$reportedPos);
+	    }
+	
+	    function peg$computePosDetails(pos) {
+	      function advance(details, startPos, endPos) {
+	        var p, ch;
+	
+	        for (p = startPos; p < endPos; p++) {
+	          ch = input.charAt(p);
+	          if (ch === "\n") {
+	            if (!details.seenCR) { details.line++; }
+	            details.column = 1;
+	            details.seenCR = false;
+	          } else if (ch === "\r" || ch === "\u2028" || ch === "\u2029") {
+	            details.line++;
+	            details.column = 1;
+	            details.seenCR = true;
+	          } else {
+	            details.column++;
+	            details.seenCR = false;
+	          }
+	        }
+	      }
+	
+	      if (peg$cachedPos !== pos) {
+	        if (peg$cachedPos > pos) {
+	          peg$cachedPos = 0;
+	          peg$cachedPosDetails = { line: 1, column: 1, seenCR: false };
+	        }
+	        advance(peg$cachedPosDetails, peg$cachedPos, pos);
+	        peg$cachedPos = pos;
+	      }
+	
+	      return peg$cachedPosDetails;
+	    }
+	
+	    function peg$fail(expected) {
+	      if (peg$currPos < peg$maxFailPos) { return; }
+	
+	      if (peg$currPos > peg$maxFailPos) {
+	        peg$maxFailPos = peg$currPos;
+	        peg$maxFailExpected = [];
+	      }
+	
+	      peg$maxFailExpected.push(expected);
+	    }
+	
+	    function peg$buildException(message, expected, pos) {
+	      function cleanupExpected(expected) {
+	        var i = 1;
+	
+	        expected.sort(function(a, b) {
+	          if (a.description < b.description) {
+	            return -1;
+	          } else if (a.description > b.description) {
+	            return 1;
+	          } else {
+	            return 0;
+	          }
+	        });
+	
+	        while (i < expected.length) {
+	          if (expected[i - 1] === expected[i]) {
+	            expected.splice(i, 1);
+	          } else {
+	            i++;
+	          }
+	        }
+	      }
+	
+	      function buildMessage(expected, found) {
+	        function stringEscape(s) {
+	          function hex(ch) { return ch.charCodeAt(0).toString(16).toUpperCase(); }
+	
+	          return s
+	            .replace(/\\/g,   '\\\\')
+	            .replace(/"/g,    '\\"')
+	            .replace(/\x08/g, '\\b')
+	            .replace(/\t/g,   '\\t')
+	            .replace(/\n/g,   '\\n')
+	            .replace(/\f/g,   '\\f')
+	            .replace(/\r/g,   '\\r')
+	            .replace(/[\x00-\x07\x0B\x0E\x0F]/g, function(ch) { return '\\x0' + hex(ch); })
+	            .replace(/[\x10-\x1F\x80-\xFF]/g,    function(ch) { return '\\x'  + hex(ch); })
+	            .replace(/[\u0180-\u0FFF]/g,         function(ch) { return '\\u0' + hex(ch); })
+	            .replace(/[\u1080-\uFFFF]/g,         function(ch) { return '\\u'  + hex(ch); });
+	        }
+	
+	        var expectedDescs = new Array(expected.length),
+	            expectedDesc, foundDesc, i;
+	
+	        for (i = 0; i < expected.length; i++) {
+	          expectedDescs[i] = expected[i].description;
+	        }
+	
+	        expectedDesc = expected.length > 1
+	          ? expectedDescs.slice(0, -1).join(", ")
+	              + " or "
+	              + expectedDescs[expected.length - 1]
+	          : expectedDescs[0];
+	
+	        foundDesc = found ? "\"" + stringEscape(found) + "\"" : "end of input";
+	
+	        return "Expected " + expectedDesc + " but " + foundDesc + " found.";
+	      }
+	
+	      var posDetails = peg$computePosDetails(pos),
+	          found      = pos < input.length ? input.charAt(pos) : null;
+	
+	      if (expected !== null) {
+	        cleanupExpected(expected);
+	      }
+	
+	      return new SyntaxError(
+	        message !== null ? message : buildMessage(expected, found),
+	        expected,
+	        found,
+	        pos,
+	        posDetails.line,
+	        posDetails.column
+	      );
+	    }
+	
+	    function peg$parsevisualFormatString() {
+	      var s0, s1, s2, s3, s4, s5, s6, s7;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$currPos;
+	      s2 = peg$parseorientation();
+	      if (s2 !== peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 58) {
+	          s3 = peg$c2;
+	          peg$currPos++;
+	        } else {
+	          s3 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c3); }
+	        }
+	        if (s3 !== peg$FAILED) {
+	          s2 = [s2, s3];
+	          s1 = s2;
+	        } else {
+	          peg$currPos = s1;
+	          s1 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s1;
+	        s1 = peg$c0;
+	      }
+	      if (s1 === peg$FAILED) {
+	        s1 = peg$c1;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$currPos;
+	        s3 = peg$parsesuperview();
+	        if (s3 !== peg$FAILED) {
+	          s4 = peg$parseconnection();
+	          if (s4 !== peg$FAILED) {
+	            s3 = [s3, s4];
+	            s2 = s3;
+	          } else {
+	            peg$currPos = s2;
+	            s2 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s2;
+	          s2 = peg$c0;
+	        }
+	        if (s2 === peg$FAILED) {
+	          s2 = peg$c1;
+	        }
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parseview();
+	          if (s3 !== peg$FAILED) {
+	            s4 = [];
+	            s5 = peg$currPos;
+	            s6 = peg$parseconnection();
+	            if (s6 !== peg$FAILED) {
+	              s7 = peg$parseview();
+	              if (s7 !== peg$FAILED) {
+	                s6 = [s6, s7];
+	                s5 = s6;
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s5;
+	              s5 = peg$c0;
+	            }
+	            while (s5 !== peg$FAILED) {
+	              s4.push(s5);
+	              s5 = peg$currPos;
+	              s6 = peg$parseconnection();
+	              if (s6 !== peg$FAILED) {
+	                s7 = peg$parseview();
+	                if (s7 !== peg$FAILED) {
+	                  s6 = [s6, s7];
+	                  s5 = s6;
+	                } else {
+	                  peg$currPos = s5;
+	                  s5 = peg$c0;
+	                }
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              s5 = peg$currPos;
+	              s6 = peg$parseconnection();
+	              if (s6 !== peg$FAILED) {
+	                s7 = peg$parsesuperview();
+	                if (s7 !== peg$FAILED) {
+	                  s6 = [s6, s7];
+	                  s5 = s6;
+	                } else {
+	                  peg$currPos = s5;
+	                  s5 = peg$c0;
+	                }
+	              } else {
+	                peg$currPos = s5;
+	                s5 = peg$c0;
+	              }
+	              if (s5 === peg$FAILED) {
+	                s5 = peg$c1;
+	              }
+	              if (s5 !== peg$FAILED) {
+	                peg$reportedPos = s0;
+	                s1 = peg$c5(s1, s2, s3, s4, s5);
+	                s0 = s1;
+	              } else {
+	                peg$currPos = s0;
+	                s0 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseorientation() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 72) {
+	        s1 = peg$c6;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c7); }
+	      }
+	      if (s1 === peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 86) {
+	          s1 = peg$c8;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c9); }
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c10(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsesuperview() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 124) {
+	        s1 = peg$c11;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c12); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c13();
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parseview() {
+	      var s0, s1, s2, s3, s4;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 91) {
+	        s1 = peg$c14;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c15); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseviewName();
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parsepredicateListWithParens();
+	          if (s3 === peg$FAILED) {
+	            s3 = peg$c1;
+	          }
+	          if (s3 !== peg$FAILED) {
+	            if (input.charCodeAt(peg$currPos) === 93) {
+	              s4 = peg$c16;
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c17); }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c18(s2, s3);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseconnection() {
+	      var s0, s1, s2, s3;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 45) {
+	        s1 = peg$c19;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsepredicateList();
+	        if (s2 !== peg$FAILED) {
+	          if (input.charCodeAt(peg$currPos) === 45) {
+	            s3 = peg$c19;
+	            peg$currPos++;
+	          } else {
+	            s3 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	          }
+	          if (s3 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c21(s2);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.charCodeAt(peg$currPos) === 45) {
+	          s1 = peg$c19;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c22();
+	        }
+	        s0 = s1;
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$currPos;
+	          s1 = peg$c23;
+	          if (s1 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c24();
+	          }
+	          s0 = s1;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicateList() {
+	      var s0;
+	
+	      s0 = peg$parsesimplePredicate();
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$parsepredicateListWithParens();
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsesimplePredicate() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c25(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicateListWithParens() {
+	      var s0, s1, s2, s3, s4, s5, s6;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 40) {
+	        s1 = peg$c26;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c27); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsepredicate();
+	        if (s2 !== peg$FAILED) {
+	          s3 = [];
+	          s4 = peg$currPos;
+	          if (input.charCodeAt(peg$currPos) === 44) {
+	            s5 = peg$c28;
+	            peg$currPos++;
+	          } else {
+	            s5 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c29); }
+	          }
+	          if (s5 !== peg$FAILED) {
+	            s6 = peg$parsepredicate();
+	            if (s6 !== peg$FAILED) {
+	              s5 = [s5, s6];
+	              s4 = s5;
+	            } else {
+	              peg$currPos = s4;
+	              s4 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s4;
+	            s4 = peg$c0;
+	          }
+	          while (s4 !== peg$FAILED) {
+	            s3.push(s4);
+	            s4 = peg$currPos;
+	            if (input.charCodeAt(peg$currPos) === 44) {
+	              s5 = peg$c28;
+	              peg$currPos++;
+	            } else {
+	              s5 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c29); }
+	            }
+	            if (s5 !== peg$FAILED) {
+	              s6 = peg$parsepredicate();
+	              if (s6 !== peg$FAILED) {
+	                s5 = [s5, s6];
+	                s4 = s5;
+	              } else {
+	                peg$currPos = s4;
+	                s4 = peg$c0;
+	              }
+	            } else {
+	              peg$currPos = s4;
+	              s4 = peg$c0;
+	            }
+	          }
+	          if (s3 !== peg$FAILED) {
+	            if (input.charCodeAt(peg$currPos) === 41) {
+	              s4 = peg$c30;
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c31); }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c32(s2, s3);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepredicate() {
+	      var s0, s1, s2, s3, s4, s5;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parserelation();
+	      if (s1 === peg$FAILED) {
+	        s1 = peg$c1;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseobjectOfPredicate();
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$currPos;
+	          if (input.charCodeAt(peg$currPos) === 64) {
+	            s4 = peg$c33;
+	            peg$currPos++;
+	          } else {
+	            s4 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c34); }
+	          }
+	          if (s4 !== peg$FAILED) {
+	            s5 = peg$parsepriority();
+	            if (s5 !== peg$FAILED) {
+	              s4 = [s4, s5];
+	              s3 = s4;
+	            } else {
+	              peg$currPos = s3;
+	              s3 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s3;
+	            s3 = peg$c0;
+	          }
+	          if (s3 === peg$FAILED) {
+	            s3 = peg$c1;
+	          }
+	          if (s3 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c35(s1, s2, s3);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parserelation() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.substr(peg$currPos, 2) === peg$c36) {
+	        s1 = peg$c36;
+	        peg$currPos += 2;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c37); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c38();
+	      }
+	      s0 = s1;
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.substr(peg$currPos, 2) === peg$c39) {
+	          s1 = peg$c39;
+	          peg$currPos += 2;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c40); }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c41();
+	        }
+	        s0 = s1;
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$currPos;
+	          if (input.substr(peg$currPos, 2) === peg$c42) {
+	            s1 = peg$c42;
+	            peg$currPos += 2;
+	          } else {
+	            s1 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c43); }
+	          }
+	          if (s1 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c44();
+	          }
+	          s0 = s1;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseobjectOfPredicate() {
+	      var s0;
+	
+	      s0 = peg$parsepercentage();
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$parseconstant();
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$parseviewPredicate();
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepriority() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c45(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parseconstant() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c46(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsepercentage() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parsenumber();
+	      if (s1 !== peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 37) {
+	          s2 = peg$c47;
+	          peg$currPos++;
+	        } else {
+	          s2 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c48); }
+	        }
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c49(s1);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseviewPredicate() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$parseviewName();
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsemultiplier();
+	        if (s2 === peg$FAILED) {
+	          s2 = peg$c1;
+	        }
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c50(s1, s2);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parsemultiplier() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 47) {
+	        s1 = peg$c51;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c52); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsenumber();
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c53(s2);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.charCodeAt(peg$currPos) === 42) {
+	          s1 = peg$c54;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c55); }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          s2 = peg$parsenumber();
+	          if (s2 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c56(s2);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseviewName() {
+	      var s0, s1, s2, s3;
+	
+	      s0 = peg$currPos;
+	      s1 = peg$currPos;
+	      s2 = [];
+	      if (peg$c57.test(input.charAt(peg$currPos))) {
+	        s3 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s3 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c58); }
+	      }
+	      if (s3 !== peg$FAILED) {
+	        while (s3 !== peg$FAILED) {
+	          s2.push(s3);
+	          if (peg$c57.test(input.charAt(peg$currPos))) {
+	            s3 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s3 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c58); }
+	          }
+	        }
+	      } else {
+	        s2 = peg$c0;
+	      }
+	      if (s2 !== peg$FAILED) {
+	        s2 = input.substring(s1, peg$currPos);
+	      }
+	      s1 = s2;
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c59(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsenumber() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      s1 = [];
+	      if (peg$c60.test(input.charAt(peg$currPos))) {
+	        s2 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s2 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c61); }
+	      }
+	      if (s2 !== peg$FAILED) {
+	        while (s2 !== peg$FAILED) {
+	          s1.push(s2);
+	          if (peg$c60.test(input.charAt(peg$currPos))) {
+	            s2 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s2 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c61); }
+	          }
+	        }
+	      } else {
+	        s1 = peg$c0;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c62(s1);
+	      }
+	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	
+	      function extend(dst) {
+	        for (var i = 1; i < arguments.length; i++) {
+	          for (var k in arguments[i]) {
+	            dst[k] = arguments[i][k];
+	          }
+	        }
+	        return dst;
+	      }
+	
+	
+	    peg$result = peg$startRuleFunction();
+	
+	    if (peg$result !== peg$FAILED && peg$currPos === input.length) {
+	      return peg$result;
+	    } else {
+	      if (peg$result !== peg$FAILED && peg$currPos < input.length) {
+	        peg$fail({ type: "end", description: "end of input" });
+	      }
+	
+	      throw peg$buildException(null, peg$maxFailExpected, peg$maxFailPos);
+	    }
+	  }
+	
+	  return {
+	    SyntaxError: SyntaxError,
+	    parse:       parse
+	  };
+	})();
+
+/***/ },
+/* 51 */
+/*!***************************************!*\
+  !*** ../~/autolayout.js/src/View.es6 ***!
+  \***************************************/
+/***/ function(module, exports, __webpack_require__) {
+
 	'use strict';
 	
 	Object.defineProperty(exports, '__esModule', {
@@ -8541,30 +10450,24 @@
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 	
-	var _cassowaryBinC = (typeof window !== "undefined" ? window.c : typeof global !== "undefined" ? global.c : null);
+	var _cassowaryBinC = __webpack_require__(/*! cassowary/bin/c */ 52);
 	
 	var _cassowaryBinC2 = _interopRequireDefault(_cassowaryBinC);
 	
-	var _Attribute = require('./Attribute');
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 46);
 	
-	var _Attribute2 = _interopRequireDefault(_Attribute);
+	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
 	
-	var _Relation = require('./Relation');
+	var _RelationEs6 = __webpack_require__(/*! ./Relation.es6 */ 47);
 	
-	var _Relation2 = _interopRequireDefault(_Relation);
+	var _RelationEs62 = _interopRequireDefault(_RelationEs6);
 	
-	var _SubView = require('./SubView');
+	var _SubViewEs6 = __webpack_require__(/*! ./SubView.es6 */ 54);
 	
-	var _SubView2 = _interopRequireDefault(_SubView);
+	var _SubViewEs62 = _interopRequireDefault(_SubViewEs6);
 	
 	function _getConst(name, value) {
 	    var vr = new _cassowaryBinC2['default'].Variable({ value: value });
-	    this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(vr, _cassowaryBinC2['default'].Strength.required, 0));
-	    return vr;
-	}
-	
-	function _getVariable(name, defaultValue) {
-	    var vr = new _cassowaryBinC2['default'].Variable({ value: defaultValue });
 	    this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(vr, _cassowaryBinC2['default'].Strength.required, 0));
 	    return vr;
 	}
@@ -8573,7 +10476,7 @@
 	    if (!viewName) {
 	        return this._parentSubView;
 	    } else {
-	        this._subViews[viewName] = this._subViews[viewName] || new _SubView2['default']({
+	        this._subViews[viewName] = this._subViews[viewName] || new _SubViewEs62['default']({
 	            name: viewName,
 	            solver: this._solver
 	        });
@@ -8625,7 +10528,7 @@
 	    }
 	    var attr1 = _getSubView.call(this, constraint.view1)._getAttr(constraint.attr1);
 	    var attr2 = undefined;
-	    if (constraint.attr2 === _Attribute2['default'].CONST) {
+	    if (constraint.attr2 === _AttributeEs62['default'].CONST) {
 	        attr2 = _getConst.call(this, undefined, constraint.constant);
 	    } else {
 	        attr2 = _getSubView.call(this, constraint.view2)._getAttr(constraint.attr2);
@@ -8638,13 +10541,13 @@
 	        }
 	    }
 	    switch (constraint.relation) {
-	        case _Relation2['default'].EQU:
+	        case _RelationEs62['default'].EQU:
 	            relation = new _cassowaryBinC2['default'].Equation(attr1, attr2);
 	            break;
-	        case _Relation2['default'].GEQ:
+	        case _RelationEs62['default'].GEQ:
 	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].GEQ, attr2);
 	            break;
-	        case _Relation2['default'].LEQ:
+	        case _RelationEs62['default'].LEQ:
 	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].LEQ, attr2);
 	            break;
 	        default:
@@ -8671,7 +10574,7 @@
 	        this._subViews = {};
 	        //this._variables = {};
 	        this._spacing = {};
-	        this._parentSubView = new _SubView2['default']({
+	        this._parentSubView = new _SubViewEs62['default']({
 	            solver: this._solver
 	        });
 	        this.setSpacing(options && options.spacing !== undefined ? options.spacing : 8);
@@ -8702,34 +10605,14 @@
 	            }
 	            if (width !== undefined && this._width !== width) {
 	                this._width = width;
-	                this._solver.suggestValue(this._parentSubView._getAttr(_Attribute2['default'].WIDTH), this._width);
+	                this._solver.suggestValue(this._parentSubView._getAttr(_AttributeEs62['default'].WIDTH), this._width);
 	            }
 	            if (height !== undefined && this._height !== height) {
 	                this._height = height;
-	                this._solver.suggestValue(this._parentSubView._getAttr(_Attribute2['default'].HEIGHT), this._height);
+	                this._solver.suggestValue(this._parentSubView._getAttr(_AttributeEs62['default'].HEIGHT), this._height);
 	            }
 	            this._solver.resolve();
 	            return this;
-	        }
-	    }, {
-	        key: 'width',
-	
-	        /**
-	         * Width that was set using `setSize`.
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._width;
-	        }
-	    }, {
-	        key: 'height',
-	
-	        /**
-	         * Height that was set using `setSize`.
-	         * @type {Number}
-	         */
-	        get: function () {
-	            return this._height;
 	        }
 	    }, {
 	        key: 'setSpacing',
@@ -8754,7 +10637,7 @@
 	                case 1:
 	                    spacing = [spacing[0], spacing[0], spacing[0], spacing[0], spacing[0], spacing[0]];break;
 	                case 2:
-	                    spacing = [spacing[1], spacing[0], spacing[1], spacing[0], spacing[1], spacing[0]];break;
+	                    spacing = [spacing[1], spacing[0], spacing[1], spacing[0], spacing[0], spacing[1]];break;
 	                case 6:
 	                    break;
 	                default:
@@ -8826,6 +10709,26 @@
 	            return this;
 	        }
 	    }, {
+	        key: 'width',
+	
+	        /**
+	         * Width that was set using `setSize`.
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._width;
+	        }
+	    }, {
+	        key: 'height',
+	
+	        /**
+	         * Height that was set using `setSize`.
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._height;
+	        }
+	    }, {
 	        key: 'subViews',
 	
 	        /**
@@ -8852,2289 +10755,62 @@
 	
 	exports['default'] = View;
 	module.exports = exports['default'];
-	
-	}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-	},{"./Attribute":1,"./Relation":3,"./SubView":4}],6:[function(require,module,exports){
-	'use strict';
-	
-	Object.defineProperty(exports, '__esModule', {
-	    value: true
-	});
-	
-	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
-	
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-	
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-	
-	var _parserParser = require('./parser/parser');
-	
-	var _parserParser2 = _interopRequireDefault(_parserParser);
-	
-	var _parserParserExt = require('./parser/parserExt');
-	
-	var _parserParserExt2 = _interopRequireDefault(_parserParserExt);
-	
-	var _Attribute = require('./Attribute');
-	
-	var _Attribute2 = _interopRequireDefault(_Attribute);
-	
-	/**
-	 * VisualFormat
-	 *
-	 * @namespace VisualFormat
-	 */
-	
-	var VisualFormat = (function () {
-	    function VisualFormat() {
-	        _classCallCheck(this, VisualFormat);
-	    }
-	
-	    _createClass(VisualFormat, null, [{
-	        key: 'parseLine',
-	
-	        /**
-	         * Parses a single line of vfl into an array of constraint definitions.
-	         *
-	         * @param {String} visualFormat Visual format string (cannot contain line-endings!).
-	         * @param {Object} [options] Configuration options.
-	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
-	         * @return {Array} Array of constraint definitions.
-	         */
-	        value: function parseLine(visualFormat, options) {
-	            if (visualFormat.length === 0) {
-	                return [];
-	            }
-	            var constraints = [];
-	            var res = options && options.extended ? _parserParserExt2['default'].parse(visualFormat) : _parserParser2['default'].parse(visualFormat);
-	            if (options && options.outFormat === 'raw') {
-	                return [res];
-	            }
-	            var horizontal = res.orientation === 'horizontal';
-	            var view1 = undefined;
-	            var view2 = undefined;
-	            var relation = undefined;
-	            var attr1 = undefined;
-	            var attr2 = undefined;
-	            var item = undefined;
-	            var constraint = undefined;
-	            for (var i = 0; i < res.cascade.length; i++) {
-	                item = res.cascade[i];
-	                if (!Array.isArray(item) && item.hasOwnProperty('view')) {
-	                    view1 = view2;
-	                    view2 = item.view;
-	                    if (view1 !== undefined && view2 !== undefined && relation) {
-	                        attr1 = horizontal ? _Attribute2['default'].RIGHT : _Attribute2['default'].BOTTOM;
-	                        attr2 = horizontal ? _Attribute2['default'].LEFT : _Attribute2['default'].TOP;
-	                        if (!view1) {
-	                            attr1 = horizontal ? _Attribute2['default'].LEFT : _Attribute2['default'].TOP;
-	                        }
-	                        if (!view2) {
-	                            attr2 = horizontal ? _Attribute2['default'].RIGHT : _Attribute2['default'].BOTTOM;
-	                        }
-	                        constraints.push({
-	                            view1: view1,
-	                            attr1: attr1,
-	                            relation: relation.relation,
-	                            view2: view2,
-	                            attr2: attr2,
-	                            multiplier: relation.multiplier,
-	                            constant: relation.constant,
-	                            variable: relation.variable
-	                        });
-	                    }
-	                    relation = undefined;
-	
-	                    // process view size constraints
-	                    if (item.constraints) {
-	                        for (var n = 0; n < item.constraints.length; n++) {
-	                            attr1 = horizontal ? _Attribute2['default'].WIDTH : _Attribute2['default'].HEIGHT;
-	                            attr2 = item.constraints[n].view || item.constraints[n].multiplier ? attr1 : item.constraints[n].variable ? _Attribute2['default'].VARIABLE : _Attribute2['default'].CONST;
-	                            constraints.push({
-	                                view1: item.view,
-	                                attr1: attr1,
-	                                relation: item.constraints[n].relation,
-	                                view2: item.constraints[n].view,
-	                                attr2: attr2,
-	                                multiplier: item.constraints[n].multiplier,
-	                                constant: item.constraints[n].constant,
-	                                variable: item.constraints[n].variable
-	                            });
-	                        }
-	                    }
-	                } else {
-	                    relation = item[0];
-	                }
-	            }
-	            return constraints;
-	        }
-	    }, {
-	        key: 'parse',
-	
-	        /**
-	         * Parses one or more visual format strings into an array of constraint definitions.
-	         *
-	         * @param {String|Array} visualFormat One or more visual format strings.
-	         * @param {Object} [options] Configuration options.
-	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
-	         * @param {String} [options.lineSeperator] String that defines the end of a line (default `\n`).
-	         * @param {String} [options.outFormat] Output format ('constraints' or 'raw') (default: 'constraints').
-	         * @return {Array} Array of constraint definitions.
-	         */
-	        value: function parse(visualFormat, options) {
-	            var lineSeperator = options && options.lineSeperator ? options.lineSeperator : '\n';
-	            if (!Array.isArray(visualFormat) && visualFormat.indexOf(lineSeperator) < 0) {
-	                try {
-	                    return this.parseLine(visualFormat, options);
-	                } catch (err) {
-	                    err.source = visualFormat;
-	                    throw err;
-	                }
-	            }
-	
-	            // Decompose visual-format into an array of strings, and within those strings
-	            // search for line-endings, and treat each line as a seperate visual-format.
-	            visualFormat = Array.isArray(visualFormat) ? visualFormat : [visualFormat];
-	            var lines = undefined;
-	            var constraints = [];
-	            var lineIndex = 0;
-	            var line = undefined;
-	            try {
-	                for (var i = 0; i < visualFormat.length; i++) {
-	                    lines = visualFormat[i].split(lineSeperator);
-	                    for (var j = 0; j < lines.length; j++) {
-	                        line = lines[j];
-	                        lineIndex++;
-	                        constraints = constraints.concat(this.parseLine(line, options));
-	                    }
-	                }
-	            } catch (err) {
-	                err.source = line;
-	                err.line = lineIndex;
-	                throw err;
-	            }
-	            return constraints;
-	        }
-	    }]);
-	
-	    return VisualFormat;
-	})();
-	
-	exports['default'] = VisualFormat;
-	module.exports = exports['default'];
-	
-	},{"./Attribute":1,"./parser/parser":7,"./parser/parserExt":8}],7:[function(require,module,exports){
-	"use strict";
-	
-	module.exports = (function () {
-	  /*
-	   * Generated by PEG.js 0.8.0.
-	   *
-	   * http://pegjs.majda.cz/
-	   */
-	
-	  function peg$subclass(child, parent) {
-	    function ctor() {
-	      this.constructor = child;
-	    }
-	    ctor.prototype = parent.prototype;
-	    child.prototype = new ctor();
-	  }
-	
-	  function SyntaxError(message, expected, found, offset, line, column) {
-	    this.message = message;
-	    this.expected = expected;
-	    this.found = found;
-	    this.offset = offset;
-	    this.line = line;
-	    this.column = column;
-	
-	    this.name = "SyntaxError";
-	  }
-	
-	  peg$subclass(SyntaxError, Error);
-	
-	  function parse(input) {
-	    var options = arguments.length > 1 ? arguments[1] : {},
-	        peg$FAILED = {},
-	        peg$startRuleFunctions = { visualFormatString: peg$parsevisualFormatString },
-	        peg$startRuleFunction = peg$parsevisualFormatString,
-	        peg$c0 = peg$FAILED,
-	        peg$c1 = null,
-	        peg$c2 = ":",
-	        peg$c3 = { type: "literal", value: ":", description: "\":\"" },
-	        peg$c4 = [],
-	        peg$c5 = function peg$c5(o, superto, view, views, tosuper) {
-	      return {
-	        orientation: o ? o[0] : "horizontal",
-	        cascade: (superto || []).concat([view], [].concat.apply([], views), tosuper || [])
-	      };
-	    },
-	        peg$c6 = "H",
-	        peg$c7 = { type: "literal", value: "H", description: "\"H\"" },
-	        peg$c8 = "V",
-	        peg$c9 = { type: "literal", value: "V", description: "\"V\"" },
-	        peg$c10 = function peg$c10(orient) {
-	      return orient == "H" ? "horizontal" : "vertical";
-	    },
-	        peg$c11 = "|",
-	        peg$c12 = { type: "literal", value: "|", description: "\"|\"" },
-	        peg$c13 = function peg$c13() {
-	      return { view: null };
-	    },
-	        peg$c14 = "[",
-	        peg$c15 = { type: "literal", value: "[", description: "\"[\"" },
-	        peg$c16 = "]",
-	        peg$c17 = { type: "literal", value: "]", description: "\"]\"" },
-	        peg$c18 = function peg$c18(view, predicates) {
-	      return extend(view, predicates ? { constraints: predicates } : {});
-	    },
-	        peg$c19 = "-",
-	        peg$c20 = { type: "literal", value: "-", description: "\"-\"" },
-	        peg$c21 = function peg$c21(predicateList) {
-	      return predicateList;
-	    },
-	        peg$c22 = function peg$c22() {
-	      return [{ relation: "equ", constant: "default", $parserOffset: offset() }];
-	    },
-	        peg$c23 = "",
-	        peg$c24 = function peg$c24() {
-	      return [{ relation: "equ", constant: 0, $parserOffset: offset() }];
-	    },
-	        peg$c25 = function peg$c25(n) {
-	      return [{ relation: "equ", constant: n, $parserOffset: offset() }];
-	    },
-	        peg$c26 = "(",
-	        peg$c27 = { type: "literal", value: "(", description: "\"(\"" },
-	        peg$c28 = ",",
-	        peg$c29 = { type: "literal", value: ",", description: "\",\"" },
-	        peg$c30 = ")",
-	        peg$c31 = { type: "literal", value: ")", description: "\")\"" },
-	        peg$c32 = function peg$c32(p, ps) {
-	      return [p].concat(ps.map(function (p) {
-	        return p[1];
-	      }));
-	    },
-	        peg$c33 = "@",
-	        peg$c34 = { type: "literal", value: "@", description: "\"@\"" },
-	        peg$c35 = function peg$c35(r, o, p) {
-	      return extend({ relation: "equ" }, r || {}, o, p ? p[1] : {});
-	    },
-	        peg$c36 = "==",
-	        peg$c37 = { type: "literal", value: "==", description: "\"==\"" },
-	        peg$c38 = function peg$c38() {
-	      return { relation: "equ", $parserOffset: offset() };
-	    },
-	        peg$c39 = "<=",
-	        peg$c40 = { type: "literal", value: "<=", description: "\"<=\"" },
-	        peg$c41 = function peg$c41() {
-	      return { relation: "leq", $parserOffset: offset() };
-	    },
-	        peg$c42 = ">=",
-	        peg$c43 = { type: "literal", value: ">=", description: "\">=\"" },
-	        peg$c44 = function peg$c44() {
-	      return { relation: "geq", $parserOffset: offset() };
-	    },
-	        peg$c45 = function peg$c45(n) {
-	      return { priority: n };
-	    },
-	        peg$c46 = function peg$c46(n) {
-	      return { constant: n };
-	    },
-	        peg$c47 = /^[a-zA-Z0-9\-_]/,
-	        peg$c48 = { type: "class", value: "[a-zA-Z0-9\\-_]", description: "[a-zA-Z0-9\\-_]" },
-	        peg$c49 = function peg$c49(v) {
-	      return { view: v };
-	    },
-	        peg$c50 = /^[0-9]/,
-	        peg$c51 = { type: "class", value: "[0-9]", description: "[0-9]" },
-	        peg$c52 = function peg$c52(digits) {
-	      return parseInt(digits.join(""), 10);
-	    },
-	        peg$currPos = 0,
-	        peg$reportedPos = 0,
-	        peg$cachedPos = 0,
-	        peg$cachedPosDetails = { line: 1, column: 1, seenCR: false },
-	        peg$maxFailPos = 0,
-	        peg$maxFailExpected = [],
-	        peg$silentFails = 0,
-	        peg$result;
-	
-	    if ("startRule" in options) {
-	      if (!(options.startRule in peg$startRuleFunctions)) {
-	        throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
-	      }
-	
-	      peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
-	    }
-	
-	    function text() {
-	      return input.substring(peg$reportedPos, peg$currPos);
-	    }
-	
-	    function offset() {
-	      return peg$reportedPos;
-	    }
-	
-	    function line() {
-	      return peg$computePosDetails(peg$reportedPos).line;
-	    }
-	
-	    function column() {
-	      return peg$computePosDetails(peg$reportedPos).column;
-	    }
-	
-	    function expected(description) {
-	      throw peg$buildException(null, [{ type: "other", description: description }], peg$reportedPos);
-	    }
-	
-	    function error(message) {
-	      throw peg$buildException(message, null, peg$reportedPos);
-	    }
-	
-	    function peg$computePosDetails(pos) {
-	      function advance(details, startPos, endPos) {
-	        var p, ch;
-	
-	        for (p = startPos; p < endPos; p++) {
-	          ch = input.charAt(p);
-	          if (ch === "\n") {
-	            if (!details.seenCR) {
-	              details.line++;
-	            }
-	            details.column = 1;
-	            details.seenCR = false;
-	          } else if (ch === "\r" || ch === "\u2028" || ch === "\u2029") {
-	            details.line++;
-	            details.column = 1;
-	            details.seenCR = true;
-	          } else {
-	            details.column++;
-	            details.seenCR = false;
-	          }
-	        }
-	      }
-	
-	      if (peg$cachedPos !== pos) {
-	        if (peg$cachedPos > pos) {
-	          peg$cachedPos = 0;
-	          peg$cachedPosDetails = { line: 1, column: 1, seenCR: false };
-	        }
-	        advance(peg$cachedPosDetails, peg$cachedPos, pos);
-	        peg$cachedPos = pos;
-	      }
-	
-	      return peg$cachedPosDetails;
-	    }
-	
-	    function peg$fail(expected) {
-	      if (peg$currPos < peg$maxFailPos) {
-	        return;
-	      }
-	
-	      if (peg$currPos > peg$maxFailPos) {
-	        peg$maxFailPos = peg$currPos;
-	        peg$maxFailExpected = [];
-	      }
-	
-	      peg$maxFailExpected.push(expected);
-	    }
-	
-	    function peg$buildException(message, expected, pos) {
-	      function cleanupExpected(expected) {
-	        var i = 1;
-	
-	        expected.sort(function (a, b) {
-	          if (a.description < b.description) {
-	            return -1;
-	          } else if (a.description > b.description) {
-	            return 1;
-	          } else {
-	            return 0;
-	          }
-	        });
-	
-	        while (i < expected.length) {
-	          if (expected[i - 1] === expected[i]) {
-	            expected.splice(i, 1);
-	          } else {
-	            i++;
-	          }
-	        }
-	      }
-	
-	      function buildMessage(expected, found) {
-	        function stringEscape(s) {
-	          function hex(ch) {
-	            return ch.charCodeAt(0).toString(16).toUpperCase();
-	          }
-	
-	          return s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\x08/g, "\\b").replace(/\t/g, "\\t").replace(/\n/g, "\\n").replace(/\f/g, "\\f").replace(/\r/g, "\\r").replace(/[\x00-\x07\x0B\x0E\x0F]/g, function (ch) {
-	            return "\\x0" + hex(ch);
-	          }).replace(/[\x10-\x1F\x80-\xFF]/g, function (ch) {
-	            return "\\x" + hex(ch);
-	          }).replace(/[\u0180-\u0FFF]/g, function (ch) {
-	            return "\\u0" + hex(ch);
-	          }).replace(/[\u1080-\uFFFF]/g, function (ch) {
-	            return "\\u" + hex(ch);
-	          });
-	        }
-	
-	        var expectedDescs = new Array(expected.length),
-	            expectedDesc,
-	            foundDesc,
-	            i;
-	
-	        for (i = 0; i < expected.length; i++) {
-	          expectedDescs[i] = expected[i].description;
-	        }
-	
-	        expectedDesc = expected.length > 1 ? expectedDescs.slice(0, -1).join(", ") + " or " + expectedDescs[expected.length - 1] : expectedDescs[0];
-	
-	        foundDesc = found ? "\"" + stringEscape(found) + "\"" : "end of input";
-	
-	        return "Expected " + expectedDesc + " but " + foundDesc + " found.";
-	      }
-	
-	      var posDetails = peg$computePosDetails(pos),
-	          found = pos < input.length ? input.charAt(pos) : null;
-	
-	      if (expected !== null) {
-	        cleanupExpected(expected);
-	      }
-	
-	      return new SyntaxError(message !== null ? message : buildMessage(expected, found), expected, found, pos, posDetails.line, posDetails.column);
-	    }
-	
-	    function peg$parsevisualFormatString() {
-	      var s0, s1, s2, s3, s4, s5, s6, s7;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$currPos;
-	      s2 = peg$parseorientation();
-	      if (s2 !== peg$FAILED) {
-	        if (input.charCodeAt(peg$currPos) === 58) {
-	          s3 = peg$c2;
-	          peg$currPos++;
-	        } else {
-	          s3 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c3);
-	          }
-	        }
-	        if (s3 !== peg$FAILED) {
-	          s2 = [s2, s3];
-	          s1 = s2;
-	        } else {
-	          peg$currPos = s1;
-	          s1 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s1;
-	        s1 = peg$c0;
-	      }
-	      if (s1 === peg$FAILED) {
-	        s1 = peg$c1;
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$currPos;
-	        s3 = peg$parsesuperview();
-	        if (s3 !== peg$FAILED) {
-	          s4 = peg$parseconnection();
-	          if (s4 !== peg$FAILED) {
-	            s3 = [s3, s4];
-	            s2 = s3;
-	          } else {
-	            peg$currPos = s2;
-	            s2 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s2;
-	          s2 = peg$c0;
-	        }
-	        if (s2 === peg$FAILED) {
-	          s2 = peg$c1;
-	        }
-	        if (s2 !== peg$FAILED) {
-	          s3 = peg$parseview();
-	          if (s3 !== peg$FAILED) {
-	            s4 = [];
-	            s5 = peg$currPos;
-	            s6 = peg$parseconnection();
-	            if (s6 !== peg$FAILED) {
-	              s7 = peg$parseview();
-	              if (s7 !== peg$FAILED) {
-	                s6 = [s6, s7];
-	                s5 = s6;
-	              } else {
-	                peg$currPos = s5;
-	                s5 = peg$c0;
-	              }
-	            } else {
-	              peg$currPos = s5;
-	              s5 = peg$c0;
-	            }
-	            while (s5 !== peg$FAILED) {
-	              s4.push(s5);
-	              s5 = peg$currPos;
-	              s6 = peg$parseconnection();
-	              if (s6 !== peg$FAILED) {
-	                s7 = peg$parseview();
-	                if (s7 !== peg$FAILED) {
-	                  s6 = [s6, s7];
-	                  s5 = s6;
-	                } else {
-	                  peg$currPos = s5;
-	                  s5 = peg$c0;
-	                }
-	              } else {
-	                peg$currPos = s5;
-	                s5 = peg$c0;
-	              }
-	            }
-	            if (s4 !== peg$FAILED) {
-	              s5 = peg$currPos;
-	              s6 = peg$parseconnection();
-	              if (s6 !== peg$FAILED) {
-	                s7 = peg$parsesuperview();
-	                if (s7 !== peg$FAILED) {
-	                  s6 = [s6, s7];
-	                  s5 = s6;
-	                } else {
-	                  peg$currPos = s5;
-	                  s5 = peg$c0;
-	                }
-	              } else {
-	                peg$currPos = s5;
-	                s5 = peg$c0;
-	              }
-	              if (s5 === peg$FAILED) {
-	                s5 = peg$c1;
-	              }
-	              if (s5 !== peg$FAILED) {
-	                peg$reportedPos = s0;
-	                s1 = peg$c5(s1, s2, s3, s4, s5);
-	                s0 = s1;
-	              } else {
-	                peg$currPos = s0;
-	                s0 = peg$c0;
-	              }
-	            } else {
-	              peg$currPos = s0;
-	              s0 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseorientation() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 72) {
-	        s1 = peg$c6;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c7);
-	        }
-	      }
-	      if (s1 === peg$FAILED) {
-	        if (input.charCodeAt(peg$currPos) === 86) {
-	          s1 = peg$c8;
-	          peg$currPos++;
-	        } else {
-	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c9);
-	          }
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c10(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parsesuperview() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 124) {
-	        s1 = peg$c11;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c12);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c13();
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parseview() {
-	      var s0, s1, s2, s3, s4;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 91) {
-	        s1 = peg$c14;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c15);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parseviewName();
-	        if (s2 !== peg$FAILED) {
-	          s3 = peg$parsepredicateListWithParens();
-	          if (s3 === peg$FAILED) {
-	            s3 = peg$c1;
-	          }
-	          if (s3 !== peg$FAILED) {
-	            if (input.charCodeAt(peg$currPos) === 93) {
-	              s4 = peg$c16;
-	              peg$currPos++;
-	            } else {
-	              s4 = peg$FAILED;
-	              if (peg$silentFails === 0) {
-	                peg$fail(peg$c17);
-	              }
-	            }
-	            if (s4 !== peg$FAILED) {
-	              peg$reportedPos = s0;
-	              s1 = peg$c18(s2, s3);
-	              s0 = s1;
-	            } else {
-	              peg$currPos = s0;
-	              s0 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseconnection() {
-	      var s0, s1, s2, s3;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 45) {
-	        s1 = peg$c19;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c20);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parsepredicateList();
-	        if (s2 !== peg$FAILED) {
-	          if (input.charCodeAt(peg$currPos) === 45) {
-	            s3 = peg$c19;
-	            peg$currPos++;
-	          } else {
-	            s3 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c20);
-	            }
-	          }
-	          if (s3 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c21(s2);
-	            s0 = s1;
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$currPos;
-	        if (input.charCodeAt(peg$currPos) === 45) {
-	          s1 = peg$c19;
-	          peg$currPos++;
-	        } else {
-	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c20);
-	          }
-	        }
-	        if (s1 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c22();
-	        }
-	        s0 = s1;
-	        if (s0 === peg$FAILED) {
-	          s0 = peg$currPos;
-	          s1 = peg$c23;
-	          if (s1 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c24();
-	          }
-	          s0 = s1;
-	        }
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepredicateList() {
-	      var s0;
-	
-	      s0 = peg$parsesimplePredicate();
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$parsepredicateListWithParens();
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsesimplePredicate() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parsenumber();
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c25(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepredicateListWithParens() {
-	      var s0, s1, s2, s3, s4, s5, s6;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 40) {
-	        s1 = peg$c26;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c27);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parsepredicate();
-	        if (s2 !== peg$FAILED) {
-	          s3 = [];
-	          s4 = peg$currPos;
-	          if (input.charCodeAt(peg$currPos) === 44) {
-	            s5 = peg$c28;
-	            peg$currPos++;
-	          } else {
-	            s5 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c29);
-	            }
-	          }
-	          if (s5 !== peg$FAILED) {
-	            s6 = peg$parsepredicate();
-	            if (s6 !== peg$FAILED) {
-	              s5 = [s5, s6];
-	              s4 = s5;
-	            } else {
-	              peg$currPos = s4;
-	              s4 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s4;
-	            s4 = peg$c0;
-	          }
-	          while (s4 !== peg$FAILED) {
-	            s3.push(s4);
-	            s4 = peg$currPos;
-	            if (input.charCodeAt(peg$currPos) === 44) {
-	              s5 = peg$c28;
-	              peg$currPos++;
-	            } else {
-	              s5 = peg$FAILED;
-	              if (peg$silentFails === 0) {
-	                peg$fail(peg$c29);
-	              }
-	            }
-	            if (s5 !== peg$FAILED) {
-	              s6 = peg$parsepredicate();
-	              if (s6 !== peg$FAILED) {
-	                s5 = [s5, s6];
-	                s4 = s5;
-	              } else {
-	                peg$currPos = s4;
-	                s4 = peg$c0;
-	              }
-	            } else {
-	              peg$currPos = s4;
-	              s4 = peg$c0;
-	            }
-	          }
-	          if (s3 !== peg$FAILED) {
-	            if (input.charCodeAt(peg$currPos) === 41) {
-	              s4 = peg$c30;
-	              peg$currPos++;
-	            } else {
-	              s4 = peg$FAILED;
-	              if (peg$silentFails === 0) {
-	                peg$fail(peg$c31);
-	              }
-	            }
-	            if (s4 !== peg$FAILED) {
-	              peg$reportedPos = s0;
-	              s1 = peg$c32(s2, s3);
-	              s0 = s1;
-	            } else {
-	              peg$currPos = s0;
-	              s0 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepredicate() {
-	      var s0, s1, s2, s3, s4, s5;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parserelation();
-	      if (s1 === peg$FAILED) {
-	        s1 = peg$c1;
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parseobjectOfPredicate();
-	        if (s2 !== peg$FAILED) {
-	          s3 = peg$currPos;
-	          if (input.charCodeAt(peg$currPos) === 64) {
-	            s4 = peg$c33;
-	            peg$currPos++;
-	          } else {
-	            s4 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c34);
-	            }
-	          }
-	          if (s4 !== peg$FAILED) {
-	            s5 = peg$parsepriority();
-	            if (s5 !== peg$FAILED) {
-	              s4 = [s4, s5];
-	              s3 = s4;
-	            } else {
-	              peg$currPos = s3;
-	              s3 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s3;
-	            s3 = peg$c0;
-	          }
-	          if (s3 === peg$FAILED) {
-	            s3 = peg$c1;
-	          }
-	          if (s3 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c35(s1, s2, s3);
-	            s0 = s1;
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parserelation() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      if (input.substr(peg$currPos, 2) === peg$c36) {
-	        s1 = peg$c36;
-	        peg$currPos += 2;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c37);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c38();
-	      }
-	      s0 = s1;
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$currPos;
-	        if (input.substr(peg$currPos, 2) === peg$c39) {
-	          s1 = peg$c39;
-	          peg$currPos += 2;
-	        } else {
-	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c40);
-	          }
-	        }
-	        if (s1 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c41();
-	        }
-	        s0 = s1;
-	        if (s0 === peg$FAILED) {
-	          s0 = peg$currPos;
-	          if (input.substr(peg$currPos, 2) === peg$c42) {
-	            s1 = peg$c42;
-	            peg$currPos += 2;
-	          } else {
-	            s1 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c43);
-	            }
-	          }
-	          if (s1 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c44();
-	          }
-	          s0 = s1;
-	        }
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseobjectOfPredicate() {
-	      var s0;
-	
-	      s0 = peg$parseconstant();
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$parseviewName();
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepriority() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parsenumber();
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c45(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parseconstant() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parsenumber();
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c46(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parseviewName() {
-	      var s0, s1, s2, s3;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$currPos;
-	      s2 = [];
-	      if (peg$c47.test(input.charAt(peg$currPos))) {
-	        s3 = input.charAt(peg$currPos);
-	        peg$currPos++;
-	      } else {
-	        s3 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c48);
-	        }
-	      }
-	      if (s3 !== peg$FAILED) {
-	        while (s3 !== peg$FAILED) {
-	          s2.push(s3);
-	          if (peg$c47.test(input.charAt(peg$currPos))) {
-	            s3 = input.charAt(peg$currPos);
-	            peg$currPos++;
-	          } else {
-	            s3 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c48);
-	            }
-	          }
-	        }
-	      } else {
-	        s2 = peg$c0;
-	      }
-	      if (s2 !== peg$FAILED) {
-	        s2 = input.substring(s1, peg$currPos);
-	      }
-	      s1 = s2;
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c49(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parsenumber() {
-	      var s0, s1, s2;
-	
-	      s0 = peg$currPos;
-	      s1 = [];
-	      if (peg$c50.test(input.charAt(peg$currPos))) {
-	        s2 = input.charAt(peg$currPos);
-	        peg$currPos++;
-	      } else {
-	        s2 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c51);
-	        }
-	      }
-	      if (s2 !== peg$FAILED) {
-	        while (s2 !== peg$FAILED) {
-	          s1.push(s2);
-	          if (peg$c50.test(input.charAt(peg$currPos))) {
-	            s2 = input.charAt(peg$currPos);
-	            peg$currPos++;
-	          } else {
-	            s2 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c51);
-	            }
-	          }
-	        }
-	      } else {
-	        s1 = peg$c0;
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c52(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function extend(dst) {
-	      for (var i = 1; i < arguments.length; i++) {
-	        for (var k in arguments[i]) {
-	          dst[k] = arguments[i][k];
-	        }
-	      }
-	      return dst;
-	    }
-	
-	    peg$result = peg$startRuleFunction();
-	
-	    if (peg$result !== peg$FAILED && peg$currPos === input.length) {
-	      return peg$result;
-	    } else {
-	      if (peg$result !== peg$FAILED && peg$currPos < input.length) {
-	        peg$fail({ type: "end", description: "end of input" });
-	      }
-	
-	      throw peg$buildException(null, peg$maxFailExpected, peg$maxFailPos);
-	    }
-	  }
-	
-	  return {
-	    SyntaxError: SyntaxError,
-	    parse: parse
-	  };
-	})();
-	
-	},{}],8:[function(require,module,exports){
-	"use strict";
-	
-	module.exports = (function () {
-	  /*
-	   * Generated by PEG.js 0.8.0.
-	   *
-	   * http://pegjs.majda.cz/
-	   */
-	
-	  function peg$subclass(child, parent) {
-	    function ctor() {
-	      this.constructor = child;
-	    }
-	    ctor.prototype = parent.prototype;
-	    child.prototype = new ctor();
-	  }
-	
-	  function SyntaxError(message, expected, found, offset, line, column) {
-	    this.message = message;
-	    this.expected = expected;
-	    this.found = found;
-	    this.offset = offset;
-	    this.line = line;
-	    this.column = column;
-	
-	    this.name = "SyntaxError";
-	  }
-	
-	  peg$subclass(SyntaxError, Error);
-	
-	  function parse(input) {
-	    var options = arguments.length > 1 ? arguments[1] : {},
-	        peg$FAILED = {},
-	        peg$startRuleFunctions = { visualFormatString: peg$parsevisualFormatString },
-	        peg$startRuleFunction = peg$parsevisualFormatString,
-	        peg$c0 = peg$FAILED,
-	        peg$c1 = null,
-	        peg$c2 = ":",
-	        peg$c3 = { type: "literal", value: ":", description: "\":\"" },
-	        peg$c4 = [],
-	        peg$c5 = function peg$c5(o, superto, view, views, tosuper) {
-	      return {
-	        orientation: o ? o[0] : "horizontal",
-	        cascade: (superto || []).concat([view], [].concat.apply([], views), tosuper || [])
-	      };
-	    },
-	        peg$c6 = "H",
-	        peg$c7 = { type: "literal", value: "H", description: "\"H\"" },
-	        peg$c8 = "V",
-	        peg$c9 = { type: "literal", value: "V", description: "\"V\"" },
-	        peg$c10 = function peg$c10(orient) {
-	      return orient == "H" ? "horizontal" : "vertical";
-	    },
-	        peg$c11 = "|",
-	        peg$c12 = { type: "literal", value: "|", description: "\"|\"" },
-	        peg$c13 = function peg$c13() {
-	      return { view: null };
-	    },
-	        peg$c14 = "[",
-	        peg$c15 = { type: "literal", value: "[", description: "\"[\"" },
-	        peg$c16 = "]",
-	        peg$c17 = { type: "literal", value: "]", description: "\"]\"" },
-	        peg$c18 = function peg$c18(view, predicates) {
-	      return extend(view, predicates ? { constraints: predicates } : {});
-	    },
-	        peg$c19 = "-",
-	        peg$c20 = { type: "literal", value: "-", description: "\"-\"" },
-	        peg$c21 = function peg$c21(predicateList) {
-	      return predicateList;
-	    },
-	        peg$c22 = function peg$c22() {
-	      return [{ relation: "equ", constant: "default", $parserOffset: offset() }];
-	    },
-	        peg$c23 = "",
-	        peg$c24 = function peg$c24() {
-	      return [{ relation: "equ", constant: 0, $parserOffset: offset() }];
-	    },
-	        peg$c25 = function peg$c25(n) {
-	      return [{ relation: "equ", constant: n, $parserOffset: offset() }];
-	    },
-	        peg$c26 = "(",
-	        peg$c27 = { type: "literal", value: "(", description: "\"(\"" },
-	        peg$c28 = ",",
-	        peg$c29 = { type: "literal", value: ",", description: "\",\"" },
-	        peg$c30 = ")",
-	        peg$c31 = { type: "literal", value: ")", description: "\")\"" },
-	        peg$c32 = function peg$c32(p, ps) {
-	      return [p].concat(ps.map(function (p) {
-	        return p[1];
-	      }));
-	    },
-	        peg$c33 = "@",
-	        peg$c34 = { type: "literal", value: "@", description: "\"@\"" },
-	        peg$c35 = function peg$c35(r, o, p) {
-	      return extend({ relation: "equ" }, r || {}, o, p ? p[1] : {});
-	    },
-	        peg$c36 = "==",
-	        peg$c37 = { type: "literal", value: "==", description: "\"==\"" },
-	        peg$c38 = function peg$c38() {
-	      return { relation: "equ", $parserOffset: offset() };
-	    },
-	        peg$c39 = "<=",
-	        peg$c40 = { type: "literal", value: "<=", description: "\"<=\"" },
-	        peg$c41 = function peg$c41() {
-	      return { relation: "leq", $parserOffset: offset() };
-	    },
-	        peg$c42 = ">=",
-	        peg$c43 = { type: "literal", value: ">=", description: "\">=\"" },
-	        peg$c44 = function peg$c44() {
-	      return { relation: "geq", $parserOffset: offset() };
-	    },
-	        peg$c45 = function peg$c45(n) {
-	      return { priority: n };
-	    },
-	        peg$c46 = function peg$c46(n) {
-	      return { constant: n };
-	    },
-	        peg$c47 = "%",
-	        peg$c48 = { type: "literal", value: "%", description: "\"%\"" },
-	        peg$c49 = function peg$c49(n) {
-	      return { view: null, multiplier: n / 100 };
-	    },
-	        peg$c50 = function peg$c50(vn, m) {
-	      return { view: vn.view, multiplier: m ? m : 1 };
-	    },
-	        peg$c51 = "/",
-	        peg$c52 = { type: "literal", value: "/", description: "\"/\"" },
-	        peg$c53 = function peg$c53(n) {
-	      return 1 / n;
-	    },
-	        peg$c54 = "*",
-	        peg$c55 = { type: "literal", value: "*", description: "\"*\"" },
-	        peg$c56 = function peg$c56(n) {
-	      return n;
-	    },
-	        peg$c57 = /^[a-zA-Z0-9\-_]/,
-	        peg$c58 = { type: "class", value: "[a-zA-Z0-9\\-_]", description: "[a-zA-Z0-9\\-_]" },
-	        peg$c59 = function peg$c59(v) {
-	      return { view: v };
-	    },
-	        peg$c60 = /^[0-9]/,
-	        peg$c61 = { type: "class", value: "[0-9]", description: "[0-9]" },
-	        peg$c62 = function peg$c62(digits) {
-	      return parseInt(digits.join(""), 10);
-	    },
-	        peg$currPos = 0,
-	        peg$reportedPos = 0,
-	        peg$cachedPos = 0,
-	        peg$cachedPosDetails = { line: 1, column: 1, seenCR: false },
-	        peg$maxFailPos = 0,
-	        peg$maxFailExpected = [],
-	        peg$silentFails = 0,
-	        peg$result;
-	
-	    if ("startRule" in options) {
-	      if (!(options.startRule in peg$startRuleFunctions)) {
-	        throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
-	      }
-	
-	      peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
-	    }
-	
-	    function text() {
-	      return input.substring(peg$reportedPos, peg$currPos);
-	    }
-	
-	    function offset() {
-	      return peg$reportedPos;
-	    }
-	
-	    function line() {
-	      return peg$computePosDetails(peg$reportedPos).line;
-	    }
-	
-	    function column() {
-	      return peg$computePosDetails(peg$reportedPos).column;
-	    }
-	
-	    function expected(description) {
-	      throw peg$buildException(null, [{ type: "other", description: description }], peg$reportedPos);
-	    }
-	
-	    function error(message) {
-	      throw peg$buildException(message, null, peg$reportedPos);
-	    }
-	
-	    function peg$computePosDetails(pos) {
-	      function advance(details, startPos, endPos) {
-	        var p, ch;
-	
-	        for (p = startPos; p < endPos; p++) {
-	          ch = input.charAt(p);
-	          if (ch === "\n") {
-	            if (!details.seenCR) {
-	              details.line++;
-	            }
-	            details.column = 1;
-	            details.seenCR = false;
-	          } else if (ch === "\r" || ch === "\u2028" || ch === "\u2029") {
-	            details.line++;
-	            details.column = 1;
-	            details.seenCR = true;
-	          } else {
-	            details.column++;
-	            details.seenCR = false;
-	          }
-	        }
-	      }
-	
-	      if (peg$cachedPos !== pos) {
-	        if (peg$cachedPos > pos) {
-	          peg$cachedPos = 0;
-	          peg$cachedPosDetails = { line: 1, column: 1, seenCR: false };
-	        }
-	        advance(peg$cachedPosDetails, peg$cachedPos, pos);
-	        peg$cachedPos = pos;
-	      }
-	
-	      return peg$cachedPosDetails;
-	    }
-	
-	    function peg$fail(expected) {
-	      if (peg$currPos < peg$maxFailPos) {
-	        return;
-	      }
-	
-	      if (peg$currPos > peg$maxFailPos) {
-	        peg$maxFailPos = peg$currPos;
-	        peg$maxFailExpected = [];
-	      }
-	
-	      peg$maxFailExpected.push(expected);
-	    }
-	
-	    function peg$buildException(message, expected, pos) {
-	      function cleanupExpected(expected) {
-	        var i = 1;
-	
-	        expected.sort(function (a, b) {
-	          if (a.description < b.description) {
-	            return -1;
-	          } else if (a.description > b.description) {
-	            return 1;
-	          } else {
-	            return 0;
-	          }
-	        });
-	
-	        while (i < expected.length) {
-	          if (expected[i - 1] === expected[i]) {
-	            expected.splice(i, 1);
-	          } else {
-	            i++;
-	          }
-	        }
-	      }
-	
-	      function buildMessage(expected, found) {
-	        function stringEscape(s) {
-	          function hex(ch) {
-	            return ch.charCodeAt(0).toString(16).toUpperCase();
-	          }
-	
-	          return s.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\x08/g, "\\b").replace(/\t/g, "\\t").replace(/\n/g, "\\n").replace(/\f/g, "\\f").replace(/\r/g, "\\r").replace(/[\x00-\x07\x0B\x0E\x0F]/g, function (ch) {
-	            return "\\x0" + hex(ch);
-	          }).replace(/[\x10-\x1F\x80-\xFF]/g, function (ch) {
-	            return "\\x" + hex(ch);
-	          }).replace(/[\u0180-\u0FFF]/g, function (ch) {
-	            return "\\u0" + hex(ch);
-	          }).replace(/[\u1080-\uFFFF]/g, function (ch) {
-	            return "\\u" + hex(ch);
-	          });
-	        }
-	
-	        var expectedDescs = new Array(expected.length),
-	            expectedDesc,
-	            foundDesc,
-	            i;
-	
-	        for (i = 0; i < expected.length; i++) {
-	          expectedDescs[i] = expected[i].description;
-	        }
-	
-	        expectedDesc = expected.length > 1 ? expectedDescs.slice(0, -1).join(", ") + " or " + expectedDescs[expected.length - 1] : expectedDescs[0];
-	
-	        foundDesc = found ? "\"" + stringEscape(found) + "\"" : "end of input";
-	
-	        return "Expected " + expectedDesc + " but " + foundDesc + " found.";
-	      }
-	
-	      var posDetails = peg$computePosDetails(pos),
-	          found = pos < input.length ? input.charAt(pos) : null;
-	
-	      if (expected !== null) {
-	        cleanupExpected(expected);
-	      }
-	
-	      return new SyntaxError(message !== null ? message : buildMessage(expected, found), expected, found, pos, posDetails.line, posDetails.column);
-	    }
-	
-	    function peg$parsevisualFormatString() {
-	      var s0, s1, s2, s3, s4, s5, s6, s7;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$currPos;
-	      s2 = peg$parseorientation();
-	      if (s2 !== peg$FAILED) {
-	        if (input.charCodeAt(peg$currPos) === 58) {
-	          s3 = peg$c2;
-	          peg$currPos++;
-	        } else {
-	          s3 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c3);
-	          }
-	        }
-	        if (s3 !== peg$FAILED) {
-	          s2 = [s2, s3];
-	          s1 = s2;
-	        } else {
-	          peg$currPos = s1;
-	          s1 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s1;
-	        s1 = peg$c0;
-	      }
-	      if (s1 === peg$FAILED) {
-	        s1 = peg$c1;
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$currPos;
-	        s3 = peg$parsesuperview();
-	        if (s3 !== peg$FAILED) {
-	          s4 = peg$parseconnection();
-	          if (s4 !== peg$FAILED) {
-	            s3 = [s3, s4];
-	            s2 = s3;
-	          } else {
-	            peg$currPos = s2;
-	            s2 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s2;
-	          s2 = peg$c0;
-	        }
-	        if (s2 === peg$FAILED) {
-	          s2 = peg$c1;
-	        }
-	        if (s2 !== peg$FAILED) {
-	          s3 = peg$parseview();
-	          if (s3 !== peg$FAILED) {
-	            s4 = [];
-	            s5 = peg$currPos;
-	            s6 = peg$parseconnection();
-	            if (s6 !== peg$FAILED) {
-	              s7 = peg$parseview();
-	              if (s7 !== peg$FAILED) {
-	                s6 = [s6, s7];
-	                s5 = s6;
-	              } else {
-	                peg$currPos = s5;
-	                s5 = peg$c0;
-	              }
-	            } else {
-	              peg$currPos = s5;
-	              s5 = peg$c0;
-	            }
-	            while (s5 !== peg$FAILED) {
-	              s4.push(s5);
-	              s5 = peg$currPos;
-	              s6 = peg$parseconnection();
-	              if (s6 !== peg$FAILED) {
-	                s7 = peg$parseview();
-	                if (s7 !== peg$FAILED) {
-	                  s6 = [s6, s7];
-	                  s5 = s6;
-	                } else {
-	                  peg$currPos = s5;
-	                  s5 = peg$c0;
-	                }
-	              } else {
-	                peg$currPos = s5;
-	                s5 = peg$c0;
-	              }
-	            }
-	            if (s4 !== peg$FAILED) {
-	              s5 = peg$currPos;
-	              s6 = peg$parseconnection();
-	              if (s6 !== peg$FAILED) {
-	                s7 = peg$parsesuperview();
-	                if (s7 !== peg$FAILED) {
-	                  s6 = [s6, s7];
-	                  s5 = s6;
-	                } else {
-	                  peg$currPos = s5;
-	                  s5 = peg$c0;
-	                }
-	              } else {
-	                peg$currPos = s5;
-	                s5 = peg$c0;
-	              }
-	              if (s5 === peg$FAILED) {
-	                s5 = peg$c1;
-	              }
-	              if (s5 !== peg$FAILED) {
-	                peg$reportedPos = s0;
-	                s1 = peg$c5(s1, s2, s3, s4, s5);
-	                s0 = s1;
-	              } else {
-	                peg$currPos = s0;
-	                s0 = peg$c0;
-	              }
-	            } else {
-	              peg$currPos = s0;
-	              s0 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseorientation() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 72) {
-	        s1 = peg$c6;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c7);
-	        }
-	      }
-	      if (s1 === peg$FAILED) {
-	        if (input.charCodeAt(peg$currPos) === 86) {
-	          s1 = peg$c8;
-	          peg$currPos++;
-	        } else {
-	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c9);
-	          }
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c10(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parsesuperview() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 124) {
-	        s1 = peg$c11;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c12);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c13();
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parseview() {
-	      var s0, s1, s2, s3, s4;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 91) {
-	        s1 = peg$c14;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c15);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parseviewName();
-	        if (s2 !== peg$FAILED) {
-	          s3 = peg$parsepredicateListWithParens();
-	          if (s3 === peg$FAILED) {
-	            s3 = peg$c1;
-	          }
-	          if (s3 !== peg$FAILED) {
-	            if (input.charCodeAt(peg$currPos) === 93) {
-	              s4 = peg$c16;
-	              peg$currPos++;
-	            } else {
-	              s4 = peg$FAILED;
-	              if (peg$silentFails === 0) {
-	                peg$fail(peg$c17);
-	              }
-	            }
-	            if (s4 !== peg$FAILED) {
-	              peg$reportedPos = s0;
-	              s1 = peg$c18(s2, s3);
-	              s0 = s1;
-	            } else {
-	              peg$currPos = s0;
-	              s0 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseconnection() {
-	      var s0, s1, s2, s3;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 45) {
-	        s1 = peg$c19;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c20);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parsepredicateList();
-	        if (s2 !== peg$FAILED) {
-	          if (input.charCodeAt(peg$currPos) === 45) {
-	            s3 = peg$c19;
-	            peg$currPos++;
-	          } else {
-	            s3 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c20);
-	            }
-	          }
-	          if (s3 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c21(s2);
-	            s0 = s1;
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$currPos;
-	        if (input.charCodeAt(peg$currPos) === 45) {
-	          s1 = peg$c19;
-	          peg$currPos++;
-	        } else {
-	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c20);
-	          }
-	        }
-	        if (s1 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c22();
-	        }
-	        s0 = s1;
-	        if (s0 === peg$FAILED) {
-	          s0 = peg$currPos;
-	          s1 = peg$c23;
-	          if (s1 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c24();
-	          }
-	          s0 = s1;
-	        }
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepredicateList() {
-	      var s0;
-	
-	      s0 = peg$parsesimplePredicate();
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$parsepredicateListWithParens();
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsesimplePredicate() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parsenumber();
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c25(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepredicateListWithParens() {
-	      var s0, s1, s2, s3, s4, s5, s6;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 40) {
-	        s1 = peg$c26;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c27);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parsepredicate();
-	        if (s2 !== peg$FAILED) {
-	          s3 = [];
-	          s4 = peg$currPos;
-	          if (input.charCodeAt(peg$currPos) === 44) {
-	            s5 = peg$c28;
-	            peg$currPos++;
-	          } else {
-	            s5 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c29);
-	            }
-	          }
-	          if (s5 !== peg$FAILED) {
-	            s6 = peg$parsepredicate();
-	            if (s6 !== peg$FAILED) {
-	              s5 = [s5, s6];
-	              s4 = s5;
-	            } else {
-	              peg$currPos = s4;
-	              s4 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s4;
-	            s4 = peg$c0;
-	          }
-	          while (s4 !== peg$FAILED) {
-	            s3.push(s4);
-	            s4 = peg$currPos;
-	            if (input.charCodeAt(peg$currPos) === 44) {
-	              s5 = peg$c28;
-	              peg$currPos++;
-	            } else {
-	              s5 = peg$FAILED;
-	              if (peg$silentFails === 0) {
-	                peg$fail(peg$c29);
-	              }
-	            }
-	            if (s5 !== peg$FAILED) {
-	              s6 = peg$parsepredicate();
-	              if (s6 !== peg$FAILED) {
-	                s5 = [s5, s6];
-	                s4 = s5;
-	              } else {
-	                peg$currPos = s4;
-	                s4 = peg$c0;
-	              }
-	            } else {
-	              peg$currPos = s4;
-	              s4 = peg$c0;
-	            }
-	          }
-	          if (s3 !== peg$FAILED) {
-	            if (input.charCodeAt(peg$currPos) === 41) {
-	              s4 = peg$c30;
-	              peg$currPos++;
-	            } else {
-	              s4 = peg$FAILED;
-	              if (peg$silentFails === 0) {
-	                peg$fail(peg$c31);
-	              }
-	            }
-	            if (s4 !== peg$FAILED) {
-	              peg$reportedPos = s0;
-	              s1 = peg$c32(s2, s3);
-	              s0 = s1;
-	            } else {
-	              peg$currPos = s0;
-	              s0 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepredicate() {
-	      var s0, s1, s2, s3, s4, s5;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parserelation();
-	      if (s1 === peg$FAILED) {
-	        s1 = peg$c1;
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parseobjectOfPredicate();
-	        if (s2 !== peg$FAILED) {
-	          s3 = peg$currPos;
-	          if (input.charCodeAt(peg$currPos) === 64) {
-	            s4 = peg$c33;
-	            peg$currPos++;
-	          } else {
-	            s4 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c34);
-	            }
-	          }
-	          if (s4 !== peg$FAILED) {
-	            s5 = peg$parsepriority();
-	            if (s5 !== peg$FAILED) {
-	              s4 = [s4, s5];
-	              s3 = s4;
-	            } else {
-	              peg$currPos = s3;
-	              s3 = peg$c0;
-	            }
-	          } else {
-	            peg$currPos = s3;
-	            s3 = peg$c0;
-	          }
-	          if (s3 === peg$FAILED) {
-	            s3 = peg$c1;
-	          }
-	          if (s3 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c35(s1, s2, s3);
-	            s0 = s1;
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parserelation() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      if (input.substr(peg$currPos, 2) === peg$c36) {
-	        s1 = peg$c36;
-	        peg$currPos += 2;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c37);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c38();
-	      }
-	      s0 = s1;
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$currPos;
-	        if (input.substr(peg$currPos, 2) === peg$c39) {
-	          s1 = peg$c39;
-	          peg$currPos += 2;
-	        } else {
-	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c40);
-	          }
-	        }
-	        if (s1 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c41();
-	        }
-	        s0 = s1;
-	        if (s0 === peg$FAILED) {
-	          s0 = peg$currPos;
-	          if (input.substr(peg$currPos, 2) === peg$c42) {
-	            s1 = peg$c42;
-	            peg$currPos += 2;
-	          } else {
-	            s1 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c43);
-	            }
-	          }
-	          if (s1 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c44();
-	          }
-	          s0 = s1;
-	        }
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseobjectOfPredicate() {
-	      var s0;
-	
-	      s0 = peg$parsepercentage();
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$parseconstant();
-	        if (s0 === peg$FAILED) {
-	          s0 = peg$parseviewPredicate();
-	        }
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepriority() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parsenumber();
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c45(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parseconstant() {
-	      var s0, s1;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parsenumber();
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c46(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parsepercentage() {
-	      var s0, s1, s2;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parsenumber();
-	      if (s1 !== peg$FAILED) {
-	        if (input.charCodeAt(peg$currPos) === 37) {
-	          s2 = peg$c47;
-	          peg$currPos++;
-	        } else {
-	          s2 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c48);
-	          }
-	        }
-	        if (s2 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c49(s1);
-	          s0 = s1;
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseviewPredicate() {
-	      var s0, s1, s2;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$parseviewName();
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parsemultiplier();
-	        if (s2 === peg$FAILED) {
-	          s2 = peg$c1;
-	        }
-	        if (s2 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c50(s1, s2);
-	          s0 = s1;
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parsemultiplier() {
-	      var s0, s1, s2;
-	
-	      s0 = peg$currPos;
-	      if (input.charCodeAt(peg$currPos) === 47) {
-	        s1 = peg$c51;
-	        peg$currPos++;
-	      } else {
-	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c52);
-	        }
-	      }
-	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parsenumber();
-	        if (s2 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c53(s2);
-	          s0 = s1;
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      } else {
-	        peg$currPos = s0;
-	        s0 = peg$c0;
-	      }
-	      if (s0 === peg$FAILED) {
-	        s0 = peg$currPos;
-	        if (input.charCodeAt(peg$currPos) === 42) {
-	          s1 = peg$c54;
-	          peg$currPos++;
-	        } else {
-	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) {
-	            peg$fail(peg$c55);
-	          }
-	        }
-	        if (s1 !== peg$FAILED) {
-	          s2 = peg$parsenumber();
-	          if (s2 !== peg$FAILED) {
-	            peg$reportedPos = s0;
-	            s1 = peg$c56(s2);
-	            s0 = s1;
-	          } else {
-	            peg$currPos = s0;
-	            s0 = peg$c0;
-	          }
-	        } else {
-	          peg$currPos = s0;
-	          s0 = peg$c0;
-	        }
-	      }
-	
-	      return s0;
-	    }
-	
-	    function peg$parseviewName() {
-	      var s0, s1, s2, s3;
-	
-	      s0 = peg$currPos;
-	      s1 = peg$currPos;
-	      s2 = [];
-	      if (peg$c57.test(input.charAt(peg$currPos))) {
-	        s3 = input.charAt(peg$currPos);
-	        peg$currPos++;
-	      } else {
-	        s3 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c58);
-	        }
-	      }
-	      if (s3 !== peg$FAILED) {
-	        while (s3 !== peg$FAILED) {
-	          s2.push(s3);
-	          if (peg$c57.test(input.charAt(peg$currPos))) {
-	            s3 = input.charAt(peg$currPos);
-	            peg$currPos++;
-	          } else {
-	            s3 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c58);
-	            }
-	          }
-	        }
-	      } else {
-	        s2 = peg$c0;
-	      }
-	      if (s2 !== peg$FAILED) {
-	        s2 = input.substring(s1, peg$currPos);
-	      }
-	      s1 = s2;
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c59(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function peg$parsenumber() {
-	      var s0, s1, s2;
-	
-	      s0 = peg$currPos;
-	      s1 = [];
-	      if (peg$c60.test(input.charAt(peg$currPos))) {
-	        s2 = input.charAt(peg$currPos);
-	        peg$currPos++;
-	      } else {
-	        s2 = peg$FAILED;
-	        if (peg$silentFails === 0) {
-	          peg$fail(peg$c61);
-	        }
-	      }
-	      if (s2 !== peg$FAILED) {
-	        while (s2 !== peg$FAILED) {
-	          s1.push(s2);
-	          if (peg$c60.test(input.charAt(peg$currPos))) {
-	            s2 = input.charAt(peg$currPos);
-	            peg$currPos++;
-	          } else {
-	            s2 = peg$FAILED;
-	            if (peg$silentFails === 0) {
-	              peg$fail(peg$c61);
-	            }
-	          }
-	        }
-	      } else {
-	        s1 = peg$c0;
-	      }
-	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c62(s1);
-	      }
-	      s0 = s1;
-	
-	      return s0;
-	    }
-	
-	    function extend(dst) {
-	      for (var i = 1; i < arguments.length; i++) {
-	        for (var k in arguments[i]) {
-	          dst[k] = arguments[i][k];
-	        }
-	      }
-	      return dst;
-	    }
-	
-	    peg$result = peg$startRuleFunction();
-	
-	    if (peg$result !== peg$FAILED && peg$currPos === input.length) {
-	      return peg$result;
-	    } else {
-	      if (peg$result !== peg$FAILED && peg$currPos < input.length) {
-	        peg$fail({ type: "end", description: "end of input" });
-	      }
-	
-	      throw peg$buildException(null, peg$maxFailExpected, peg$maxFailPos);
-	    }
-	  }
-	
-	  return {
-	    SyntaxError: SyntaxError,
-	    parse: parse
-	  };
-	})();
-	
-	},{}]},{},[2])(2)
-	});
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 48 */
-/*!***************************!*\
-  !*** ./views/VflView.es6 ***!
-  \***************************/
+/* 52 */
+/*!***********************************************!*\
+  !*** ../~/autolayout.js/~/cassowary/bin/c.js ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(module) {/**
+	 * Parts Copyright (C) 2011-2012, Alex Russell (slightlyoff@chromium.org)
+	 * Parts Copyright (C) Copyright (C) 1998-2000 Greg J. Badros
+	 *
+	 * Use of this source code is governed by the LGPL, which can be found in the
+	 * COPYING.LGPL file.
+	 *
+	 * This is a compiled version of Cassowary/JS. For source versions or to
+	 * contribute, see the github project:
+	 *
+	 *  https://github.com/slightlyoff/cassowary-js-refactor
+	 *
+	 */
+	
+	(function() {
+	(function(a){"use strict";try{(function(){}).bind(a)}catch(b){Object.defineProperty(Function.prototype,"bind",{value:function(a){var b=this;return function(){return b.apply(a,arguments)}},enumerable:!1,configurable:!0,writable:!0})}var c=a.HTMLElement!==void 0,d=function(a){for(var b=null;a&&a!=Object.prototype;){if(a.tagName){b=a.tagName;break}a=a.prototype}return b||"div"},e=1e-8,f={},g=function(a,b){if(a&&b){if("function"==typeof a[b])return a[b];var c=a.prototype;if(c&&"function"==typeof c[b])return c[b];if(c!==Object.prototype&&c!==Function.prototype)return"function"==typeof a.__super__?g(a.__super__,b):void 0}},h=a.c={debug:!1,trace:!1,verbose:!1,traceAdded:!1,GC:!1,GEQ:1,LEQ:2,inherit:function(b){var e=null,g=null;b["extends"]&&(g=b["extends"],delete b["extends"]),b.initialize&&(e=b.initialize,delete b.initialize);var h=e||function(){};Object.defineProperty(h,"__super__",{value:g?g:Object,enumerable:!1,configurable:!0,writable:!1}),b._t&&(f[b._t]=h);var i=h.prototype=Object.create(g?g.prototype:Object.prototype);if(this.extend(i,b),c&&g&&g.prototype instanceof a.HTMLElement){var j=h,k=d(i),l=function(a){return a.__proto__=i,j.apply(a,arguments),i.created&&a.created(),i.decorate&&a.decorate(),a};this.extend(i,{upgrade:l}),h=function(){return l(a.document.createElement(k))},h.prototype=i,this.extend(h,{ctor:j})}return h},extend:function(a,b){return this.own(b,function(c){var d=Object.getOwnPropertyDescriptor(b,c);try{"function"==typeof d.get||"function"==typeof d.set?Object.defineProperty(a,c,d):"function"==typeof d.value||"_"===c.charAt(0)?(d.writable=!0,d.configurable=!0,d.enumerable=!1,Object.defineProperty(a,c,d)):a[c]=b[c]}catch(e){}}),a},own:function(b,c,d){return Object.getOwnPropertyNames(b).forEach(c,d||a),b},traceprint:function(a){h.verbose&&console.log(a)},fnenterprint:function(a){console.log("* "+a)},fnexitprint:function(a){console.log("- "+a)},assert:function(a,b){if(!a)throw new h.InternalError("Assertion failed: "+b)},plus:function(a,b){return a instanceof h.Expression||(a=new h.Expression(a)),b instanceof h.Expression||(b=new h.Expression(b)),a.plus(b)},minus:function(a,b){return a instanceof h.Expression||(a=new h.Expression(a)),b instanceof h.Expression||(b=new h.Expression(b)),a.minus(b)},times:function(a,b){return("number"==typeof a||a instanceof h.Variable)&&(a=new h.Expression(a)),("number"==typeof b||b instanceof h.Variable)&&(b=new h.Expression(b)),a.times(b)},divide:function(a,b){return("number"==typeof a||a instanceof h.Variable)&&(a=new h.Expression(a)),("number"==typeof b||b instanceof h.Variable)&&(b=new h.Expression(b)),a.divide(b)},approx:function(a,b){if(a===b)return!0;var c,d;return c=a instanceof h.Variable?a.value:a,d=b instanceof h.Variable?b.value:b,0==c?e>Math.abs(d):0==d?e>Math.abs(c):Math.abs(c-d)<Math.abs(c)*e},_inc:function(a){return function(){return a++}}(0),parseJSON:function(a){return JSON.parse(a,function(a,b){if("object"!=typeof b||"string"!=typeof b._t)return b;var c=b._t,d=f[c];if(c&&d){var e=g(d,"fromJSON");if(e)return e(b,d)}return b})}};"function"=="function"&&"undefined"!=typeof module&&"undefined"==typeof load&&(a.exports=h)})(this),function(a){"use strict";var b=function(a){var b=a.hashCode?a.hashCode:""+a;return b},c=function(a,b){Object.keys(a).forEach(function(c){b[c]=a[c]})},d={};a.HashTable=a.inherit({initialize:function(){this.size=0,this._store={},this._keyStrMap={},this._deleted=0},set:function(a,c){var d=b(a);this._store.hasOwnProperty(d)||this.size++,this._store[d]=c,this._keyStrMap[d]=a},get:function(a){if(!this.size)return null;a=b(a);var c=this._store[a];return c!==void 0?this._store[a]:null},clear:function(){this.size=0,this._store={},this._keyStrMap={}},_compact:function(){var a={};c(this._store,a),this._store=a},_compactThreshold:100,_perhapsCompact:function(){this._size>64||this._deleted>this._compactThreshold&&(this._compact(),this._deleted=0)},"delete":function(a){a=b(a),this._store.hasOwnProperty(a)&&(this._deleted++,delete this._store[a],this.size>0&&this.size--)},each:function(a,b){if(this.size){this._perhapsCompact();var c=this._store,d=this._keyStrMap;Object.keys(this._store).forEach(function(e){a.call(b||null,d[e],c[e])},this)}},escapingEach:function(a,b){if(this.size){this._perhapsCompact();for(var c=this,e=this._store,f=this._keyStrMap,g=d,h=Object.keys(e),i=0;h.length>i;i++)if(function(d){c._store.hasOwnProperty(d)&&(g=a.call(b||null,f[d],e[d]))}(h[i]),g){if(void 0!==g.retval)return g;if(g.brk)break}}},clone:function(){var b=new a.HashTable;return this.size&&(b.size=this.size,c(this._store,b._store),c(this._keyStrMap,b._keyStrMap)),b},equals:function(b){if(b===this)return!0;if(!(b instanceof a.HashTable)||b._size!==this._size)return!1;for(var c=Object.keys(this._store),d=0;c.length>d;d++){var e=c[d];if(this._keyStrMap[e]!==b._keyStrMap[e]||this._store[e]!==b._store[e])return!1}return!0},toString:function(){var b="";return this.each(function(a,c){b+=a+" => "+c+"\n"}),b}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.HashSet=a.inherit({_t:"c.HashSet",initialize:function(){this.storage=[],this.size=0},add:function(a){var b=this.storage;b.indexOf(a),-1==b.indexOf(a)&&b.push(a),this.size=this.storage.length},values:function(){return this.storage},has:function(a){var b=this.storage;return-1!=b.indexOf(a)},"delete":function(a){var b=this.storage.indexOf(a);return-1==b?null:(this.storage.splice(b,1)[0],this.size=this.storage.length,void 0)},clear:function(){this.storage.length=0},each:function(a,b){this.size&&this.storage.forEach(a,b)},escapingEach:function(a,b){this.size&&this.storage.forEach(a,b)},toString:function(){var a=this.size+" {",b=!0;return this.each(function(c){b?b=!1:a+=", ",a+=c}),a+="}\n"},toJSON:function(){var a=[];return this.each(function(b){a.push(b.toJSON())}),{_t:"c.HashSet",data:a}},fromJSON:function(b){var c=new a.HashSet;return b.data&&(c.size=b.data.length,c.storage=b.data),c}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Error=a.inherit({initialize:function(a){a&&(this._description=a)},_name:"c.Error",_description:"An error has occured in Cassowary",set description(a){this._description=a},get description(){return"("+this._name+") "+this._description},get message(){return this.description},toString:function(){return this.description}});var b=function(b,c){return a.inherit({"extends":a.Error,initialize:function(){a.Error.apply(this,arguments)},_name:b||"",_description:c||""})};a.ConstraintNotFound=b("c.ConstraintNotFound","Tried to remove a constraint never added to the tableu"),a.InternalError=b("c.InternalError"),a.NonExpression=b("c.NonExpression","The resulting expression would be non"),a.NotEnoughStays=b("c.NotEnoughStays","There are not enough stays to give specific values to every variable"),a.RequiredFailure=b("c.RequiredFailure","A required constraint cannot be satisfied"),a.TooDifficult=b("c.TooDifficult","The constraints are too difficult to solve")}(this.c||module.parent.exports||{}),function(a){"use strict";var b=1e3;a.SymbolicWeight=a.inherit({_t:"c.SymbolicWeight",initialize:function(){this.value=0;for(var a=1,c=arguments.length-1;c>=0;--c)this.value+=arguments[c]*a,a*=b},toJSON:function(){return{_t:this._t,value:this.value}}})}(this.c||module.parent.exports||{}),function(a){a.Strength=a.inherit({initialize:function(b,c,d,e){this.name=b,this.symbolicWeight=c instanceof a.SymbolicWeight?c:new a.SymbolicWeight(c,d,e)},get required(){return this===a.Strength.required},toString:function(){return this.name+(this.isRequired?"":":"+this.symbolicWeight)}}),a.Strength.required=new a.Strength("<Required>",1e3,1e3,1e3),a.Strength.strong=new a.Strength("strong",1,0,0),a.Strength.medium=new a.Strength("medium",0,1,0),a.Strength.weak=new a.Strength("weak",0,0,1)}(this.c||(true?module.parent.exports.c:{})),function(a){"use strict";a.AbstractVariable=a.inherit({isDummy:!1,isExternal:!1,isPivotable:!1,isRestricted:!1,_init:function(b,c){this.hashCode=a._inc(),this.name=(c||"")+this.hashCode,b&&(b.name!==void 0&&(this.name=b.name),b.value!==void 0&&(this.value=b.value),b.prefix!==void 0&&(this._prefix=b.prefix))},_prefix:"",name:"",value:0,toJSON:function(){var a={};return this._t&&(a._t=this._t),this.name&&(a.name=this.name),this.value!==void 0&&(a.value=this.value),this._prefix&&(a._prefix=this._prefix),this._t&&(a._t=this._t),a},fromJSON:function(b,c){var d=new c;return a.extend(d,b),d},toString:function(){return this._prefix+"["+this.name+":"+this.value+"]"}}),a.Variable=a.inherit({_t:"c.Variable","extends":a.AbstractVariable,initialize:function(b){this._init(b,"v");var c=a.Variable._map;c&&(c[this.name]=this)},isExternal:!0}),a.DummyVariable=a.inherit({_t:"c.DummyVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"d")},isDummy:!0,isRestricted:!0,value:"dummy"}),a.ObjectiveVariable=a.inherit({_t:"c.ObjectiveVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"o")},value:"obj"}),a.SlackVariable=a.inherit({_t:"c.SlackVariable","extends":a.AbstractVariable,initialize:function(a){this._init(a,"s")},isPivotable:!0,isRestricted:!0,value:"slack"})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Point=a.inherit({initialize:function(b,c,d){if(b instanceof a.Variable)this._x=b;else{var e={value:b};d&&(e.name="x"+d),this._x=new a.Variable(e)}if(c instanceof a.Variable)this._y=c;else{var f={value:c};d&&(f.name="y"+d),this._y=new a.Variable(f)}},get x(){return this._x},set x(b){b instanceof a.Variable?this._x=b:this._x.value=b},get y(){return this._y},set y(b){b instanceof a.Variable?this._y=b:this._y.value=b},toString:function(){return"("+this.x+", "+this.y+")"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Expression=a.inherit({initialize:function(b,c,d){a.GC&&console.log("new c.Expression"),this.constant="number"!=typeof d||isNaN(d)?0:d,this.terms=new a.HashTable,b instanceof a.AbstractVariable?this.setVariable(b,"number"==typeof c?c:1):"number"==typeof b&&(isNaN(b)?console.trace():this.constant=b)},initializeFromHash:function(b,c){return a.verbose&&(console.log("*******************************"),console.log("clone c.initializeFromHash"),console.log("*******************************")),a.GC&&console.log("clone c.Expression"),this.constant=b,this.terms=c.clone(),this},multiplyMe:function(a){this.constant*=a;var b=this.terms;return b.each(function(c,d){b.set(c,d*a)}),this},clone:function(){a.verbose&&(console.log("*******************************"),console.log("clone c.Expression"),console.log("*******************************"));var b=new a.Expression;return b.initializeFromHash(this.constant,this.terms),b},times:function(b){if("number"==typeof b)return this.clone().multiplyMe(b);if(this.isConstant)return b.times(this.constant);if(b.isConstant)return this.times(b.constant);throw new a.NonExpression},plus:function(b){return b instanceof a.Expression?this.clone().addExpression(b,1):b instanceof a.Variable?this.clone().addVariable(b,1):void 0},minus:function(b){return b instanceof a.Expression?this.clone().addExpression(b,-1):b instanceof a.Variable?this.clone().addVariable(b,-1):void 0},divide:function(b){if("number"==typeof b){if(a.approx(b,0))throw new a.NonExpression;return this.times(1/b)}if(b instanceof a.Expression){if(!b.isConstant)throw new a.NonExpression;return this.times(1/b.constant)}},addExpression:function(b,c,d,e){return b instanceof a.AbstractVariable&&(b=new a.Expression(b),a.trace&&console.log("addExpression: Had to cast a var to an expression")),c=c||1,this.constant+=c*b.constant,b.terms.each(function(a,b){this.addVariable(a,b*c,d,e)},this),this},addVariable:function(b,c,d,e){null==c&&(c=1),a.trace&&console.log("c.Expression::addVariable():",b,c);var f=this.terms.get(b);if(f){var g=f+c;0==g||a.approx(g,0)?(e&&e.noteRemovedVariable(b,d),this.terms.delete(b)):this.setVariable(b,g)}else a.approx(c,0)||(this.setVariable(b,c),e&&e.noteAddedVariable(b,d));return this},setVariable:function(a,b){return this.terms.set(a,b),this},anyPivotableVariable:function(){if(this.isConstant)throw new a.InternalError("anyPivotableVariable called on a constant");var b=this.terms.escapingEach(function(a){return a.isPivotable?{retval:a}:void 0});return b&&void 0!==b.retval?b.retval:null},substituteOut:function(b,c,d,e){a.trace&&(a.fnenterprint("CLE:substituteOut: "+b+", "+c+", "+d+", ..."),a.traceprint("this = "+this));var f=this.setVariable.bind(this),g=this.terms,h=g.get(b);g.delete(b),this.constant+=h*c.constant,c.terms.each(function(b,c){var i=g.get(b);if(i){var j=i+h*c;a.approx(j,0)?(e.noteRemovedVariable(b,d),g.delete(b)):f(b,j)}else f(b,h*c),e&&e.noteAddedVariable(b,d)}),a.trace&&a.traceprint("Now this is "+this)},changeSubject:function(a,b){this.setVariable(a,this.newSubject(b))},newSubject:function(b){a.trace&&a.fnenterprint("newSubject:"+b);var c=1/this.terms.get(b);return this.terms.delete(b),this.multiplyMe(-c),c},coefficientFor:function(a){return this.terms.get(a)||0},get isConstant(){return 0==this.terms.size},toString:function(){var b="",c=!1;if(!a.approx(this.constant,0)||this.isConstant){if(b+=this.constant,this.isConstant)return b;c=!0}return this.terms.each(function(a,d){c&&(b+=" + "),b+=d+"*"+a,c=!0}),b},equals:function(b){return b===this?!0:b instanceof a.Expression&&b.constant===this.constant&&b.terms.equals(this.terms)},Plus:function(a,b){return a.plus(b)},Minus:function(a,b){return a.minus(b)},Times:function(a,b){return a.times(b)},Divide:function(a,b){return a.divide(b)}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.AbstractConstraint=a.inherit({initialize:function(b,c){this.hashCode=a._inc(),this.strength=b||a.Strength.required,this.weight=c||1},isEditConstraint:!1,isInequality:!1,isStayConstraint:!1,get required(){return this.strength===a.Strength.required},toString:function(){return this.strength+" {"+this.weight+"} ("+this.expression+")"}});var b=a.AbstractConstraint.prototype.toString,c=function(b,c,d){a.AbstractConstraint.call(this,c||a.Strength.strong,d),this.variable=b,this.expression=new a.Expression(b,-1,b.value)};a.EditConstraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(){c.apply(this,arguments)},isEditConstraint:!0,toString:function(){return"edit:"+b.call(this)}}),a.StayConstraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(){c.apply(this,arguments)},isStayConstraint:!0,toString:function(){return"stay:"+b.call(this)}});var d=a.Constraint=a.inherit({"extends":a.AbstractConstraint,initialize:function(b,c,d){a.AbstractConstraint.call(this,c,d),this.expression=b}});a.Inequality=a.inherit({"extends":a.Constraint,_cloneOrNewCle:function(b){return b.clone?b.clone():new a.Expression(b)},initialize:function(b,c,e,f,g){var h=b instanceof a.Expression,i=e instanceof a.Expression,j=b instanceof a.AbstractVariable,k=e instanceof a.AbstractVariable,l="number"==typeof b,m="number"==typeof e;if((h||l)&&k){var n=b,o=c,p=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(n),q,r),o==a.LEQ)this.expression.multiplyMe(-1),this.expression.addVariable(p);else{if(o!=a.GEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addVariable(p,-1)}}else if(j&&(i||m)){var n=e,o=c,p=b,q=f,r=g;if(d.call(this,this._cloneOrNewCle(n),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addVariable(p);else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addVariable(p,-1)}}else{if(h&&m){var s=b,o=c,t=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(s),q,r),o==a.LEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(t));else{if(o!=a.GEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(t),-1)}return this}if(l&&i){var s=e,o=c,t=b,q=f,r=g;if(d.call(this,this._cloneOrNewCle(s),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(t));else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(t),-1)}return this}if(h&&i){var s=b,o=c,t=e,q=f,r=g;if(d.call(this,this._cloneOrNewCle(t),q,r),o==a.GEQ)this.expression.multiplyMe(-1),this.expression.addExpression(this._cloneOrNewCle(s));else{if(o!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");this.expression.addExpression(this._cloneOrNewCle(s),-1)}}else{if(h)return d.call(this,b,c,e);if(c==a.GEQ)d.call(this,new a.Expression(e),f,g),this.expression.multiplyMe(-1),this.expression.addVariable(b);else{if(c!=a.LEQ)throw new a.InternalError("Invalid operator in c.Inequality constructor");d.call(this,new a.Expression(e),f,g),this.expression.addVariable(b,-1)}}}},isInequality:!0,toString:function(){return d.prototype.toString.call(this)+" >= 0) id: "+this.hashCode}}),a.Equation=a.inherit({"extends":a.Constraint,initialize:function(b,c,e,f){if(b instanceof a.Expression&&!c||c instanceof a.Strength)d.call(this,b,c,e);else if(b instanceof a.AbstractVariable&&c instanceof a.Expression){var g=b,h=c,i=e,j=f;d.call(this,h.clone(),i,j),this.expression.addVariable(g,-1)}else if(b instanceof a.AbstractVariable&&"number"==typeof c){var g=b,k=c,i=e,j=f;d.call(this,new a.Expression(k),i,j),this.expression.addVariable(g,-1)}else if(b instanceof a.Expression&&c instanceof a.AbstractVariable){var h=b,g=c,i=e,j=f;d.call(this,h.clone(),i,j),this.expression.addVariable(g,-1)}else{if(!(b instanceof a.Expression||b instanceof a.AbstractVariable||"number"==typeof b)||!(c instanceof a.Expression||c instanceof a.AbstractVariable||"number"==typeof c))throw"Bad initializer to c.Equation";b=b instanceof a.Expression?b.clone():new a.Expression(b),c=c instanceof a.Expression?c.clone():new a.Expression(c),d.call(this,b,e,f),this.expression.addExpression(c,-1)}a.assert(this.strength instanceof a.Strength,"_strength not set")},toString:function(){return d.prototype.toString.call(this)+" = 0)"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.EditInfo=a.inherit({initialize:function(a,b,c,d,e){this.constraint=a,this.editPlus=b,this.editMinus=c,this.prevEditConstant=d,this.index=e},toString:function(){return"<cn="+this.constraint+", ep="+this.editPlus+", em="+this.editMinus+", pec="+this.prevEditConstant+", index="+this.index+">"}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Tableau=a.inherit({initialize:function(){this.columns=new a.HashTable,this.rows=new a.HashTable,this._infeasibleRows=new a.HashSet,this._externalRows=new a.HashSet,this._externalParametricVars=new a.HashSet},noteRemovedVariable:function(b,c){a.trace&&console.log("c.Tableau::noteRemovedVariable: ",b,c);var d=this.columns.get(b);c&&d&&d.delete(c)},noteAddedVariable:function(a,b){b&&this.insertColVar(a,b)},getInternalInfo:function(){var a="Tableau Information:\n";return a+="Rows: "+this.rows.size,a+=" (= "+(this.rows.size-1)+" constraints)",a+="\nColumns: "+this.columns.size,a+="\nInfeasible Rows: "+this._infeasibleRows.size,a+="\nExternal basic variables: "+this._externalRows.size,a+="\nExternal parametric variables: ",a+=this._externalParametricVars.size,a+="\n"},toString:function(){var a="Tableau:\n";return this.rows.each(function(b,c){a+=b,a+=" <==> ",a+=c,a+="\n"}),a+="\nColumns:\n",a+=this.columns,a+="\nInfeasible rows: ",a+=this._infeasibleRows,a+="External basic variables: ",a+=this._externalRows,a+="External parametric variables: ",a+=this._externalParametricVars},insertColVar:function(b,c){var d=this.columns.get(b);d||(d=new a.HashSet,this.columns.set(b,d)),d.add(c)},addRow:function(b,c){a.trace&&a.fnenterprint("addRow: "+b+", "+c),this.rows.set(b,c),c.terms.each(function(a){this.insertColVar(a,b),a.isExternal&&this._externalParametricVars.add(a)},this),b.isExternal&&this._externalRows.add(b),a.trace&&a.traceprint(""+this)},removeColumn:function(b){a.trace&&a.fnenterprint("removeColumn:"+b);var c=this.columns.get(b);c?(this.columns.delete(b),c.each(function(a){var c=this.rows.get(a);c.terms.delete(b)},this)):a.trace&&console.log("Could not find var",b,"in columns"),b.isExternal&&(this._externalRows.delete(b),this._externalParametricVars.delete(b))},removeRow:function(b){a.trace&&a.fnenterprint("removeRow:"+b);var c=this.rows.get(b);return a.assert(null!=c),c.terms.each(function(c){var e=this.columns.get(c);null!=e&&(a.trace&&console.log("removing from varset:",b),e.delete(b))},this),this._infeasibleRows.delete(b),b.isExternal&&this._externalRows.delete(b),this.rows.delete(b),a.trace&&a.fnexitprint("returning "+c),c},substituteOut:function(b,c){a.trace&&a.fnenterprint("substituteOut:"+b+", "+c),a.trace&&a.traceprint(""+this);var d=this.columns.get(b);d.each(function(a){var d=this.rows.get(a);d.substituteOut(b,c,a,this),a.isRestricted&&0>d.constant&&this._infeasibleRows.add(a)},this),b.isExternal&&(this._externalRows.add(b),this._externalParametricVars.delete(b)),this.columns.delete(b)},columnsHasKey:function(a){return!!this.columns.get(a)}})}(this.c||module.parent.exports||{}),function(a){var b=a.Tableau,c=b.prototype,d=1e-8,e=a.Strength.weak;a.SimplexSolver=a.inherit({"extends":a.Tableau,initialize:function(){a.Tableau.call(this),this._stayMinusErrorVars=[],this._stayPlusErrorVars=[],this._errorVars=new a.HashTable,this._markerVars=new a.HashTable,this._objective=new a.ObjectiveVariable({name:"Z"}),this._editVarMap=new a.HashTable,this._editVarList=[],this._slackCounter=0,this._artificialCounter=0,this._dummyCounter=0,this.autoSolve=!0,this._fNeedsSolving=!1,this._optimizeCount=0,this.rows.set(this._objective,new a.Expression),this._stkCedcns=[0],a.trace&&a.traceprint("objective expr == "+this.rows.get(this._objective))},addLowerBound:function(b,c){var d=new a.Inequality(b,a.GEQ,new a.Expression(c));return this.addConstraint(d)},addUpperBound:function(b,c){var d=new a.Inequality(b,a.LEQ,new a.Expression(c));return this.addConstraint(d)},addBounds:function(a,b,c){return this.addLowerBound(a,b),this.addUpperBound(a,c),this},add:function(){for(var a=0;arguments.length>a;a++)this.addConstraint(arguments[a]);return this},addConstraint:function(b){a.trace&&a.fnenterprint("addConstraint: "+b);var c=Array(2),d=Array(1),e=this.newExpression(b,c,d);if(d=d[0],this.tryAddingDirectly(e)||this.addWithArtificialVariable(e),this._fNeedsSolving=!0,b.isEditConstraint){var f=this._editVarMap.size,g=c[0],h=c[1];!g instanceof a.SlackVariable&&console.warn("cvEplus not a slack variable =",g),!h instanceof a.SlackVariable&&console.warn("cvEminus not a slack variable =",h),a.debug&&console.log("new c.EditInfo("+b+", "+g+", "+h+", "+d+", "+f+")");var i=new a.EditInfo(b,g,h,d,f);this._editVarMap.set(b.variable,i),this._editVarList[f]={v:b.variable,info:i}}return this.autoSolve&&(this.optimize(this._objective),this._setExternalVariables()),this},addConstraintNoException:function(b){a.trace&&a.fnenterprint("addConstraintNoException: "+b);try{return this.addConstraint(b),!0}catch(c){return!1}},addEditVar:function(b,c){return a.trace&&a.fnenterprint("addEditVar: "+b+" @ "+c),this.addConstraint(new a.EditConstraint(b,c||a.Strength.strong))},beginEdit:function(){return a.assert(this._editVarMap.size>0,"_editVarMap.size > 0"),this._infeasibleRows.clear(),this._resetStayConstants(),this._stkCedcns.push(this._editVarMap.size),this},endEdit:function(){return a.assert(this._editVarMap.size>0,"_editVarMap.size > 0"),this.resolve(),this._stkCedcns.pop(),this.removeEditVarsTo(this._stkCedcns[this._stkCedcns.length-1]),this},removeAllEditVars:function(){return this.removeEditVarsTo(0)},removeEditVarsTo:function(b){try{for(var c=this._editVarList.length,d=b;c>d;d++)this._editVarList[d]&&this.removeConstraint(this._editVarMap.get(this._editVarList[d].v).constraint);return this._editVarList.length=b,a.assert(this._editVarMap.size==b,"_editVarMap.size == n"),this}catch(e){throw new a.InternalError("Constraint not found in removeEditVarsTo")}},addPointStays:function(b){return a.trace&&console.log("addPointStays",b),b.forEach(function(a,b){this.addStay(a.x,e,Math.pow(2,b)),this.addStay(a.y,e,Math.pow(2,b))},this),this},addStay:function(b,c,d){var f=new a.StayConstraint(b,c||e,d||1);return this.addConstraint(f)},removeConstraint:function(a){return this.removeConstraintInternal(a),this},removeConstraintInternal:function(b){a.trace&&a.fnenterprint("removeConstraintInternal: "+b),a.trace&&a.traceprint(""+this),this._fNeedsSolving=!0,this._resetStayConstants();var c=this.rows.get(this._objective),d=this._errorVars.get(b);a.trace&&a.traceprint("eVars == "+d),null!=d&&d.each(function(e){var f=this.rows.get(e);null==f?c.addVariable(e,-b.weight*b.strength.symbolicWeight.value,this._objective,this):c.addExpression(f,-b.weight*b.strength.symbolicWeight.value,this._objective,this),a.trace&&a.traceprint("now eVars == "+d)},this);var e=this._markerVars.get(b);if(this._markerVars.delete(b),null==e)throw new a.InternalError("Constraint not found in removeConstraintInternal");if(a.trace&&a.traceprint("Looking to remove var "+e),null==this.rows.get(e)){var f=this.columns.get(e);a.trace&&a.traceprint("Must pivot -- columns are "+f);var g=null,h=0;f.each(function(b){if(b.isRestricted){var c=this.rows.get(b),d=c.coefficientFor(e);if(a.trace&&a.traceprint("Marker "+e+"'s coefficient in "+c+" is "+d),0>d){var f=-c.constant/d;(null==g||h>f||a.approx(f,h)&&b.hashCode<g.hashCode)&&(h=f,g=b)}}},this),null==g&&(a.trace&&a.traceprint("exitVar is still null"),f.each(function(a){if(a.isRestricted){var b=this.rows.get(a),c=b.coefficientFor(e),d=b.constant/c;(null==g||h>d)&&(h=d,g=a)}},this)),null==g&&(0==f.size?this.removeColumn(e):f.escapingEach(function(a){return a!=this._objective?(g=a,{brk:!0}):void 0},this)),null!=g&&this.pivot(e,g)}if(null!=this.rows.get(e)&&this.removeRow(e),null!=d&&d.each(function(a){a!=e&&this.removeColumn(a)},this),b.isStayConstraint){if(null!=d)for(var j=0;this._stayPlusErrorVars.length>j;j++)d.delete(this._stayPlusErrorVars[j]),d.delete(this._stayMinusErrorVars[j])}else if(b.isEditConstraint){a.assert(null!=d,"eVars != null");var k=this._editVarMap.get(b.variable);this.removeColumn(k.editMinus),this._editVarMap.delete(b.variable)}return null!=d&&this._errorVars.delete(d),this.autoSolve&&(this.optimize(this._objective),this._setExternalVariables()),this},reset:function(){throw a.trace&&a.fnenterprint("reset"),new a.InternalError("reset not implemented")},resolveArray:function(b){a.trace&&a.fnenterprint("resolveArray"+b);var c=b.length;this._editVarMap.each(function(a,d){var e=d.index;c>e&&this.suggestValue(a,b[e])},this),this.resolve()},resolvePair:function(a,b){this.suggestValue(this._editVarList[0].v,a),this.suggestValue(this._editVarList[1].v,b),this.resolve()},resolve:function(){a.trace&&a.fnenterprint("resolve()"),this.dualOptimize(),this._setExternalVariables(),this._infeasibleRows.clear(),this._resetStayConstants()},suggestValue:function(b,c){a.trace&&console.log("suggestValue("+b+", "+c+")");var d=this._editVarMap.get(b);if(!d)throw new a.Error("suggestValue for variable "+b+", but var is not an edit variable");var e=c-d.prevEditConstant;return d.prevEditConstant=c,this.deltaEditConstant(e,d.editPlus,d.editMinus),this},solve:function(){return this._fNeedsSolving&&(this.optimize(this._objective),this._setExternalVariables()),this},setEditedValue:function(b,c){if(!this.columnsHasKey(b)&&null==this.rows.get(b))return b.value=c,this;if(!a.approx(c,b.value)){this.addEditVar(b),this.beginEdit();try{this.suggestValue(b,c)}catch(d){throw new a.InternalError("Error in setEditedValue")}this.endEdit()}return this},addVar:function(b){if(!this.columnsHasKey(b)&&null==this.rows.get(b)){try{this.addStay(b)}catch(c){throw new a.InternalError("Error in addVar -- required failure is impossible")}a.trace&&a.traceprint("added initial stay on "+b)}return this},getInternalInfo:function(){var a=c.getInternalInfo.call(this);return a+="\nSolver info:\n",a+="Stay Error Variables: ",a+=this._stayPlusErrorVars.length+this._stayMinusErrorVars.length,a+=" ("+this._stayPlusErrorVars.length+" +, ",a+=this._stayMinusErrorVars.length+" -)\n",a+="Edit Variables: "+this._editVarMap.size,a+="\n"},getDebugInfo:function(){return""+this+this.getInternalInfo()+"\n"},toString:function(){var a=c.getInternalInfo.call(this);return a+="\n_stayPlusErrorVars: ",a+="["+this._stayPlusErrorVars+"]",a+="\n_stayMinusErrorVars: ",a+="["+this._stayMinusErrorVars+"]",a+="\n",a+="_editVarMap:\n"+this._editVarMap,a+="\n"},getConstraintMap:function(){return this._markerVars},addWithArtificialVariable:function(b){a.trace&&a.fnenterprint("addWithArtificialVariable: "+b);var c=new a.SlackVariable({value:++this._artificialCounter,prefix:"a"}),d=new a.ObjectiveVariable({name:"az"}),e=b.clone();a.trace&&a.traceprint("before addRows:\n"+this),this.addRow(d,e),this.addRow(c,b),a.trace&&a.traceprint("after addRows:\n"+this),this.optimize(d);var f=this.rows.get(d);if(a.trace&&a.traceprint("azTableauRow.constant == "+f.constant),!a.approx(f.constant,0))throw this.removeRow(d),this.removeColumn(c),new a.RequiredFailure;var g=this.rows.get(c);if(null!=g){if(g.isConstant)return this.removeRow(c),this.removeRow(d),void 0;var h=g.anyPivotableVariable();this.pivot(h,c)}a.assert(null==this.rows.get(c),"rowExpression(av) == null"),this.removeColumn(c),this.removeRow(d)},tryAddingDirectly:function(b){a.trace&&a.fnenterprint("tryAddingDirectly: "+b);var c=this.chooseSubject(b);return null==c?(a.trace&&a.fnexitprint("returning false"),!1):(b.newSubject(c),this.columnsHasKey(c)&&this.substituteOut(c,b),this.addRow(c,b),a.trace&&a.fnexitprint("returning true"),!0)},chooseSubject:function(b){a.trace&&a.fnenterprint("chooseSubject: "+b);var c=null,d=!1,e=!1,f=b.terms,g=f.escapingEach(function(a,b){if(d){if(!a.isRestricted&&!this.columnsHasKey(a))return{retval:a}}else if(a.isRestricted){if(!e&&!a.isDummy&&0>b){var f=this.columns.get(a);(null==f||1==f.size&&this.columnsHasKey(this._objective))&&(c=a,e=!0)}}else c=a,d=!0},this);if(g&&void 0!==g.retval)return g.retval;if(null!=c)return c;var h=0,g=f.escapingEach(function(a,b){return a.isDummy?(this.columnsHasKey(a)||(c=a,h=b),void 0):{retval:null}},this);if(g&&void 0!==g.retval)return g.retval;if(!a.approx(b.constant,0))throw new a.RequiredFailure;return h>0&&b.multiplyMe(-1),c},deltaEditConstant:function(b,c,d){a.trace&&a.fnenterprint("deltaEditConstant :"+b+", "+c+", "+d);var e=this.rows.get(c);if(null!=e)return e.constant+=b,0>e.constant&&this._infeasibleRows.add(c),void 0;var f=this.rows.get(d);if(null!=f)return f.constant+=-b,0>f.constant&&this._infeasibleRows.add(d),void 0;var g=this.columns.get(d);g||console.log("columnVars is null -- tableau is:\n"+this),g.each(function(a){var c=this.rows.get(a),e=c.coefficientFor(d);c.constant+=e*b,a.isRestricted&&0>c.constant&&this._infeasibleRows.add(a)},this)},dualOptimize:function(){a.trace&&a.fnenterprint("dualOptimize:");for(var b=this.rows.get(this._objective);this._infeasibleRows.size;){var c=this._infeasibleRows.values()[0];this._infeasibleRows.delete(c);var d=null,e=this.rows.get(c);if(e&&0>e.constant){var g,f=Number.MAX_VALUE,h=e.terms;if(h.each(function(c,e){if(e>0&&c.isPivotable){var h=b.coefficientFor(c);g=h/e,(f>g||a.approx(g,f)&&c.hashCode<d.hashCode)&&(d=c,f=g)}}),f==Number.MAX_VALUE)throw new a.InternalError("ratio == nil (MAX_VALUE) in dualOptimize");this.pivot(d,c)}}},newExpression:function(b,c,d){a.trace&&(a.fnenterprint("newExpression: "+b),a.traceprint("cn.isInequality == "+b.isInequality),a.traceprint("cn.required == "+b.required));var e=b.expression,f=new a.Expression(e.constant),g=new a.SlackVariable,h=new a.DummyVariable,i=new a.SlackVariable,j=new a.SlackVariable,k=e.terms;if(k.each(function(a,b){var c=this.rows.get(a);c?f.addExpression(c,b):f.addVariable(a,b)},this),b.isInequality){if(a.trace&&a.traceprint("Inequality, adding slack"),++this._slackCounter,g=new a.SlackVariable({value:this._slackCounter,prefix:"s"}),f.setVariable(g,-1),this._markerVars.set(b,g),!b.required){++this._slackCounter,i=new a.SlackVariable({value:this._slackCounter,prefix:"em"}),f.setVariable(i,1);
+	var l=this.rows.get(this._objective);l.setVariable(i,b.strength.symbolicWeight.value*b.weight),this.insertErrorVar(b,i),this.noteAddedVariable(i,this._objective)}}else if(b.required)a.trace&&a.traceprint("Equality, required"),++this._dummyCounter,h=new a.DummyVariable({value:this._dummyCounter,prefix:"d"}),f.setVariable(h,1),this._markerVars.set(b,h),a.trace&&a.traceprint("Adding dummyVar == d"+this._dummyCounter);else{a.trace&&a.traceprint("Equality, not required"),++this._slackCounter,j=new a.SlackVariable({value:this._slackCounter,prefix:"ep"}),i=new a.SlackVariable({value:this._slackCounter,prefix:"em"}),f.setVariable(j,-1),f.setVariable(i,1),this._markerVars.set(b,j);var l=this.rows.get(this._objective);a.trace&&console.log(l);var m=b.strength.symbolicWeight.value*b.weight;0==m&&(a.trace&&a.traceprint("cn == "+b),a.trace&&a.traceprint("adding "+j+" and "+i+" with swCoeff == "+m)),l.setVariable(j,m),this.noteAddedVariable(j,this._objective),l.setVariable(i,m),this.noteAddedVariable(i,this._objective),this.insertErrorVar(b,i),this.insertErrorVar(b,j),b.isStayConstraint?(this._stayPlusErrorVars.push(j),this._stayMinusErrorVars.push(i)):b.isEditConstraint&&(c[0]=j,c[1]=i,d[0]=e.constant)}return 0>f.constant&&f.multiplyMe(-1),a.trace&&a.fnexitprint("returning "+f),f},optimize:function(b){a.trace&&a.fnenterprint("optimize: "+b),a.trace&&a.traceprint(""+this),this._optimizeCount++;var c=this.rows.get(b);a.assert(null!=c,"zRow != null");for(var g,h,e=null,f=null;;){if(g=0,h=c.terms,h.escapingEach(function(a,b){return a.isPivotable&&g>b?(g=b,e=a,{brk:1}):void 0},this),g>=-d)return;a.trace&&console.log("entryVar:",e,"objectiveCoeff:",g);var i=Number.MAX_VALUE,j=this.columns.get(e),k=0;if(j.each(function(b){if(a.trace&&a.traceprint("Checking "+b),b.isPivotable){var c=this.rows.get(b),d=c.coefficientFor(e);a.trace&&a.traceprint("pivotable, coeff = "+d),0>d&&(k=-c.constant/d,(i>k||a.approx(k,i)&&b.hashCode<f.hashCode)&&(i=k,f=b))}},this),i==Number.MAX_VALUE)throw new a.InternalError("Objective function is unbounded in optimize");this.pivot(e,f),a.trace&&a.traceprint(""+this)}},pivot:function(b,c){a.trace&&console.log("pivot: ",b,c);var d=!1;d&&console.time(" SimplexSolver::pivot"),null==b&&console.warn("pivot: entryVar == null"),null==c&&console.warn("pivot: exitVar == null"),d&&console.time("  removeRow");var e=this.removeRow(c);d&&console.timeEnd("  removeRow"),d&&console.time("  changeSubject"),e.changeSubject(c,b),d&&console.timeEnd("  changeSubject"),d&&console.time("  substituteOut"),this.substituteOut(b,e),d&&console.timeEnd("  substituteOut"),d&&console.time("  addRow"),this.addRow(b,e),d&&console.timeEnd("  addRow"),d&&console.timeEnd(" SimplexSolver::pivot")},_resetStayConstants:function(){a.trace&&console.log("_resetStayConstants");for(var b=0;this._stayPlusErrorVars.length>b;b++){var c=this.rows.get(this._stayPlusErrorVars[b]);null==c&&(c=this.rows.get(this._stayMinusErrorVars[b])),null!=c&&(c.constant=0)}},_setExternalVariables:function(){a.trace&&a.fnenterprint("_setExternalVariables:"),a.trace&&a.traceprint(""+this),this._externalParametricVars.each(function(b){null!=this.rows.get(b)?a.trace&&console.log("Error: variable"+b+" in _externalParametricVars is basic"):b.value=0},this),this._externalRows.each(function(a){var b=this.rows.get(a);a.value!=b.constant&&(a.value=b.constant)},this),this._fNeedsSolving=!1,this.onsolved()},onsolved:function(){},insertErrorVar:function(b,c){a.trace&&a.fnenterprint("insertErrorVar:"+b+", "+c);var d=this._errorVars.get(c);d||(d=new a.HashSet,this._errorVars.set(b,d)),d.add(c)}})}(this.c||module.parent.exports||{}),function(a){"use strict";a.Timer=a.inherit({initialize:function(){this.isRunning=!1,this._elapsedMs=0},start:function(){return this.isRunning=!0,this._startReading=new Date,this},stop:function(){return this.isRunning=!1,this._elapsedMs+=new Date-this._startReading,this},reset:function(){return this.isRunning=!1,this._elapsedMs=0,this},elapsedTime:function(){return this.isRunning?(this._elapsedMs+(new Date-this._startReading))/1e3:this._elapsedMs/1e3}})}(this.c||module.parent.exports||{}),__cassowary_parser=function(){function a(a){return'"'+a.replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\x08/g,"\\b").replace(/\t/g,"\\t").replace(/\n/g,"\\n").replace(/\f/g,"\\f").replace(/\r/g,"\\r").replace(/[\x00-\x07\x0B\x0E-\x1F\x80-\uFFFF]/g,escape)+'"'}var b={parse:function(b,c){function k(a){g>e||(e>g&&(g=e,h=[]),h.push(a))}function l(){var a,b,c,d,f;if(d=e,f=e,a=z(),null!==a){if(c=m(),null!==c)for(b=[];null!==c;)b.push(c),c=m();else b=null;null!==b?(c=z(),null!==c?a=[a,b,c]:(a=null,e=f)):(a=null,e=f)}else a=null,e=f;return null!==a&&(a=function(a,b){return b}(d,a[1])),null===a&&(e=d),a}function m(){var a,b,c,d;return c=e,d=e,a=P(),null!==a?(b=s(),null!==b?a=[a,b]:(a=null,e=d)):(a=null,e=d),null!==a&&(a=function(a,b){return b}(c,a[0])),null===a&&(e=c),a}function n(){var a;return b.length>e?(a=b.charAt(e),e++):(a=null,0===f&&k("any character")),a}function o(){var a;return/^[a-zA-Z]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[a-zA-Z]")),null===a&&(36===b.charCodeAt(e)?(a="$",e++):(a=null,0===f&&k('"$"')),null===a&&(95===b.charCodeAt(e)?(a="_",e++):(a=null,0===f&&k('"_"')))),a}function p(){var a;return f++,/^[\t\x0B\f \xA0\uFEFF]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[\\t\\x0B\\f \\xA0\\uFEFF]")),f--,0===f&&null===a&&k("whitespace"),a}function q(){var a;return/^[\n\r\u2028\u2029]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[\\n\\r\\u2028\\u2029]")),a}function r(){var a;return f++,10===b.charCodeAt(e)?(a="\n",e++):(a=null,0===f&&k('"\\n"')),null===a&&("\r\n"===b.substr(e,2)?(a="\r\n",e+=2):(a=null,0===f&&k('"\\r\\n"')),null===a&&(13===b.charCodeAt(e)?(a="\r",e++):(a=null,0===f&&k('"\\r"')),null===a&&(8232===b.charCodeAt(e)?(a="\u2028",e++):(a=null,0===f&&k('"\\u2028"')),null===a&&(8233===b.charCodeAt(e)?(a="\u2029",e++):(a=null,0===f&&k('"\\u2029"')))))),f--,0===f&&null===a&&k("end of line"),a}function s(){var a,c,d;return d=e,a=z(),null!==a?(59===b.charCodeAt(e)?(c=";",e++):(c=null,0===f&&k('";"')),null!==c?a=[a,c]:(a=null,e=d)):(a=null,e=d),null===a&&(d=e,a=y(),null!==a?(c=r(),null!==c?a=[a,c]:(a=null,e=d)):(a=null,e=d),null===a&&(d=e,a=z(),null!==a?(c=t(),null!==c?a=[a,c]:(a=null,e=d)):(a=null,e=d))),a}function t(){var a,c;return c=e,f++,b.length>e?(a=b.charAt(e),e++):(a=null,0===f&&k("any character")),f--,null===a?a="":(a=null,e=c),a}function u(){var a;return f++,a=v(),null===a&&(a=x()),f--,0===f&&null===a&&k("comment"),a}function v(){var a,c,d,g,h,i,j;if(h=e,"/*"===b.substr(e,2)?(a="/*",e+=2):(a=null,0===f&&k('"/*"')),null!==a){for(c=[],i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==d;)c.push(d),i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==c?("*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null!==d?a=[a,c,d]:(a=null,e=h)):(a=null,e=h)}else a=null,e=h;return a}function w(){var a,c,d,g,h,i,j;if(h=e,"/*"===b.substr(e,2)?(a="/*",e+=2):(a=null,0===f&&k('"/*"')),null!==a){for(c=[],i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null===d&&(d=q()),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==d;)c.push(d),i=e,j=e,f++,"*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null===d&&(d=q()),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==c?("*/"===b.substr(e,2)?(d="*/",e+=2):(d=null,0===f&&k('"*/"')),null!==d?a=[a,c,d]:(a=null,e=h)):(a=null,e=h)}else a=null,e=h;return a}function x(){var a,c,d,g,h,i,j;if(h=e,"//"===b.substr(e,2)?(a="//",e+=2):(a=null,0===f&&k('"//"')),null!==a){for(c=[],i=e,j=e,f++,d=q(),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==d;)c.push(d),i=e,j=e,f++,d=q(),f--,null===d?d="":(d=null,e=j),null!==d?(g=n(),null!==g?d=[d,g]:(d=null,e=i)):(d=null,e=i);null!==c?a=[a,c]:(a=null,e=h)}else a=null,e=h;return a}function y(){var a,b;for(a=[],b=p(),null===b&&(b=w(),null===b&&(b=x()));null!==b;)a.push(b),b=p(),null===b&&(b=w(),null===b&&(b=x()));return a}function z(){var a,b;for(a=[],b=p(),null===b&&(b=r(),null===b&&(b=u()));null!==b;)a.push(b),b=p(),null===b&&(b=r(),null===b&&(b=u()));return a}function A(){var a,b;return b=e,a=C(),null===a&&(a=B()),null!==a&&(a=function(a,b){return{type:"NumericLiteral",value:b}}(b,a)),null===a&&(e=b),a}function B(){var a,c,d;if(d=e,/^[0-9]/.test(b.charAt(e))?(c=b.charAt(e),e++):(c=null,0===f&&k("[0-9]")),null!==c)for(a=[];null!==c;)a.push(c),/^[0-9]/.test(b.charAt(e))?(c=b.charAt(e),e++):(c=null,0===f&&k("[0-9]"));else a=null;return null!==a&&(a=function(a,b){return parseInt(b.join(""))}(d,a)),null===a&&(e=d),a}function C(){var a,c,d,g,h;return g=e,h=e,a=B(),null!==a?(46===b.charCodeAt(e)?(c=".",e++):(c=null,0===f&&k('"."')),null!==c?(d=B(),null!==d?a=[a,c,d]:(a=null,e=h)):(a=null,e=h)):(a=null,e=h),null!==a&&(a=function(a,b){return parseFloat(b.join(""))}(g,a)),null===a&&(e=g),a}function D(){var a,c,d,g;if(g=e,/^[\-+]/.test(b.charAt(e))?(a=b.charAt(e),e++):(a=null,0===f&&k("[\\-+]")),a=null!==a?a:"",null!==a){if(/^[0-9]/.test(b.charAt(e))?(d=b.charAt(e),e++):(d=null,0===f&&k("[0-9]")),null!==d)for(c=[];null!==d;)c.push(d),/^[0-9]/.test(b.charAt(e))?(d=b.charAt(e),e++):(d=null,0===f&&k("[0-9]"));else c=null;null!==c?a=[a,c]:(a=null,e=g)}else a=null,e=g;return a}function E(){var a,b;return f++,b=e,a=F(),null!==a&&(a=function(a,b){return b}(b,a)),null===a&&(e=b),f--,0===f&&null===a&&k("identifier"),a}function F(){var a,b,c,d,g;if(f++,d=e,g=e,a=o(),null!==a){for(b=[],c=o();null!==c;)b.push(c),c=o();null!==b?a=[a,b]:(a=null,e=g)}else a=null,e=g;return null!==a&&(a=function(a,b,c){return b+c.join("")}(d,a[0],a[1])),null===a&&(e=d),f--,0===f&&null===a&&k("identifier"),a}function G(){var a,c,d,g,h,i,j;return i=e,a=E(),null!==a&&(a=function(a,b){return{type:"Variable",name:b}}(i,a)),null===a&&(e=i),null===a&&(a=A(),null===a&&(i=e,j=e,40===b.charCodeAt(e)?(a="(",e++):(a=null,0===f&&k('"("')),null!==a?(c=z(),null!==c?(d=P(),null!==d?(g=z(),null!==g?(41===b.charCodeAt(e)?(h=")",e++):(h=null,0===f&&k('")"')),null!==h?a=[a,c,d,g,h]:(a=null,e=j)):(a=null,e=j)):(a=null,e=j)):(a=null,e=j)):(a=null,e=j),null!==a&&(a=function(a,b){return b}(i,a[2])),null===a&&(e=i))),a}function H(){var a,b,c,d,f;return a=G(),null===a&&(d=e,f=e,a=I(),null!==a?(b=z(),null!==b?(c=H(),null!==c?a=[a,b,c]:(a=null,e=f)):(a=null,e=f)):(a=null,e=f),null!==a&&(a=function(a,b,c){return{type:"UnaryExpression",operator:b,expression:c}}(d,a[0],a[2])),null===a&&(e=d)),a}function I(){var a;return 43===b.charCodeAt(e)?(a="+",e++):(a=null,0===f&&k('"+"')),null===a&&(45===b.charCodeAt(e)?(a="-",e++):(a=null,0===f&&k('"-"')),null===a&&(33===b.charCodeAt(e)?(a="!",e++):(a=null,0===f&&k('"!"')))),a}function J(){var a,b,c,d,f,g,h,i,j;if(h=e,i=e,a=H(),null!==a){for(b=[],j=e,c=z(),null!==c?(d=K(),null!==d?(f=z(),null!==f?(g=H(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==c;)b.push(c),j=e,c=z(),null!==c?(d=K(),null!==d?(f=z(),null!==f?(g=H(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==b?a=[a,b]:(a=null,e=i)}else a=null,e=i;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"MultiplicativeExpression",operator:c[e][1],left:d,right:c[e][3]};return d}(h,a[0],a[1])),null===a&&(e=h),a}function K(){var a;return 42===b.charCodeAt(e)?(a="*",e++):(a=null,0===f&&k('"*"')),null===a&&(47===b.charCodeAt(e)?(a="/",e++):(a=null,0===f&&k('"/"'))),a}function L(){var a,b,c,d,f,g,h,i,j;if(h=e,i=e,a=J(),null!==a){for(b=[],j=e,c=z(),null!==c?(d=M(),null!==d?(f=z(),null!==f?(g=J(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==c;)b.push(c),j=e,c=z(),null!==c?(d=M(),null!==d?(f=z(),null!==f?(g=J(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==b?a=[a,b]:(a=null,e=i)}else a=null,e=i;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"AdditiveExpression",operator:c[e][1],left:d,right:c[e][3]};return d}(h,a[0],a[1])),null===a&&(e=h),a}function M(){var a;return 43===b.charCodeAt(e)?(a="+",e++):(a=null,0===f&&k('"+"')),null===a&&(45===b.charCodeAt(e)?(a="-",e++):(a=null,0===f&&k('"-"'))),a}function N(){var a,b,c,d,f,g,h,i,j;if(h=e,i=e,a=L(),null!==a){for(b=[],j=e,c=z(),null!==c?(d=O(),null!==d?(f=z(),null!==f?(g=L(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==c;)b.push(c),j=e,c=z(),null!==c?(d=O(),null!==d?(f=z(),null!==f?(g=L(),null!==g?c=[c,d,f,g]:(c=null,e=j)):(c=null,e=j)):(c=null,e=j)):(c=null,e=j);null!==b?a=[a,b]:(a=null,e=i)}else a=null,e=i;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"Inequality",operator:c[e][1],left:d,right:c[e][3]};return d}(h,a[0],a[1])),null===a&&(e=h),a}function O(){var a;return"<="===b.substr(e,2)?(a="<=",e+=2):(a=null,0===f&&k('"<="')),null===a&&(">="===b.substr(e,2)?(a=">=",e+=2):(a=null,0===f&&k('">="')),null===a&&(60===b.charCodeAt(e)?(a="<",e++):(a=null,0===f&&k('"<"')),null===a&&(62===b.charCodeAt(e)?(a=">",e++):(a=null,0===f&&k('">"'))))),a}function P(){var a,c,d,g,h,i,j,l,m;if(j=e,l=e,a=N(),null!==a){for(c=[],m=e,d=z(),null!==d?("=="===b.substr(e,2)?(g="==",e+=2):(g=null,0===f&&k('"=="')),null!==g?(h=z(),null!==h?(i=N(),null!==i?d=[d,g,h,i]:(d=null,e=m)):(d=null,e=m)):(d=null,e=m)):(d=null,e=m);null!==d;)c.push(d),m=e,d=z(),null!==d?("=="===b.substr(e,2)?(g="==",e+=2):(g=null,0===f&&k('"=="')),null!==g?(h=z(),null!==h?(i=N(),null!==i?d=[d,g,h,i]:(d=null,e=m)):(d=null,e=m)):(d=null,e=m)):(d=null,e=m);null!==c?a=[a,c]:(a=null,e=l)}else a=null,e=l;return null!==a&&(a=function(a,b,c){for(var d=b,e=0;c.length>e;e++)d={type:"Equality",operator:c[e][1],left:d,right:c[e][3]};return d}(j,a[0],a[1])),null===a&&(e=j),a}function Q(a){a.sort();for(var b=null,c=[],d=0;a.length>d;d++)a[d]!==b&&(c.push(a[d]),b=a[d]);return c}function R(){for(var a=1,c=1,d=!1,f=0;Math.max(e,g)>f;f++){var h=b.charAt(f);"\n"===h?(d||a++,c=1,d=!1):"\r"===h||"\u2028"===h||"\u2029"===h?(a++,c=1,d=!0):(c++,d=!1)}return{line:a,column:c}}var d={start:l,Statement:m,SourceCharacter:n,IdentifierStart:o,WhiteSpace:p,LineTerminator:q,LineTerminatorSequence:r,EOS:s,EOF:t,Comment:u,MultiLineComment:v,MultiLineCommentNoLineTerminator:w,SingleLineComment:x,_:y,__:z,Literal:A,Integer:B,Real:C,SignedInteger:D,Identifier:E,IdentifierName:F,PrimaryExpression:G,UnaryExpression:H,UnaryOperator:I,MultiplicativeExpression:J,MultiplicativeOperator:K,AdditiveExpression:L,AdditiveOperator:M,InequalityExpression:N,InequalityOperator:O,LinearExpression:P};if(void 0!==c){if(void 0===d[c])throw Error("Invalid rule name: "+a(c)+".")}else c="start";var e=0,f=0,g=0,h=[],S=d[c]();if(null===S||e!==b.length){var T=Math.max(e,g),U=b.length>T?b.charAt(T):null,V=R();throw new this.SyntaxError(Q(h),U,T,V.line,V.column)}return S},toSource:function(){return this._source}};return b.SyntaxError=function(b,c,d,e,f){function g(b,c){var d,e;switch(b.length){case 0:d="end of input";break;case 1:d=b[0];break;default:d=b.slice(0,b.length-1).join(", ")+" or "+b[b.length-1]}return e=c?a(c):"end of input","Expected "+d+" but "+e+" found."}this.name="SyntaxError",this.expected=b,this.found=c,this.message=g(b,c),this.offset=d,this.line=e,this.column=f},b.SyntaxError.prototype=Error.prototype,b}();
+	}).call(
+	  (true) ?
+	      (module.compiled = true && module) : this
+	);
+	
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ../~/webpack/buildin/module.js */ 53)(module)))
+
+/***/ },
+/* 53 */
+/*!**************************************!*\
+  !*** ../~/webpack/buildin/module.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = function(module) {
+		if(!module.webpackPolyfill) {
+			module.deprecate = function() {};
+			module.paths = [];
+			// module.parent = undefined by default
+			module.children = [];
+			module.webpackPolyfill = 1;
+		}
+		return module;
+	}
+
+
+/***/ },
+/* 54 */
+/*!******************************************!*\
+  !*** ../~/autolayout.js/src/SubView.es6 ***!
+  \******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -11145,6 +10821,235 @@
 	
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	var _cassowaryBinC = __webpack_require__(/*! cassowary/bin/c */ 52);
+	
+	var _cassowaryBinC2 = _interopRequireDefault(_cassowaryBinC);
+	
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 46);
+	
+	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
+	
+	/**
+	 * A SubView is automatically generated when constraints are added to a View.
+	 *
+	 * @class SubView
+	 */
+	
+	var SubView = (function () {
+	    function SubView(options) {
+	        _classCallCheck(this, SubView);
+	
+	        this._name = options.name;
+	        this._solver = options.solver;
+	        this._attr = {};
+	        if (!options.name) {
+	            this._attr[_AttributeEs62['default'].LEFT] = new _cassowaryBinC2['default'].Variable({ value: 0 });
+	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_AttributeEs62['default'].LEFT], _cassowaryBinC2['default'].Strength.required, 0));
+	            this._attr[_AttributeEs62['default'].TOP] = new _cassowaryBinC2['default'].Variable({ value: 0 });
+	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_AttributeEs62['default'].TOP], _cassowaryBinC2['default'].Strength.required, 0));
+	            this._attr[_AttributeEs62['default'].WIDTH] = new _cassowaryBinC2['default'].Variable({ value: 0 });
+	            this._solver.addEditVar(this._attr[_AttributeEs62['default'].WIDTH]);
+	            this._attr[_AttributeEs62['default'].HEIGHT] = new _cassowaryBinC2['default'].Variable({ value: 0 });
+	            this._solver.addEditVar(this._attr[_AttributeEs62['default'].HEIGHT]);
+	        }
+	    }
+	
+	    _createClass(SubView, [{
+	        key: 'toJSON',
+	        value: function toJSON() {
+	            return {
+	                name: this.name,
+	                left: this.left,
+	                top: this.top,
+	                width: this.width,
+	                height: this.height
+	            };
+	        }
+	    }, {
+	        key: 'toString',
+	        value: function toString() {
+	            JSON.stringify(this.toJSON(), undefined, 2);
+	        }
+	    }, {
+	        key: 'getValue',
+	
+	        /**
+	         * Gets the value of one of the attributes.
+	         *
+	         * @param {String|Attribute} attr Attribute name (e.g. 'right', 'centerY', Attribute.TOP).
+	         * @return {Number} value or `undefined`
+	         */
+	        value: function getValue(attr) {
+	            return this._attr[attr] ? this._attr[attr].value : undefined;
+	        }
+	    }, {
+	        key: '_getAttr',
+	
+	        /**
+	         * @private
+	         */
+	        value: function _getAttr(attr) {
+	            if (this._attr[attr]) {
+	                return this._attr[attr];
+	            }
+	            switch (attr) {
+	                case _AttributeEs62['default'].LEFT:
+	                case _AttributeEs62['default'].TOP:
+	                case _AttributeEs62['default'].WIDTH:
+	                case _AttributeEs62['default'].HEIGHT:
+	                    this._attr[attr] = new _cassowaryBinC2['default'].Variable({ value: 0 });
+	                    break;
+	                case _AttributeEs62['default'].RIGHT:
+	                    this._getAttr(_AttributeEs62['default'].LEFT);
+	                    this._getAttr(_AttributeEs62['default'].WIDTH);
+	                    this._attr[_AttributeEs62['default'].RIGHT] = new _cassowaryBinC2['default'].Variable();
+	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].RIGHT], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].LEFT], this._attr[_AttributeEs62['default'].WIDTH])));
+	                    break;
+	                case _AttributeEs62['default'].BOTTOM:
+	                    this._getAttr(_AttributeEs62['default'].TOP);
+	                    this._getAttr(_AttributeEs62['default'].HEIGHT);
+	                    this._attr[_AttributeEs62['default'].BOTTOM] = new _cassowaryBinC2['default'].Variable();
+	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].BOTTOM], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].TOP], this._attr[_AttributeEs62['default'].HEIGHT])));
+	                    break;
+	                case _AttributeEs62['default'].CENTERX:
+	                    this._getAttr(_AttributeEs62['default'].LEFT);
+	                    this._getAttr(_AttributeEs62['default'].WIDTH);
+	                    this._attr[_AttributeEs62['default'].CENTERX] = new _cassowaryBinC2['default'].Variable();
+	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].CENTERX], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].LEFT], _cassowaryBinC2['default'].divide(this._attr[_AttributeEs62['default'].WIDTH], 2))));
+	                    break;
+	                case _AttributeEs62['default'].CENTERY:
+	                    this._getAttr(_AttributeEs62['default'].TOP);
+	                    this._getAttr(_AttributeEs62['default'].HEIGHT);
+	                    this._attr[_AttributeEs62['default'].CENTERY] = new _cassowaryBinC2['default'].Variable();
+	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].CENTERY], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].TOP], _cassowaryBinC2['default'].divide(this._attr[_AttributeEs62['default'].HEIGHT], 2))));
+	                    break;
+	            }
+	            return this._attr[attr];
+	        }
+	    }, {
+	        key: 'name',
+	
+	        /**
+	         * Name of the sub-view.
+	         * @readonly
+	         * @type {String}
+	         */
+	        get: function () {
+	            return this._name;
+	        }
+	    }, {
+	        key: 'left',
+	
+	        /**
+	         * Left value (`Attribute.LEFT`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].LEFT).value;
+	        }
+	    }, {
+	        key: 'right',
+	
+	        /**
+	         * Right value (`Attribute.RIGHT`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].RIGHT).value;
+	        }
+	    }, {
+	        key: 'width',
+	
+	        /**
+	         * Width value (`Attribute.WIDTH`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].WIDTH).value;
+	        }
+	    }, {
+	        key: 'height',
+	
+	        /**
+	         * Height value (`Attribute.HEIGHT`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].HEIGHT).value;
+	        }
+	    }, {
+	        key: 'top',
+	
+	        /**
+	         * Top value (`Attribute.TOP`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].TOP).value;
+	        }
+	    }, {
+	        key: 'bottom',
+	
+	        /**
+	         * Bottom value (`Attribute.BOTTOM`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].BOTTOM).value;
+	        }
+	    }, {
+	        key: 'centerX',
+	
+	        /**
+	         * Horizontal center (`Attribute.CENTERX`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].CENTERX).value;
+	        }
+	    }, {
+	        key: 'centerY',
+	
+	        /**
+	         * Vertical center (`Attribute.CENTERY`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].CENTERY).value;
+	        }
+	    }]);
+	
+	    return SubView;
+	})();
+	
+	exports['default'] = SubView;
+	module.exports = exports['default'];
+
+/***/ },
+/* 55 */
+/*!*****************************!*\
+  !*** ./views/InputView.es6 ***!
+  \*****************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	
 	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -11153,42 +11058,35 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 50);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 57);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 51);
-	
-	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
-	
-	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 1);
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 49);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 68);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
-	var _famousSurfacesTextareaSurface = __webpack_require__(/*! famous/surfaces/TextareaSurface */ 53);
-	
-	var _famousSurfacesTextareaSurface2 = _interopRequireDefault(_famousSurfacesTextareaSurface);
-	
-	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 54);
+	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 56);
 	
 	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
 	
-	function getParameterByName(name) {
-	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-	    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-	    var results = regex.exec(location.search);
-	    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-	}
+	var _EditorViewEs6 = __webpack_require__(/*! ./EditorView.es6 */ 69);
 	
-	var VflView = (function (_View) {
-	    function VflView(options) {
-	        _classCallCheck(this, VflView);
+	var _EditorViewEs62 = _interopRequireDefault(_EditorViewEs6);
 	
-	        _get(Object.getPrototypeOf(VflView.prototype), 'constructor', this).call(this, options);
+	var _SettingsViewEs6 = __webpack_require__(/*! ./SettingsView.es6 */ 71);
+	
+	var _SettingsViewEs62 = _interopRequireDefault(_SettingsViewEs6);
+	
+	var InputView = (function (_View) {
+	    function InputView(options) {
+	        _classCallCheck(this, InputView);
+	
+	        _get(Object.getPrototypeOf(InputView.prototype), 'constructor', this).call(this, options);
 	
 	        this.tabBarController = new _famousFlexWidgetsTabBarController2['default']({
 	            tabBarSize: 44,
@@ -11200,18 +11098,13 @@
 	            }
 	        });
 	
-	        this.textArea = new _famousSurfacesTextareaSurface2['default']({
-	            value: getParameterByName('vfl') || '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|\n'
-	        });
-	        this.textArea.on('change', this._onChange.bind(this));
-	        this.textArea.on('keyup', this._onChange.bind(this));
+	        this.editor = new _EditorViewEs62['default']();
+	        this.settings = new _SettingsViewEs62['default']();
 	
-	        this.examples = new _famousCoreSurface2['default']();
-	
-	        this.tabBarController.setItems([{ tabItem: 'Visual Format', view: this.textArea }, { tabItem: 'Examples', view: this.examples }]);
+	        this.tabBarController.setItems([{ tabItem: 'Visual Format', view: this.editor }, { tabItem: 'Settings', view: this.settings }]);
 	
 	        this.layout = new _famousFlexLayoutController2['default']({
-	            layout: (0, _vflToLayout2['default'])(['|-[content]-|', 'V:|-[content]-|']),
+	            layout: (0, _vflToLayout2['default'])(['|[content]|', 'V:|[content]|']),
 	            dataSource: {
 	                content: this.tabBarController
 	            }
@@ -11219,721 +11112,16 @@
 	        this.add(this.layout);
 	    }
 	
-	    _inherits(VflView, _View);
+	    _inherits(InputView, _View);
 	
-	    _createClass(VflView, [{
-	        key: '_onChange',
-	        value: function _onChange() {
-	            var vfl = this.textArea.getValue();
-	            if (vfl !== this._vfl) {
-	                this._vfl = vfl;
-	                this._eventOutput.emit('update');
-	            }
-	        }
-	    }, {
-	        key: 'getVisualFormat',
-	        value: function getVisualFormat() {
-	            return this.textArea.getValue();
-	        }
-	    }]);
-	
-	    return VflView;
+	    return InputView;
 	})(_famousCoreView2['default']);
 	
-	exports['default'] = VflView;
+	exports['default'] = InputView;
 	module.exports = exports['default'];
 
 /***/ },
-/* 49 */
-/*!************************!*\
-  !*** ./vflToLayout.js ***!
-  \************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	var c = __webpack_require__(/*! cassowary/bin/c */ 45);
-	window.c = c;
-	var AutoLayout = __webpack_require__(/*! autolayout.js/dist/autolayout */ 47);
-	
-	function _layout(view, context) {
-	    view.setSize(context.size[0], context.size[1]);
-	    var subView;
-	    for (var key in view.subViews) {
-	        subView = view.subViews[key];
-	        context.set(subView.name, {
-	            size: [subView.width, subView.height],
-	            translate: [subView.left, subView.top, 0]
-	        });
-	    }
-	}
-	
-	module.exports = function(visualFormat) {
-	    var view = new AutoLayout.View();
-	    try {
-	        var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
-	        view.addConstraints(constraints);
-	        return _layout.bind(view, view);
-	    }
-	    catch (err) {
-	        console.log(err); //eslint-disable-line no-console
-	    }
-	};
-
-
-/***/ },
-/* 50 */
-/*!********************************!*\
-  !*** ../~/famous/core/View.js ***!
-  \********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
-	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 30);
-	var RenderNode = __webpack_require__(/*! ./RenderNode */ 19);
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 28);
-	function View(options) {
-	    this._node = new RenderNode();
-	    this._eventInput = new EventHandler();
-	    this._eventOutput = new EventHandler();
-	    EventHandler.setInputHandler(this, this._eventInput);
-	    EventHandler.setOutputHandler(this, this._eventOutput);
-	    this.options = Utility.clone(this.constructor.DEFAULT_OPTIONS || View.DEFAULT_OPTIONS);
-	    this._optionsManager = new OptionsManager(this.options);
-	    if (options)
-	        this.setOptions(options);
-	}
-	View.DEFAULT_OPTIONS = {};
-	View.prototype.getOptions = function getOptions(key) {
-	    return this._optionsManager.getOptions(key);
-	};
-	View.prototype.setOptions = function setOptions(options) {
-	    this._optionsManager.patch(options);
-	};
-	View.prototype.add = function add() {
-	    return this._node.add.apply(this._node, arguments);
-	};
-	View.prototype._add = View.prototype.add;
-	View.prototype.render = function render() {
-	    return this._node.render();
-	};
-	View.prototype.getSize = function getSize() {
-	    if (this._node && this._node.getSize) {
-	        return this._node.getSize.apply(this._node, arguments) || this.options.size;
-	    } else
-	        return this.options.size;
-	};
-	module.exports = View;
-
-/***/ },
-/* 51 */
-/*!***********************************!*\
-  !*** ../~/famous/core/Surface.js ***!
-  \***********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var ElementOutput = __webpack_require__(/*! ./ElementOutput */ 52);
-	function Surface(options) {
-	    ElementOutput.call(this);
-	    this.options = {};
-	    this.properties = {};
-	    this.attributes = {};
-	    this.content = '';
-	    this.classList = [];
-	    this.size = null;
-	    this._classesDirty = true;
-	    this._stylesDirty = true;
-	    this._attributesDirty = true;
-	    this._sizeDirty = true;
-	    this._contentDirty = true;
-	    this._trueSizeCheck = true;
-	    this._dirtyClasses = [];
-	    if (options)
-	        this.setOptions(options);
-	    this._currentTarget = null;
-	}
-	Surface.prototype = Object.create(ElementOutput.prototype);
-	Surface.prototype.constructor = Surface;
-	Surface.prototype.elementType = 'div';
-	Surface.prototype.elementClass = 'famous-surface';
-	Surface.prototype.setAttributes = function setAttributes(attributes) {
-	    for (var n in attributes) {
-	        if (n === 'style')
-	            throw new Error('Cannot set styles via "setAttributes" as it will break Famo.us.  Use "setProperties" instead.');
-	        this.attributes[n] = attributes[n];
-	    }
-	    this._attributesDirty = true;
-	};
-	Surface.prototype.getAttributes = function getAttributes() {
-	    return this.attributes;
-	};
-	Surface.prototype.setProperties = function setProperties(properties) {
-	    for (var n in properties) {
-	        this.properties[n] = properties[n];
-	    }
-	    this._stylesDirty = true;
-	    return this;
-	};
-	Surface.prototype.getProperties = function getProperties() {
-	    return this.properties;
-	};
-	Surface.prototype.addClass = function addClass(className) {
-	    if (this.classList.indexOf(className) < 0) {
-	        this.classList.push(className);
-	        this._classesDirty = true;
-	    }
-	    return this;
-	};
-	Surface.prototype.removeClass = function removeClass(className) {
-	    var i = this.classList.indexOf(className);
-	    if (i >= 0) {
-	        this._dirtyClasses.push(this.classList.splice(i, 1)[0]);
-	        this._classesDirty = true;
-	    }
-	    return this;
-	};
-	Surface.prototype.toggleClass = function toggleClass(className) {
-	    var i = this.classList.indexOf(className);
-	    if (i >= 0) {
-	        this.removeClass(className);
-	    } else {
-	        this.addClass(className);
-	    }
-	    return this;
-	};
-	Surface.prototype.setClasses = function setClasses(classList) {
-	    var i = 0;
-	    var removal = [];
-	    for (i = 0; i < this.classList.length; i++) {
-	        if (classList.indexOf(this.classList[i]) < 0)
-	            removal.push(this.classList[i]);
-	    }
-	    for (i = 0; i < removal.length; i++)
-	        this.removeClass(removal[i]);
-	    for (i = 0; i < classList.length; i++)
-	        this.addClass(classList[i]);
-	    return this;
-	};
-	Surface.prototype.getClassList = function getClassList() {
-	    return this.classList;
-	};
-	Surface.prototype.setContent = function setContent(content) {
-	    if (this.content !== content) {
-	        this.content = content;
-	        this._contentDirty = true;
-	    }
-	    return this;
-	};
-	Surface.prototype.getContent = function getContent() {
-	    return this.content;
-	};
-	Surface.prototype.setOptions = function setOptions(options) {
-	    if (options.size)
-	        this.setSize(options.size);
-	    if (options.classes)
-	        this.setClasses(options.classes);
-	    if (options.properties)
-	        this.setProperties(options.properties);
-	    if (options.attributes)
-	        this.setAttributes(options.attributes);
-	    if (options.content)
-	        this.setContent(options.content);
-	    return this;
-	};
-	function _cleanupClasses(target) {
-	    for (var i = 0; i < this._dirtyClasses.length; i++)
-	        target.classList.remove(this._dirtyClasses[i]);
-	    this._dirtyClasses = [];
-	}
-	function _applyStyles(target) {
-	    for (var n in this.properties) {
-	        target.style[n] = this.properties[n];
-	    }
-	}
-	function _cleanupStyles(target) {
-	    for (var n in this.properties) {
-	        target.style[n] = '';
-	    }
-	}
-	function _applyAttributes(target) {
-	    for (var n in this.attributes) {
-	        target.setAttribute(n, this.attributes[n]);
-	    }
-	}
-	function _cleanupAttributes(target) {
-	    for (var n in this.attributes) {
-	        target.removeAttribute(n);
-	    }
-	}
-	function _xyNotEquals(a, b) {
-	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
-	}
-	Surface.prototype.setup = function setup(allocator) {
-	    var target = allocator.allocate(this.elementType);
-	    if (this.elementClass) {
-	        if (this.elementClass instanceof Array) {
-	            for (var i = 0; i < this.elementClass.length; i++) {
-	                target.classList.add(this.elementClass[i]);
-	            }
-	        } else {
-	            target.classList.add(this.elementClass);
-	        }
-	    }
-	    target.style.display = '';
-	    this.attach(target);
-	    this._opacity = null;
-	    this._currentTarget = target;
-	    this._stylesDirty = true;
-	    this._classesDirty = true;
-	    this._attributesDirty = true;
-	    this._sizeDirty = true;
-	    this._contentDirty = true;
-	    this._originDirty = true;
-	    this._transformDirty = true;
-	};
-	Surface.prototype.commit = function commit(context) {
-	    if (!this._currentTarget)
-	        this.setup(context.allocator);
-	    var target = this._currentTarget;
-	    var size = context.size;
-	    if (this._classesDirty) {
-	        _cleanupClasses.call(this, target);
-	        var classList = this.getClassList();
-	        for (var i = 0; i < classList.length; i++)
-	            target.classList.add(classList[i]);
-	        this._classesDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    if (this._stylesDirty) {
-	        _applyStyles.call(this, target);
-	        this._stylesDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    if (this._attributesDirty) {
-	        _applyAttributes.call(this, target);
-	        this._attributesDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    if (this.size) {
-	        var origSize = context.size;
-	        size = [
-	            this.size[0],
-	            this.size[1]
-	        ];
-	        if (size[0] === undefined)
-	            size[0] = origSize[0];
-	        if (size[1] === undefined)
-	            size[1] = origSize[1];
-	        if (size[0] === true || size[1] === true) {
-	            if (size[0] === true) {
-	                if (this._trueSizeCheck || this._size[0] === 0) {
-	                    var width = target.offsetWidth;
-	                    if (this._size && this._size[0] !== width) {
-	                        this._size[0] = width;
-	                        this._sizeDirty = true;
-	                    }
-	                    size[0] = width;
-	                } else {
-	                    if (this._size)
-	                        size[0] = this._size[0];
-	                }
-	            }
-	            if (size[1] === true) {
-	                if (this._trueSizeCheck || this._size[1] === 0) {
-	                    var height = target.offsetHeight;
-	                    if (this._size && this._size[1] !== height) {
-	                        this._size[1] = height;
-	                        this._sizeDirty = true;
-	                    }
-	                    size[1] = height;
-	                } else {
-	                    if (this._size)
-	                        size[1] = this._size[1];
-	                }
-	            }
-	            this._trueSizeCheck = false;
-	        }
-	    }
-	    if (_xyNotEquals(this._size, size)) {
-	        if (!this._size)
-	            this._size = [
-	                0,
-	                0
-	            ];
-	        this._size[0] = size[0];
-	        this._size[1] = size[1];
-	        this._sizeDirty = true;
-	    }
-	    if (this._sizeDirty) {
-	        if (this._size) {
-	            target.style.width = this.size && this.size[0] === true ? '' : this._size[0] + 'px';
-	            target.style.height = this.size && this.size[1] === true ? '' : this._size[1] + 'px';
-	        }
-	        this._eventOutput.emit('resize');
-	    }
-	    if (this._contentDirty) {
-	        this.deploy(target);
-	        this._eventOutput.emit('deploy');
-	        this._contentDirty = false;
-	        this._trueSizeCheck = true;
-	    }
-	    ElementOutput.prototype.commit.call(this, context);
-	};
-	Surface.prototype.cleanup = function cleanup(allocator) {
-	    var i = 0;
-	    var target = this._currentTarget;
-	    this._eventOutput.emit('recall');
-	    this.recall(target);
-	    target.style.display = 'none';
-	    target.style.opacity = '';
-	    target.style.width = '';
-	    target.style.height = '';
-	    _cleanupStyles.call(this, target);
-	    _cleanupAttributes.call(this, target);
-	    var classList = this.getClassList();
-	    _cleanupClasses.call(this, target);
-	    for (i = 0; i < classList.length; i++)
-	        target.classList.remove(classList[i]);
-	    if (this.elementClass) {
-	        if (this.elementClass instanceof Array) {
-	            for (i = 0; i < this.elementClass.length; i++) {
-	                target.classList.remove(this.elementClass[i]);
-	            }
-	        } else {
-	            target.classList.remove(this.elementClass);
-	        }
-	    }
-	    this.detach(target);
-	    this._currentTarget = null;
-	    allocator.deallocate(target);
-	};
-	Surface.prototype.deploy = function deploy(target) {
-	    var content = this.getContent();
-	    if (content instanceof Node) {
-	        while (target.hasChildNodes())
-	            target.removeChild(target.firstChild);
-	        target.appendChild(content);
-	    } else
-	        target.innerHTML = content;
-	};
-	Surface.prototype.recall = function recall(target) {
-	    var df = document.createDocumentFragment();
-	    while (target.hasChildNodes())
-	        df.appendChild(target.firstChild);
-	    this.setContent(df);
-	};
-	Surface.prototype.getSize = function getSize() {
-	    return this._size ? this._size : this.size;
-	};
-	Surface.prototype.setSize = function setSize(size) {
-	    this.size = size ? [
-	        size[0],
-	        size[1]
-	    ] : null;
-	    this._sizeDirty = true;
-	    return this;
-	};
-	module.exports = Surface;
-
-/***/ },
-/* 52 */
-/*!*****************************************!*\
-  !*** ../~/famous/core/ElementOutput.js ***!
-  \*****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Entity = __webpack_require__(/*! ./Entity */ 20);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 23);
-	var Transform = __webpack_require__(/*! ./Transform */ 22);
-	var usePrefix = !('transform' in document.documentElement.style);
-	var devicePixelRatio = window.devicePixelRatio || 1;
-	function ElementOutput(element) {
-	    this._matrix = null;
-	    this._opacity = 1;
-	    this._origin = null;
-	    this._size = null;
-	    this._eventOutput = new EventHandler();
-	    this._eventOutput.bindThis(this);
-	    this.eventForwarder = function eventForwarder(event) {
-	        this._eventOutput.emit(event.type, event);
-	    }.bind(this);
-	    this.id = Entity.register(this);
-	    this._element = null;
-	    this._sizeDirty = false;
-	    this._originDirty = false;
-	    this._transformDirty = false;
-	    this._invisible = false;
-	    if (element)
-	        this.attach(element);
-	}
-	ElementOutput.prototype.on = function on(type, fn) {
-	    if (this._element)
-	        this._element.addEventListener(type, this.eventForwarder);
-	    this._eventOutput.on(type, fn);
-	};
-	ElementOutput.prototype.removeListener = function removeListener(type, fn) {
-	    this._eventOutput.removeListener(type, fn);
-	};
-	ElementOutput.prototype.emit = function emit(type, event) {
-	    if (event && !event.origin)
-	        event.origin = this;
-	    var handled = this._eventOutput.emit(type, event);
-	    if (handled && event && event.stopPropagation)
-	        event.stopPropagation();
-	    return handled;
-	};
-	ElementOutput.prototype.pipe = function pipe(target) {
-	    return this._eventOutput.pipe(target);
-	};
-	ElementOutput.prototype.unpipe = function unpipe(target) {
-	    return this._eventOutput.unpipe(target);
-	};
-	ElementOutput.prototype.render = function render() {
-	    return this.id;
-	};
-	function _addEventListeners(target) {
-	    for (var i in this._eventOutput.listeners) {
-	        target.addEventListener(i, this.eventForwarder);
-	    }
-	}
-	function _removeEventListeners(target) {
-	    for (var i in this._eventOutput.listeners) {
-	        target.removeEventListener(i, this.eventForwarder);
-	    }
-	}
-	function _formatCSSTransform(m) {
-	    m[12] = Math.round(m[12] * devicePixelRatio) / devicePixelRatio;
-	    m[13] = Math.round(m[13] * devicePixelRatio) / devicePixelRatio;
-	    var result = 'matrix3d(';
-	    for (var i = 0; i < 15; i++) {
-	        result += m[i] < 0.000001 && m[i] > -0.000001 ? '0,' : m[i] + ',';
-	    }
-	    result += m[15] + ')';
-	    return result;
-	}
-	var _setMatrix;
-	if (usePrefix) {
-	    _setMatrix = function (element, matrix) {
-	        element.style.webkitTransform = _formatCSSTransform(matrix);
-	    };
-	} else {
-	    _setMatrix = function (element, matrix) {
-	        element.style.transform = _formatCSSTransform(matrix);
-	    };
-	}
-	function _formatCSSOrigin(origin) {
-	    return 100 * origin[0] + '% ' + 100 * origin[1] + '%';
-	}
-	var _setOrigin = usePrefix ? function (element, origin) {
-	    element.style.webkitTransformOrigin = _formatCSSOrigin(origin);
-	} : function (element, origin) {
-	    element.style.transformOrigin = _formatCSSOrigin(origin);
-	};
-	var _setInvisible = usePrefix ? function (element) {
-	    element.style.webkitTransform = 'scale3d(0.0001,0.0001,0.0001)';
-	    element.style.opacity = 0;
-	} : function (element) {
-	    element.style.transform = 'scale3d(0.0001,0.0001,0.0001)';
-	    element.style.opacity = 0;
-	};
-	function _xyNotEquals(a, b) {
-	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
-	}
-	ElementOutput.prototype.commit = function commit(context) {
-	    var target = this._element;
-	    if (!target)
-	        return;
-	    var matrix = context.transform;
-	    var opacity = context.opacity;
-	    var origin = context.origin;
-	    var size = context.size;
-	    if (!matrix && this._matrix) {
-	        this._matrix = null;
-	        this._opacity = 0;
-	        _setInvisible(target);
-	        return;
-	    }
-	    if (_xyNotEquals(this._origin, origin))
-	        this._originDirty = true;
-	    if (Transform.notEquals(this._matrix, matrix))
-	        this._transformDirty = true;
-	    if (this._invisible) {
-	        this._invisible = false;
-	        this._element.style.display = '';
-	    }
-	    if (this._opacity !== opacity) {
-	        this._opacity = opacity;
-	        target.style.opacity = opacity >= 1 ? '0.999999' : opacity;
-	    }
-	    if (this._transformDirty || this._originDirty || this._sizeDirty) {
-	        if (this._sizeDirty)
-	            this._sizeDirty = false;
-	        if (this._originDirty) {
-	            if (origin) {
-	                if (!this._origin)
-	                    this._origin = [
-	                        0,
-	                        0
-	                    ];
-	                this._origin[0] = origin[0];
-	                this._origin[1] = origin[1];
-	            } else
-	                this._origin = null;
-	            _setOrigin(target, this._origin);
-	            this._originDirty = false;
-	        }
-	        if (!matrix)
-	            matrix = Transform.identity;
-	        this._matrix = matrix;
-	        var aaMatrix = this._size ? Transform.thenMove(matrix, [
-	            -this._size[0] * origin[0],
-	            -this._size[1] * origin[1],
-	            0
-	        ]) : matrix;
-	        _setMatrix(target, aaMatrix);
-	        this._transformDirty = false;
-	    }
-	};
-	ElementOutput.prototype.cleanup = function cleanup() {
-	    if (this._element) {
-	        this._invisible = true;
-	        this._element.style.display = 'none';
-	    }
-	};
-	ElementOutput.prototype.attach = function attach(target) {
-	    this._element = target;
-	    _addEventListeners.call(this, target);
-	};
-	ElementOutput.prototype.detach = function detach() {
-	    var target = this._element;
-	    if (target) {
-	        _removeEventListeners.call(this, target);
-	        if (this._invisible) {
-	            this._invisible = false;
-	            this._element.style.display = '';
-	        }
-	    }
-	    this._element = null;
-	    return target;
-	};
-	module.exports = ElementOutput;
-
-/***/ },
-/* 53 */
-/*!***********************************************!*\
-  !*** ../~/famous/surfaces/TextareaSurface.js ***!
-  \***********************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Surface = __webpack_require__(/*! ../core/Surface */ 51);
-	function TextareaSurface(options) {
-	    this._placeholder = options.placeholder || '';
-	    this._value = options.value || '';
-	    this._name = options.name || '';
-	    this._wrap = options.wrap || '';
-	    this._cols = options.cols || '';
-	    this._rows = options.rows || '';
-	    Surface.apply(this, arguments);
-	    this.on('click', this.focus.bind(this));
-	}
-	TextareaSurface.prototype = Object.create(Surface.prototype);
-	TextareaSurface.prototype.constructor = TextareaSurface;
-	TextareaSurface.prototype.elementType = 'textarea';
-	TextareaSurface.prototype.elementClass = 'famous-surface';
-	TextareaSurface.prototype.setPlaceholder = function setPlaceholder(str) {
-	    this._placeholder = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.focus = function focus() {
-	    if (this._currentTarget)
-	        this._currentTarget.focus();
-	    return this;
-	};
-	TextareaSurface.prototype.blur = function blur() {
-	    if (this._currentTarget)
-	        this._currentTarget.blur();
-	    return this;
-	};
-	TextareaSurface.prototype.setValue = function setValue(str) {
-	    this._value = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.getValue = function getValue() {
-	    if (this._currentTarget) {
-	        return this._currentTarget.value;
-	    } else {
-	        return this._value;
-	    }
-	};
-	TextareaSurface.prototype.setName = function setName(str) {
-	    this._name = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.getName = function getName() {
-	    return this._name;
-	};
-	TextareaSurface.prototype.setWrap = function setWrap(str) {
-	    this._wrap = str;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.setColumns = function setColumns(num) {
-	    this._cols = num;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.setRows = function setRows(num) {
-	    this._rows = num;
-	    this._contentDirty = true;
-	    return this;
-	};
-	TextareaSurface.prototype.deploy = function deploy(target) {
-	    if (this._placeholder !== '')
-	        target.placeholder = this._placeholder;
-	    if (this._value !== '')
-	        target.value = this._value;
-	    if (this._name !== '')
-	        target.name = this._name;
-	    if (this._wrap !== '')
-	        target.wrap = this._wrap;
-	    if (this._cols !== '')
-	        target.cols = this._cols;
-	    if (this._rows !== '')
-	        target.rows = this._rows;
-	};
-	module.exports = TextareaSurface;
-
-/***/ },
-/* 54 */
+/* 56 */
 /*!********************************************************!*\
   !*** ../~/famous-flex/src/widgets/TabBarController.js ***!
   \********************************************************/
@@ -11957,12 +11145,12 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var View = __webpack_require__(/*! famous/core/View */ 50);
-	    var AnimationController = __webpack_require__(/*! ../AnimationController */ 55);
-	    var TabBar = __webpack_require__(/*! ./TabBar */ 61);
-	    var LayoutDockHelper = __webpack_require__(/*! ../helpers/LayoutDockHelper */ 44);
-	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 31);
-	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 60);
+	    var View = __webpack_require__(/*! famous/core/View */ 57);
+	    var AnimationController = __webpack_require__(/*! ../AnimationController */ 58);
+	    var TabBar = __webpack_require__(/*! ./TabBar */ 64);
+	    var LayoutDockHelper = __webpack_require__(/*! ../helpers/LayoutDockHelper */ 23);
+	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 1);
+	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 63);
 	
 	    /**
 	     * @class
@@ -12185,7 +11373,58 @@
 
 
 /***/ },
-/* 55 */
+/* 57 */
+/*!********************************!*\
+  !*** ../~/famous/core/View.js ***!
+  \********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 6);
+	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 5);
+	var RenderNode = __webpack_require__(/*! ./RenderNode */ 42);
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 2);
+	function View(options) {
+	    this._node = new RenderNode();
+	    this._eventInput = new EventHandler();
+	    this._eventOutput = new EventHandler();
+	    EventHandler.setInputHandler(this, this._eventInput);
+	    EventHandler.setOutputHandler(this, this._eventOutput);
+	    this.options = Utility.clone(this.constructor.DEFAULT_OPTIONS || View.DEFAULT_OPTIONS);
+	    this._optionsManager = new OptionsManager(this.options);
+	    if (options)
+	        this.setOptions(options);
+	}
+	View.DEFAULT_OPTIONS = {};
+	View.prototype.getOptions = function getOptions(key) {
+	    return this._optionsManager.getOptions(key);
+	};
+	View.prototype.setOptions = function setOptions(options) {
+	    this._optionsManager.patch(options);
+	};
+	View.prototype.add = function add() {
+	    return this._node.add.apply(this._node, arguments);
+	};
+	View.prototype._add = View.prototype.add;
+	View.prototype.render = function render() {
+	    return this._node.render();
+	};
+	View.prototype.getSize = function getSize() {
+	    if (this._node && this._node.getSize) {
+	        return this._node.getSize.apply(this._node, arguments) || this.options.size;
+	    } else
+	        return this.options.size;
+	};
+	module.exports = View;
+
+/***/ },
+/* 58 */
 /*!***************************************************!*\
   !*** ../~/famous-flex/src/AnimationController.js ***!
   \***************************************************/
@@ -12209,14 +11448,14 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var View = __webpack_require__(/*! famous/core/View */ 50);
-	    var LayoutController = __webpack_require__(/*! ./LayoutController */ 31);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 22);
-	    var Modifier = __webpack_require__(/*! famous/core/Modifier */ 57);
-	    var StateModifier = __webpack_require__(/*! famous/modifiers/StateModifier */ 56);
-	    var RenderNode = __webpack_require__(/*! famous/core/RenderNode */ 19);
-	    var Timer = __webpack_require__(/*! famous/utilities/Timer */ 59);
-	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 60);
+	    var View = __webpack_require__(/*! famous/core/View */ 57);
+	    var LayoutController = __webpack_require__(/*! ./LayoutController */ 1);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 12);
+	    var Modifier = __webpack_require__(/*! famous/core/Modifier */ 60);
+	    var StateModifier = __webpack_require__(/*! famous/modifiers/StateModifier */ 59);
+	    var RenderNode = __webpack_require__(/*! famous/core/RenderNode */ 42);
+	    var Timer = __webpack_require__(/*! famous/utilities/Timer */ 62);
+	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 63);
 	
 	    /**
 	     * @class
@@ -12848,7 +12087,7 @@
 
 
 /***/ },
-/* 56 */
+/* 59 */
 /*!**********************************************!*\
   !*** ../~/famous/modifiers/StateModifier.js ***!
   \**********************************************/
@@ -12861,10 +12100,10 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Modifier = __webpack_require__(/*! ../core/Modifier */ 57);
-	var Transform = __webpack_require__(/*! ../core/Transform */ 22);
-	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 26);
-	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 58);
+	var Modifier = __webpack_require__(/*! ../core/Modifier */ 60);
+	var Transform = __webpack_require__(/*! ../core/Transform */ 12);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 20);
+	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 61);
 	function StateModifier(options) {
 	    this._transformState = new TransitionableTransform(Transform.identity);
 	    this._opacityState = new Transitionable(1);
@@ -13010,7 +12249,7 @@
 	module.exports = StateModifier;
 
 /***/ },
-/* 57 */
+/* 60 */
 /*!************************************!*\
   !*** ../~/famous/core/Modifier.js ***!
   \************************************/
@@ -13023,9 +12262,9 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Transform = __webpack_require__(/*! ./Transform */ 22);
-	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 26);
-	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 58);
+	var Transform = __webpack_require__(/*! ./Transform */ 12);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 20);
+	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 61);
 	function Modifier(options) {
 	    this._transformGetter = null;
 	    this._opacityGetter = null;
@@ -13270,7 +12509,7 @@
 	module.exports = Modifier;
 
 /***/ },
-/* 58 */
+/* 61 */
 /*!**********************************************************!*\
   !*** ../~/famous/transitions/TransitionableTransform.js ***!
   \**********************************************************/
@@ -13283,9 +12522,9 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Transitionable = __webpack_require__(/*! ./Transitionable */ 26);
-	var Transform = __webpack_require__(/*! ../core/Transform */ 22);
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 28);
+	var Transitionable = __webpack_require__(/*! ./Transitionable */ 20);
+	var Transform = __webpack_require__(/*! ../core/Transform */ 12);
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 2);
 	function TransitionableTransform(transform) {
 	    this._final = Transform.identity.slice();
 	    this._finalTranslate = [
@@ -13402,7 +12641,7 @@
 	module.exports = TransitionableTransform;
 
 /***/ },
-/* 59 */
+/* 62 */
 /*!**************************************!*\
   !*** ../~/famous/utilities/Timer.js ***!
   \**************************************/
@@ -13415,7 +12654,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var FamousEngine = __webpack_require__(/*! ../core/Engine */ 17);
+	var FamousEngine = __webpack_require__(/*! ../core/Engine */ 40);
 	var _event = 'prerender';
 	var getTime = window.performance && window.performance.now ? function () {
 	    return window.performance.now();
@@ -13509,7 +12748,7 @@
 	};
 
 /***/ },
-/* 60 */
+/* 63 */
 /*!*****************************************!*\
   !*** ../~/famous/transitions/Easing.js ***!
   \*****************************************/
@@ -13683,7 +12922,7 @@
 	module.exports = Easing;
 
 /***/ },
-/* 61 */
+/* 64 */
 /*!**********************************************!*\
   !*** ../~/famous-flex/src/widgets/TabBar.js ***!
   \**********************************************/
@@ -13755,10 +12994,10 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Surface = __webpack_require__(/*! famous/core/Surface */ 51);
-	    var View = __webpack_require__(/*! famous/core/View */ 50);
-	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 31);
-	    var TabBarLayout = __webpack_require__(/*! ../layouts/TabBarLayout */ 62);
+	    var Surface = __webpack_require__(/*! famous/core/Surface */ 65);
+	    var View = __webpack_require__(/*! famous/core/View */ 57);
+	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 1);
+	    var TabBarLayout = __webpack_require__(/*! ../layouts/TabBarLayout */ 67);
 	
 	    /**
 	     * @class
@@ -14019,7 +13258,514 @@
 
 
 /***/ },
-/* 62 */
+/* 65 */
+/*!***********************************!*\
+  !*** ../~/famous/core/Surface.js ***!
+  \***********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var ElementOutput = __webpack_require__(/*! ./ElementOutput */ 66);
+	function Surface(options) {
+	    ElementOutput.call(this);
+	    this.options = {};
+	    this.properties = {};
+	    this.attributes = {};
+	    this.content = '';
+	    this.classList = [];
+	    this.size = null;
+	    this._classesDirty = true;
+	    this._stylesDirty = true;
+	    this._attributesDirty = true;
+	    this._sizeDirty = true;
+	    this._contentDirty = true;
+	    this._trueSizeCheck = true;
+	    this._dirtyClasses = [];
+	    if (options)
+	        this.setOptions(options);
+	    this._currentTarget = null;
+	}
+	Surface.prototype = Object.create(ElementOutput.prototype);
+	Surface.prototype.constructor = Surface;
+	Surface.prototype.elementType = 'div';
+	Surface.prototype.elementClass = 'famous-surface';
+	Surface.prototype.setAttributes = function setAttributes(attributes) {
+	    for (var n in attributes) {
+	        if (n === 'style')
+	            throw new Error('Cannot set styles via "setAttributes" as it will break Famo.us.  Use "setProperties" instead.');
+	        this.attributes[n] = attributes[n];
+	    }
+	    this._attributesDirty = true;
+	};
+	Surface.prototype.getAttributes = function getAttributes() {
+	    return this.attributes;
+	};
+	Surface.prototype.setProperties = function setProperties(properties) {
+	    for (var n in properties) {
+	        this.properties[n] = properties[n];
+	    }
+	    this._stylesDirty = true;
+	    return this;
+	};
+	Surface.prototype.getProperties = function getProperties() {
+	    return this.properties;
+	};
+	Surface.prototype.addClass = function addClass(className) {
+	    if (this.classList.indexOf(className) < 0) {
+	        this.classList.push(className);
+	        this._classesDirty = true;
+	    }
+	    return this;
+	};
+	Surface.prototype.removeClass = function removeClass(className) {
+	    var i = this.classList.indexOf(className);
+	    if (i >= 0) {
+	        this._dirtyClasses.push(this.classList.splice(i, 1)[0]);
+	        this._classesDirty = true;
+	    }
+	    return this;
+	};
+	Surface.prototype.toggleClass = function toggleClass(className) {
+	    var i = this.classList.indexOf(className);
+	    if (i >= 0) {
+	        this.removeClass(className);
+	    } else {
+	        this.addClass(className);
+	    }
+	    return this;
+	};
+	Surface.prototype.setClasses = function setClasses(classList) {
+	    var i = 0;
+	    var removal = [];
+	    for (i = 0; i < this.classList.length; i++) {
+	        if (classList.indexOf(this.classList[i]) < 0)
+	            removal.push(this.classList[i]);
+	    }
+	    for (i = 0; i < removal.length; i++)
+	        this.removeClass(removal[i]);
+	    for (i = 0; i < classList.length; i++)
+	        this.addClass(classList[i]);
+	    return this;
+	};
+	Surface.prototype.getClassList = function getClassList() {
+	    return this.classList;
+	};
+	Surface.prototype.setContent = function setContent(content) {
+	    if (this.content !== content) {
+	        this.content = content;
+	        this._contentDirty = true;
+	    }
+	    return this;
+	};
+	Surface.prototype.getContent = function getContent() {
+	    return this.content;
+	};
+	Surface.prototype.setOptions = function setOptions(options) {
+	    if (options.size)
+	        this.setSize(options.size);
+	    if (options.classes)
+	        this.setClasses(options.classes);
+	    if (options.properties)
+	        this.setProperties(options.properties);
+	    if (options.attributes)
+	        this.setAttributes(options.attributes);
+	    if (options.content)
+	        this.setContent(options.content);
+	    return this;
+	};
+	function _cleanupClasses(target) {
+	    for (var i = 0; i < this._dirtyClasses.length; i++)
+	        target.classList.remove(this._dirtyClasses[i]);
+	    this._dirtyClasses = [];
+	}
+	function _applyStyles(target) {
+	    for (var n in this.properties) {
+	        target.style[n] = this.properties[n];
+	    }
+	}
+	function _cleanupStyles(target) {
+	    for (var n in this.properties) {
+	        target.style[n] = '';
+	    }
+	}
+	function _applyAttributes(target) {
+	    for (var n in this.attributes) {
+	        target.setAttribute(n, this.attributes[n]);
+	    }
+	}
+	function _cleanupAttributes(target) {
+	    for (var n in this.attributes) {
+	        target.removeAttribute(n);
+	    }
+	}
+	function _xyNotEquals(a, b) {
+	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
+	}
+	Surface.prototype.setup = function setup(allocator) {
+	    var target = allocator.allocate(this.elementType);
+	    if (this.elementClass) {
+	        if (this.elementClass instanceof Array) {
+	            for (var i = 0; i < this.elementClass.length; i++) {
+	                target.classList.add(this.elementClass[i]);
+	            }
+	        } else {
+	            target.classList.add(this.elementClass);
+	        }
+	    }
+	    target.style.display = '';
+	    this.attach(target);
+	    this._opacity = null;
+	    this._currentTarget = target;
+	    this._stylesDirty = true;
+	    this._classesDirty = true;
+	    this._attributesDirty = true;
+	    this._sizeDirty = true;
+	    this._contentDirty = true;
+	    this._originDirty = true;
+	    this._transformDirty = true;
+	};
+	Surface.prototype.commit = function commit(context) {
+	    if (!this._currentTarget)
+	        this.setup(context.allocator);
+	    var target = this._currentTarget;
+	    var size = context.size;
+	    if (this._classesDirty) {
+	        _cleanupClasses.call(this, target);
+	        var classList = this.getClassList();
+	        for (var i = 0; i < classList.length; i++)
+	            target.classList.add(classList[i]);
+	        this._classesDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    if (this._stylesDirty) {
+	        _applyStyles.call(this, target);
+	        this._stylesDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    if (this._attributesDirty) {
+	        _applyAttributes.call(this, target);
+	        this._attributesDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    if (this.size) {
+	        var origSize = context.size;
+	        size = [
+	            this.size[0],
+	            this.size[1]
+	        ];
+	        if (size[0] === undefined)
+	            size[0] = origSize[0];
+	        if (size[1] === undefined)
+	            size[1] = origSize[1];
+	        if (size[0] === true || size[1] === true) {
+	            if (size[0] === true) {
+	                if (this._trueSizeCheck || this._size[0] === 0) {
+	                    var width = target.offsetWidth;
+	                    if (this._size && this._size[0] !== width) {
+	                        this._size[0] = width;
+	                        this._sizeDirty = true;
+	                    }
+	                    size[0] = width;
+	                } else {
+	                    if (this._size)
+	                        size[0] = this._size[0];
+	                }
+	            }
+	            if (size[1] === true) {
+	                if (this._trueSizeCheck || this._size[1] === 0) {
+	                    var height = target.offsetHeight;
+	                    if (this._size && this._size[1] !== height) {
+	                        this._size[1] = height;
+	                        this._sizeDirty = true;
+	                    }
+	                    size[1] = height;
+	                } else {
+	                    if (this._size)
+	                        size[1] = this._size[1];
+	                }
+	            }
+	            this._trueSizeCheck = false;
+	        }
+	    }
+	    if (_xyNotEquals(this._size, size)) {
+	        if (!this._size)
+	            this._size = [
+	                0,
+	                0
+	            ];
+	        this._size[0] = size[0];
+	        this._size[1] = size[1];
+	        this._sizeDirty = true;
+	    }
+	    if (this._sizeDirty) {
+	        if (this._size) {
+	            target.style.width = this.size && this.size[0] === true ? '' : this._size[0] + 'px';
+	            target.style.height = this.size && this.size[1] === true ? '' : this._size[1] + 'px';
+	        }
+	        this._eventOutput.emit('resize');
+	    }
+	    if (this._contentDirty) {
+	        this.deploy(target);
+	        this._eventOutput.emit('deploy');
+	        this._contentDirty = false;
+	        this._trueSizeCheck = true;
+	    }
+	    ElementOutput.prototype.commit.call(this, context);
+	};
+	Surface.prototype.cleanup = function cleanup(allocator) {
+	    var i = 0;
+	    var target = this._currentTarget;
+	    this._eventOutput.emit('recall');
+	    this.recall(target);
+	    target.style.display = 'none';
+	    target.style.opacity = '';
+	    target.style.width = '';
+	    target.style.height = '';
+	    _cleanupStyles.call(this, target);
+	    _cleanupAttributes.call(this, target);
+	    var classList = this.getClassList();
+	    _cleanupClasses.call(this, target);
+	    for (i = 0; i < classList.length; i++)
+	        target.classList.remove(classList[i]);
+	    if (this.elementClass) {
+	        if (this.elementClass instanceof Array) {
+	            for (i = 0; i < this.elementClass.length; i++) {
+	                target.classList.remove(this.elementClass[i]);
+	            }
+	        } else {
+	            target.classList.remove(this.elementClass);
+	        }
+	    }
+	    this.detach(target);
+	    this._currentTarget = null;
+	    allocator.deallocate(target);
+	};
+	Surface.prototype.deploy = function deploy(target) {
+	    var content = this.getContent();
+	    if (content instanceof Node) {
+	        while (target.hasChildNodes())
+	            target.removeChild(target.firstChild);
+	        target.appendChild(content);
+	    } else
+	        target.innerHTML = content;
+	};
+	Surface.prototype.recall = function recall(target) {
+	    var df = document.createDocumentFragment();
+	    while (target.hasChildNodes())
+	        df.appendChild(target.firstChild);
+	    this.setContent(df);
+	};
+	Surface.prototype.getSize = function getSize() {
+	    return this._size ? this._size : this.size;
+	};
+	Surface.prototype.setSize = function setSize(size) {
+	    this.size = size ? [
+	        size[0],
+	        size[1]
+	    ] : null;
+	    this._sizeDirty = true;
+	    return this;
+	};
+	module.exports = Surface;
+
+/***/ },
+/* 66 */
+/*!*****************************************!*\
+  !*** ../~/famous/core/ElementOutput.js ***!
+  \*****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Entity = __webpack_require__(/*! ./Entity */ 3);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 6);
+	var Transform = __webpack_require__(/*! ./Transform */ 12);
+	var usePrefix = !('transform' in document.documentElement.style);
+	var devicePixelRatio = window.devicePixelRatio || 1;
+	function ElementOutput(element) {
+	    this._matrix = null;
+	    this._opacity = 1;
+	    this._origin = null;
+	    this._size = null;
+	    this._eventOutput = new EventHandler();
+	    this._eventOutput.bindThis(this);
+	    this.eventForwarder = function eventForwarder(event) {
+	        this._eventOutput.emit(event.type, event);
+	    }.bind(this);
+	    this.id = Entity.register(this);
+	    this._element = null;
+	    this._sizeDirty = false;
+	    this._originDirty = false;
+	    this._transformDirty = false;
+	    this._invisible = false;
+	    if (element)
+	        this.attach(element);
+	}
+	ElementOutput.prototype.on = function on(type, fn) {
+	    if (this._element)
+	        this._element.addEventListener(type, this.eventForwarder);
+	    this._eventOutput.on(type, fn);
+	};
+	ElementOutput.prototype.removeListener = function removeListener(type, fn) {
+	    this._eventOutput.removeListener(type, fn);
+	};
+	ElementOutput.prototype.emit = function emit(type, event) {
+	    if (event && !event.origin)
+	        event.origin = this;
+	    var handled = this._eventOutput.emit(type, event);
+	    if (handled && event && event.stopPropagation)
+	        event.stopPropagation();
+	    return handled;
+	};
+	ElementOutput.prototype.pipe = function pipe(target) {
+	    return this._eventOutput.pipe(target);
+	};
+	ElementOutput.prototype.unpipe = function unpipe(target) {
+	    return this._eventOutput.unpipe(target);
+	};
+	ElementOutput.prototype.render = function render() {
+	    return this.id;
+	};
+	function _addEventListeners(target) {
+	    for (var i in this._eventOutput.listeners) {
+	        target.addEventListener(i, this.eventForwarder);
+	    }
+	}
+	function _removeEventListeners(target) {
+	    for (var i in this._eventOutput.listeners) {
+	        target.removeEventListener(i, this.eventForwarder);
+	    }
+	}
+	function _formatCSSTransform(m) {
+	    m[12] = Math.round(m[12] * devicePixelRatio) / devicePixelRatio;
+	    m[13] = Math.round(m[13] * devicePixelRatio) / devicePixelRatio;
+	    var result = 'matrix3d(';
+	    for (var i = 0; i < 15; i++) {
+	        result += m[i] < 0.000001 && m[i] > -0.000001 ? '0,' : m[i] + ',';
+	    }
+	    result += m[15] + ')';
+	    return result;
+	}
+	var _setMatrix;
+	if (usePrefix) {
+	    _setMatrix = function (element, matrix) {
+	        element.style.webkitTransform = _formatCSSTransform(matrix);
+	    };
+	} else {
+	    _setMatrix = function (element, matrix) {
+	        element.style.transform = _formatCSSTransform(matrix);
+	    };
+	}
+	function _formatCSSOrigin(origin) {
+	    return 100 * origin[0] + '% ' + 100 * origin[1] + '%';
+	}
+	var _setOrigin = usePrefix ? function (element, origin) {
+	    element.style.webkitTransformOrigin = _formatCSSOrigin(origin);
+	} : function (element, origin) {
+	    element.style.transformOrigin = _formatCSSOrigin(origin);
+	};
+	var _setInvisible = usePrefix ? function (element) {
+	    element.style.webkitTransform = 'scale3d(0.0001,0.0001,0.0001)';
+	    element.style.opacity = 0;
+	} : function (element) {
+	    element.style.transform = 'scale3d(0.0001,0.0001,0.0001)';
+	    element.style.opacity = 0;
+	};
+	function _xyNotEquals(a, b) {
+	    return a && b ? a[0] !== b[0] || a[1] !== b[1] : a !== b;
+	}
+	ElementOutput.prototype.commit = function commit(context) {
+	    var target = this._element;
+	    if (!target)
+	        return;
+	    var matrix = context.transform;
+	    var opacity = context.opacity;
+	    var origin = context.origin;
+	    var size = context.size;
+	    if (!matrix && this._matrix) {
+	        this._matrix = null;
+	        this._opacity = 0;
+	        _setInvisible(target);
+	        return;
+	    }
+	    if (_xyNotEquals(this._origin, origin))
+	        this._originDirty = true;
+	    if (Transform.notEquals(this._matrix, matrix))
+	        this._transformDirty = true;
+	    if (this._invisible) {
+	        this._invisible = false;
+	        this._element.style.display = '';
+	    }
+	    if (this._opacity !== opacity) {
+	        this._opacity = opacity;
+	        target.style.opacity = opacity >= 1 ? '0.999999' : opacity;
+	    }
+	    if (this._transformDirty || this._originDirty || this._sizeDirty) {
+	        if (this._sizeDirty)
+	            this._sizeDirty = false;
+	        if (this._originDirty) {
+	            if (origin) {
+	                if (!this._origin)
+	                    this._origin = [
+	                        0,
+	                        0
+	                    ];
+	                this._origin[0] = origin[0];
+	                this._origin[1] = origin[1];
+	            } else
+	                this._origin = null;
+	            _setOrigin(target, this._origin);
+	            this._originDirty = false;
+	        }
+	        if (!matrix)
+	            matrix = Transform.identity;
+	        this._matrix = matrix;
+	        var aaMatrix = this._size ? Transform.thenMove(matrix, [
+	            -this._size[0] * origin[0],
+	            -this._size[1] * origin[1],
+	            0
+	        ]) : matrix;
+	        _setMatrix(target, aaMatrix);
+	        this._transformDirty = false;
+	    }
+	};
+	ElementOutput.prototype.cleanup = function cleanup() {
+	    if (this._element) {
+	        this._invisible = true;
+	        this._element.style.display = 'none';
+	    }
+	};
+	ElementOutput.prototype.attach = function attach(target) {
+	    this._element = target;
+	    _addEventListeners.call(this, target);
+	};
+	ElementOutput.prototype.detach = function detach() {
+	    var target = this._element;
+	    if (target) {
+	        _removeEventListeners.call(this, target);
+	        if (this._invisible) {
+	            this._invisible = false;
+	            this._element.style.display = '';
+	        }
+	    }
+	    this._element = null;
+	    return target;
+	};
+	module.exports = ElementOutput;
+
+/***/ },
+/* 67 */
 /*!****************************************************!*\
   !*** ../~/famous-flex/src/layouts/TabBarLayout.js ***!
   \****************************************************/
@@ -14087,8 +13833,8 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 28);
-	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 33);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 2);
+	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 8);
 	
 	    // Define capabilities of this layout function
 	    var capabilities = {
@@ -14220,9 +13966,43 @@
 
 
 /***/ },
-/* 63 */
+/* 68 */
+/*!************************!*\
+  !*** ./vflToLayout.js ***!
+  \************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	var AutoLayout = __webpack_require__(/*! autolayout.js */ 45);
+	
+	function _layout(view, context) {
+	    view.setSize(context.size[0], context.size[1]);
+	    var subView;
+	    for (var key in view.subViews) {
+	        subView = view.subViews[key];
+	        context.set(subView.name, {
+	            size: [subView.width, subView.height],
+	            translate: [subView.left, subView.top, 0]
+	        });
+	    }
+	}
+	
+	module.exports = function(visualFormat, options) {
+	    var view = new AutoLayout.View(options);
+	    try {
+	        var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
+	        view.addConstraints(constraints);
+	        return _layout.bind(view, view);
+	    }
+	    catch (err) {
+	        console.log(err); //eslint-disable-line no-console
+	    }
+	};
+
+
+/***/ },
+/* 69 */
 /*!******************************!*\
-  !*** ./views/LayoutView.es6 ***!
+  !*** ./views/EditorView.es6 ***!
   \******************************/
 /***/ function(module, exports, __webpack_require__) {
 
@@ -14242,53 +14022,235 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 50);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 57);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
-	var _famousSurfacesInputSurface = __webpack_require__(/*! famous/surfaces/InputSurface */ 64);
-	
-	var _famousSurfacesInputSurface2 = _interopRequireDefault(_famousSurfacesInputSurface);
-	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 51);
-	
-	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
-	
-	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 1);
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 49);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 68);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
-	var LayoutView = (function (_View) {
-	    function LayoutView(options) {
-	        var _this = this;
+	var _famousSurfacesTextareaSurface = __webpack_require__(/*! famous/surfaces/TextareaSurface */ 70);
 	
-	        _classCallCheck(this, LayoutView);
+	var _famousSurfacesTextareaSurface2 = _interopRequireDefault(_famousSurfacesTextareaSurface);
 	
-	        _get(Object.getPrototypeOf(LayoutView.prototype), 'constructor', this).call(this, options);
+	function getParameterByName(name) {
+	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+	    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+	    var results = regex.exec(location.search);
+	    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+	}
 	
-	        this.content = new _famousFlexLayoutController2['default']({
-	            flow: true,
-	            flowOptions: {
-	                reflowOnResize: false
-	            },
-	            layout: function layout(context) {
-	                if (_this.alView) {
-	                    _this.alView.setSize(context.size[0], context.size[1]);
-	                    var subView;
-	                    for (var key in _this.alView.subViews) {
-	                        subView = _this.alView.subViews[key];
-	                        context.set(subView.name, {
-	                            size: [subView.width, subView.height],
-	                            translate: [subView.left, subView.top, 0]
-	                        });
-	                    }
-	                }
+	var vfl = getParameterByName('vfl');
+	if (vfl === 'example') {
+	    vfl = 'H:|-[child1(child3)]-[child3]-|\n' + 'H:|-[child2(child4)]-[child4]-|\n' + 'H:[child5(child4)]-|\n' + 'V:|-[child1(child2)]-[child2]-|\n' + 'V:|-[child3(child4,child5)]-[child4]-[child5]-|';
+	}
+	vfl = vfl || '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|';
+	
+	var EditorView = (function (_View) {
+	    function EditorView(options) {
+	        _classCallCheck(this, EditorView);
+	
+	        _get(Object.getPrototypeOf(EditorView.prototype), 'constructor', this).call(this, options);
+	
+	        this.textArea = new _famousSurfacesTextareaSurface2['default']({
+	            value: vfl
+	        });
+	        this.textArea.on('change', this._onChange.bind(this));
+	        this.textArea.on('keyup', this._onChange.bind(this));
+	
+	        this.layout = new _famousFlexLayoutController2['default']({
+	            layout: (0, _vflToLayout2['default'])(['|[content]|', 'V:|[content]|']),
+	            dataSource: {
+	                content: this.textArea
 	            }
 	        });
+	        this.add(this.layout);
+	    }
+	
+	    _inherits(EditorView, _View);
+	
+	    _createClass(EditorView, [{
+	        key: '_onChange',
+	        value: function _onChange() {
+	            var val = this.textArea.getValue();
+	            if (val !== this._vfl) {
+	                this._vfl = val;
+	                this._eventOutput.emit('update');
+	            }
+	        }
+	    }, {
+	        key: 'getVisualFormat',
+	        value: function getVisualFormat() {
+	            return this.textArea.getValue();
+	        }
+	    }]);
+	
+	    return EditorView;
+	})(_famousCoreView2['default']);
+	
+	exports['default'] = EditorView;
+	module.exports = exports['default'];
+
+/***/ },
+/* 70 */
+/*!***********************************************!*\
+  !*** ../~/famous/surfaces/TextareaSurface.js ***!
+  \***********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Surface = __webpack_require__(/*! ../core/Surface */ 65);
+	function TextareaSurface(options) {
+	    this._placeholder = options.placeholder || '';
+	    this._value = options.value || '';
+	    this._name = options.name || '';
+	    this._wrap = options.wrap || '';
+	    this._cols = options.cols || '';
+	    this._rows = options.rows || '';
+	    Surface.apply(this, arguments);
+	    this.on('click', this.focus.bind(this));
+	}
+	TextareaSurface.prototype = Object.create(Surface.prototype);
+	TextareaSurface.prototype.constructor = TextareaSurface;
+	TextareaSurface.prototype.elementType = 'textarea';
+	TextareaSurface.prototype.elementClass = 'famous-surface';
+	TextareaSurface.prototype.setPlaceholder = function setPlaceholder(str) {
+	    this._placeholder = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.focus = function focus() {
+	    if (this._currentTarget)
+	        this._currentTarget.focus();
+	    return this;
+	};
+	TextareaSurface.prototype.blur = function blur() {
+	    if (this._currentTarget)
+	        this._currentTarget.blur();
+	    return this;
+	};
+	TextareaSurface.prototype.setValue = function setValue(str) {
+	    this._value = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.getValue = function getValue() {
+	    if (this._currentTarget) {
+	        return this._currentTarget.value;
+	    } else {
+	        return this._value;
+	    }
+	};
+	TextareaSurface.prototype.setName = function setName(str) {
+	    this._name = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.getName = function getName() {
+	    return this._name;
+	};
+	TextareaSurface.prototype.setWrap = function setWrap(str) {
+	    this._wrap = str;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.setColumns = function setColumns(num) {
+	    this._cols = num;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.setRows = function setRows(num) {
+	    this._rows = num;
+	    this._contentDirty = true;
+	    return this;
+	};
+	TextareaSurface.prototype.deploy = function deploy(target) {
+	    if (this._placeholder !== '')
+	        target.placeholder = this._placeholder;
+	    if (this._value !== '')
+	        target.value = this._value;
+	    if (this._name !== '')
+	        target.name = this._name;
+	    if (this._wrap !== '')
+	        target.wrap = this._wrap;
+	    if (this._cols !== '')
+	        target.cols = this._cols;
+	    if (this._rows !== '')
+	        target.rows = this._rows;
+	};
+	module.exports = TextareaSurface;
+
+/***/ },
+/* 71 */
+/*!********************************!*\
+  !*** ./views/SettingsView.es6 ***!
+  \********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
+	
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 57);
+	
+	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
+	
+	var _famousSurfacesInputSurface = __webpack_require__(/*! famous/surfaces/InputSurface */ 72);
+	
+	var _famousSurfacesInputSurface2 = _interopRequireDefault(_famousSurfacesInputSurface);
+	
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 65);
+	
+	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
+	
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 1);
+	
+	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
+	
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 68);
+	
+	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
+	
+	function getParameterByName(name) {
+	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+	    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+	    var results = regex.exec(location.search);
+	    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+	}
+	
+	var SettingsView = (function (_View) {
+	    function SettingsView(options) {
+	        _classCallCheck(this, SettingsView);
+	
+	        _get(Object.getPrototypeOf(SettingsView.prototype), 'constructor', this).call(this, options);
+	
+	        this._spacing = 8;
+	        try {
+	            this._spacing = JSON.parse(getParameterByName('spacing'));
+	        } catch (err) {}
 	
 	        this.renderables = {
 	            widthText: new _famousCoreSurface2['default']({
@@ -14304,15 +14266,16 @@
 	                placeholder: 'auto'
 	            }),
 	            spacingText: new _famousCoreSurface2['default']({
-	                content: '<div class="va">Spacing:</div>'
+	                content: '<div class="va">Spacing:</div>',
+	                classes: ['setting', 'text']
 	            }),
 	            spacingInput: new _famousSurfacesInputSurface2['default']({
-	                value: '8'
-	            }),
-	            content: this.content
+	                value: JSON.stringify(this._spacing),
+	                classes: ['setting', 'input']
+	            })
 	        };
 	        this.layout = new _famousFlexLayoutController2['default']({
-	            layout: (0, _vflToLayout2['default'])(['|-[widthText(50)]-[widthInput(50)]-[heightText(50)]-[heightInput(50)]-[spacingText(60)]-[spacingInput(200)]', 'V:[widthText(44,==widthInput,==heightText,==heightInput,==spacingText,==spacingInput)]', '|-[content]-|', 'V:|-[widthText]-[content]-|', 'V:|-[widthInput]', 'V:|-[heightText]', 'V:|-[heightInput]', 'V:|-[spacingText]', 'V:|-[spacingInput]']),
+	            layout: (0, _vflToLayout2['default'])(['|[spacingText(==spacingInput)]-[spacingInput]|', 'V:|-[spacingText(==30,==spacingInput)]', 'V:|-[spacingInput]']),
 	            dataSource: this.renderables
 	        });
 	        this.add(this.layout);
@@ -14320,52 +14283,40 @@
 	        this.renderables.spacingInput.on('keyup', this._updateSpacing.bind(this));
 	    }
 	
-	    _inherits(LayoutView, _View);
+	    _inherits(SettingsView, _View);
 	
-	    _createClass(LayoutView, [{
+	    _createClass(SettingsView, [{
 	        key: '_updateSpacing',
 	        value: function _updateSpacing() {
 	            try {
 	                var spacing = JSON.parse(this.renderables.spacingInput.getValue());
-	                if (this.alView) {
-	                    this.alView.setSpacing(spacing);
-	                    this.content.reflowLayout();
+	                if (spacing !== this._spacing) {
+	                    this._spacing = spacing;
+	                    this._eventOutput.emit('update');
 	                }
 	            } catch (err) {}
 	        }
 	    }, {
-	        key: 'setAutoLayoutView',
-	        value: function setAutoLayoutView(alView) {
-	            this.alView = alView;
-	            this.contentRenderables = this.contentRenderables || {};
-	            this.contentPool = this.contentPool || {};
-	            for (var key in this.contentRenderables) {
-	                this.contentPool[key] = this.contentRenderables[key];
+	        key: 'updateAutoLayoutView',
+	        value: function updateAutoLayoutView(alView) {
+	            if (this._spacing !== undefined) {
+	                alView.setSpacing(this._spacing);
 	            }
-	            this.contentRenderables = {};
-	            if (this.alView) {
-	                for (var subView in this.alView.subViews) {
-	                    this.contentRenderables[subView] = this.contentPool[subView] || new _famousCoreSurface2['default']({
-	                        content: '<div class="va">' + subView + '</div>',
-	                        classes: ['subView']
-	                    });
-	                }
-	            }
-	            this._updateSpacing();
-	            this.content.setDataSource(this.contentRenderables);
 	        }
 	    }]);
 	
-	    return LayoutView;
+	    return SettingsView;
 	})(_famousCoreView2['default']);
 	
-	exports['default'] = LayoutView;
+	exports['default'] = SettingsView;
 	module.exports = exports['default'];
 
 	//
 
+	//
+
 /***/ },
-/* 64 */
+/* 72 */
 /*!********************************************!*\
   !*** ../~/famous/surfaces/InputSurface.js ***!
   \********************************************/
@@ -14378,7 +14329,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Surface = __webpack_require__(/*! ../core/Surface */ 51);
+	var Surface = __webpack_require__(/*! ../core/Surface */ 65);
 	function InputSurface(options) {
 	    this._placeholder = options.placeholder || '';
 	    this._value = options.value || '';
@@ -14445,10 +14396,10 @@
 	module.exports = InputSurface;
 
 /***/ },
-/* 65 */
-/*!*****************************!*\
-  !*** ./views/ParseView.es6 ***!
-  \*****************************/
+/* 73 */
+/*!******************************!*\
+  !*** ./views/OutputView.es6 ***!
+  \******************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -14467,35 +14418,35 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 50);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 57);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 51);
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 65);
 	
 	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
 	
-	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 31);
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 1);
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 54);
+	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 56);
 	
 	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 49);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 68);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
-	var _autolayoutJsDistAutolayout = __webpack_require__(/*! autolayout.js/dist/autolayout */ 47);
+	var _autolayoutJs = __webpack_require__(/*! autolayout.js */ 45);
 	
-	var _autolayoutJsDistAutolayout2 = _interopRequireDefault(_autolayoutJsDistAutolayout);
+	var _autolayoutJs2 = _interopRequireDefault(_autolayoutJs);
 	
-	var ParseView = (function (_View) {
-	    function ParseView(options) {
-	        _classCallCheck(this, ParseView);
+	var OutputView = (function (_View) {
+	    function OutputView(options) {
+	        _classCallCheck(this, OutputView);
 	
-	        _get(Object.getPrototypeOf(ParseView.prototype), 'constructor', this).call(this, options);
+	        _get(Object.getPrototypeOf(OutputView.prototype), 'constructor', this).call(this, options);
 	
 	        this.tabBarController = new _famousFlexWidgetsTabBarController2['default']({
 	            tabBarSize: 44,
@@ -14525,7 +14476,7 @@
 	        this.tabBarController.setItems([{ tabItem: 'Log', view: this.log }, { tabItem: 'Constraints', view: this.constraints }, { tabItem: 'Raw', view: this.raw }]);
 	
 	        this.layout = new _famousFlexLayoutController2['default']({
-	            layout: (0, _vflToLayout2['default'])(['|-[content]-|', 'V:|-[content]-|']),
+	            layout: (0, _vflToLayout2['default'])(['|[content]|', 'V:|[content]|']),
 	            dataSource: {
 	                content: this.tabBarController
 	            }
@@ -14533,9 +14484,9 @@
 	        this.add(this.layout);
 	    }
 	
-	    _inherits(ParseView, _View);
+	    _inherits(OutputView, _View);
 	
-	    _createClass(ParseView, [{
+	    _createClass(OutputView, [{
 	        key: '_log',
 	        value: function _log(message) {
 	            this.logContent += message;
@@ -14548,26 +14499,23 @@
 	            try {
 	                var json = visualFormat.replace(/["']/g, '"');
 	                visualFormat = JSON.parse(json);
-	            } catch (err) {
-	
-	                //
-	                console.log('huh');
-	            }
+	            } catch (err) {}
 	            try {
 	                // update constraints
-	                var constraints = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat, { extended: true });
+	                var constraints = _autolayoutJs2['default'].VisualFormat.parse(visualFormat, { extended: true });
 	                this.constraints.setContent('<pre>' + JSON.stringify(constraints, undefined, 2) + '</pre>');
 	                // update raw
-	                var raw = _autolayoutJsDistAutolayout2['default'].VisualFormat.parse(visualFormat, { extended: true, outFormat: 'raw' });
+	                var raw = _autolayoutJs2['default'].VisualFormat.parse(visualFormat, { extended: true, outFormat: 'raw' });
 	                this.raw.setContent('<pre>' + JSON.stringify(raw, undefined, 2) + '</pre>');
 	                // update log
 	                this._log('<code>Visual format parsed successfully.</code><br>');
 	                return constraints;
 	            } catch (err) {
-	                if (err instanceof SyntaxError) {
+	                if (err instanceof SyntaxError || err.name === 'SyntaxError') {
 	                    this.constraints.setContent('');
 	                    this.raw.setContent('');
-	                    this._log('<pre style="color: red; margin: 0;">' + 'ERROR: ' + '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' + err.source.substring(err.column - 1) + '\n' + 'line ' + err.line + new Array(2 + err.column - ('' + err.line).length).join(' ') + '^ ' + err.message + '</pre>');
+	                    var arrow = err.column > 10 ? ' --->' : '';
+	                    this._log('<pre style="color: red; margin: 0;">' + 'ERROR: ' + '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' + err.source.substring(err.column - 1) + '\n' + 'line ' + err.line + arrow + new Array(2 + err.column - arrow.length - ('' + err.line).length).join(' ') + '^ ' + err.message + '</pre>');
 	                } else {
 	                    this._log('<pre style="color: red; margin: 0;">ERROR: ' + err.toString() + '</pre>');
 	                }
@@ -14575,10 +14523,122 @@
 	        }
 	    }]);
 	
-	    return ParseView;
+	    return OutputView;
 	})(_famousCoreView2['default']);
 	
-	exports['default'] = ParseView;
+	exports['default'] = OutputView;
+	module.exports = exports['default'];
+
+	//
+
+/***/ },
+/* 74 */
+/*!************************************!*\
+  !*** ./views/VisualOutputView.es6 ***!
+  \************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	
+	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+	
+	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
+	
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 57);
+	
+	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
+	
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 65);
+	
+	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
+	
+	var _famousFlexLayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 1);
+	
+	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
+	
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 68);
+	
+	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
+	
+	var VisualOutputView = (function (_View) {
+	    function VisualOutputView(options) {
+	        var _this = this;
+	
+	        _classCallCheck(this, VisualOutputView);
+	
+	        _get(Object.getPrototypeOf(VisualOutputView.prototype), 'constructor', this).call(this, options);
+	
+	        this.content = new _famousFlexLayoutController2['default']({
+	            flow: true,
+	            flowOptions: {
+	                reflowOnResize: false
+	            },
+	            layout: function layout(context) {
+	                if (_this.alView) {
+	                    _this.alView.setSize(context.size[0], context.size[1]);
+	                    var subView;
+	                    for (var key in _this.alView.subViews) {
+	                        subView = _this.alView.subViews[key];
+	                        context.set(subView.name, {
+	                            size: [subView.width, subView.height],
+	                            translate: [subView.left, subView.top, 0]
+	                        });
+	                    }
+	                }
+	            }
+	        });
+	        this.layout = new _famousFlexLayoutController2['default']({
+	            layout: (0, _vflToLayout2['default'])(['|[content]|', 'V:|[content]|']),
+	            dataSource: {
+	                content: this.content
+	            }
+	        });
+	        this.add(this.layout);
+	    }
+	
+	    _inherits(VisualOutputView, _View);
+	
+	    _createClass(VisualOutputView, [{
+	        key: 'setAutoLayoutView',
+	        value: function setAutoLayoutView(alView) {
+	            this.alView = alView;
+	            this.contentRenderables = this.contentRenderables || {};
+	            this.contentPool = this.contentPool || {};
+	            for (var key in this.contentRenderables) {
+	                this.contentPool[key] = this.contentRenderables[key];
+	            }
+	            this.contentRenderables = {};
+	            if (this.alView) {
+	                for (var subView in this.alView.subViews) {
+	                    this.contentRenderables[subView] = this.contentPool[subView] || new _famousCoreSurface2['default']({
+	                        content: '<div class="va">' + subView + '</div>',
+	                        classes: ['subView']
+	                    });
+	                }
+	            }
+	            this.content.setDataSource(this.contentRenderables);
+	        }
+	    }, {
+	        key: 'getAutoLayoutView',
+	        value: function getAutoLayoutView() {
+	            return this.alView;
+	        }
+	    }]);
+	
+	    return VisualOutputView;
+	})(_famousCoreView2['default']);
+	
+	exports['default'] = VisualOutputView;
 	module.exports = exports['default'];
 
 /***/ }

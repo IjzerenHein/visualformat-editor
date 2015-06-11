@@ -3,9 +3,9 @@ import Surface from 'famous/core/Surface';
 import LayoutController from 'famous-flex/LayoutController';
 import TabBarController from 'famous-flex/widgets/TabBarController';
 import vflToLayout from '../vflToLayout';
-import AutoLayout from 'autolayout.js/dist/autolayout';
+import AutoLayout from 'autolayout.js';
 
-class ParseView extends View {
+class OutputView extends View {
     constructor(options) {
         super(options);
 
@@ -42,8 +42,8 @@ class ParseView extends View {
 
         this.layout = new LayoutController({
             layout: vflToLayout([
-                '|-[content]-|',
-                'V:|-[content]-|'
+                '|[content]|',
+                'V:|[content]|'
             ]),
             dataSource: {
                 content: this.tabBarController
@@ -63,9 +63,7 @@ class ParseView extends View {
             const json = visualFormat.replace(/["']/g, '\"');
             visualFormat = JSON.parse(json);
         } catch (err) {
-
             //
-            console.log('huh');
         }
         try {
             // update constraints
@@ -79,14 +77,15 @@ class ParseView extends View {
             return constraints;
         }
         catch (err) {
-            if (err instanceof SyntaxError) {
+            if ((err instanceof SyntaxError) || (err.name === 'SyntaxError')) {
                 this.constraints.setContent('');
                 this.raw.setContent('');
+                let arrow = (err.column > 10) ? ' --->' : '';
                 this._log('<pre style="color: red; margin: 0;">' +
                     'ERROR: ' +
                     '<span style="color: black;">' + err.source.substring(0, err.column - 1) + '</span>' +
                     err.source.substring(err.column - 1) + '\n' +
-                    'line ' + err.line + (new Array(2 + err.column - ('' + err.line).length)).join(' ') + '^ ' + err.message +
+                    'line ' + err.line + arrow + (new Array(2 + err.column - arrow.length - ('' + err.line).length)).join(' ') + '^ ' + err.message +
                     '</pre>'
                 );
             }
@@ -97,4 +96,4 @@ class ParseView extends View {
     }
 }
 
-export {ParseView as default};
+export {OutputView as default};

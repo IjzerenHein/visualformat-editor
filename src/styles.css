@@ -65,6 +65,10 @@ input {
   color: orange;
   font-weight: bold;
 }
+.setting.text {
+  text-align: right;
+}
+
 .constraints, .log, .raw {
   overflow: scroll;
   font-size: 17px;
