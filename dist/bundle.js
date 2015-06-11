@@ -130,8 +130,7 @@
 	    var banner = new Surface({
 	        classes: ['banner'],
 	        content: '<div class="va">AUTOLAYOUT.JS<div class="subTitle">Visual Format Viewer</div></div>' +
-	        //'<iframe src="https://ghbtns.com/github-btn.html?user=ijzerenhein&repo=autolayout.js&type=star&count=true&size=small" frameborder="0" scrolling="0" width="170px" height="30px"></iframe>'
-	        '<a href="https://github.com/ijzerenhein/autolayout.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>'
+	        (parseInt(getParameterByName('fork') || '1') ? '<a href="https://github.com/ijzerenhein/autolayout.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>' : '')
 	    });
 	    mainLC.insert('banner', banner);
 	
@@ -6652,7 +6651,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports =
-		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 35)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 36)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'DancingScriptOT';\n  src: url("+__webpack_require__(/*! ./fonts/dancing-script-ot/DancingScript-Regular.otf */ 37)+");\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n  -moz-tab-size: 2;\n  -o-tab-size: 2;\n  tab-size: 2;\n}\ntextarea {\n  padding: 5px;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n  z-index: 10;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n.banner .subTitle {\n  font-family: DancingScriptOT;\n  font-weight: bold;\n  font-size: 26px;\n  color: orange;\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 3px solid orange;\n}\n.ff-tabbar.item > div {\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n}\n.ff-tabbar.item.selected {\n  color: orange;\n  font-weight: bold;\n}\n.setting.text {\n  text-align: right;\n}\n\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  background-color: #CCCCCC;\n  text-align: center;\n}\n";
+		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 35)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 36)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'DancingScriptOT';\n  src: url("+__webpack_require__(/*! ./fonts/dancing-script-ot/DancingScript-Regular.otf */ 37)+");\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n  -moz-tab-size: 2;\n  -o-tab-size: 2;\n  tab-size: 2;\n  resize: none;\n}\ntextarea {\n  padding: 5px;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n  z-index: 10;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n.banner .subTitle {\n  font-family: DancingScriptOT;\n  font-weight: bold;\n  font-size: 26px;\n  color: orange;\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 3px solid orange;\n}\n.ff-tabbar.item > div {\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n}\n.ff-tabbar.item.selected {\n  color: orange;\n  font-weight: bold;\n}\n.setting.text {\n  text-align: right;\n}\n\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  background-color: #CCCCCC;\n  text-align: center;\n}\n";
 
 /***/ },
 /* 35 */
@@ -8324,9 +8323,13 @@
 	        /**
 	         * Parses a single line of vfl into an array of constraint definitions.
 	         *
+	         * When the visual-format could not be succesfully parsed an exception is thrown containing
+	         * additional info about the parse error and column position.
+	         *
 	         * @param {String} visualFormat Visual format string (cannot contain line-endings!).
 	         * @param {Object} [options] Configuration options.
 	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
+	         * @param {String} [options.outFormat] Output format (`constraints` or `raw`) (default: `constraints`).
 	         * @return {Array} Array of constraint definitions.
 	         */
 	        value: function parseLine(visualFormat, options) {
@@ -8401,11 +8404,14 @@
 	        /**
 	         * Parses one or more visual format strings into an array of constraint definitions.
 	         *
+	         * When the visual-format could not be succesfully parsed an exception is thrown containing
+	         * additional info about the parse error and column position.
+	         *
 	         * @param {String|Array} visualFormat One or more visual format strings.
 	         * @param {Object} [options] Configuration options.
 	         * @param {Boolean} [options.extended] When set to true uses the extended syntax (default: false).
 	         * @param {String} [options.lineSeperator] String that defines the end of a line (default `\n`).
-	         * @param {String} [options.outFormat] Output format ('constraints' or 'raw') (default: 'constraints').
+	         * @param {String} [options.outFormat] Output format (`constraints` or `raw`) (default: `constraints`).
 	         * @return {Array} Array of constraint definitions.
 	         */
 	        value: function parse(visualFormat, options) {
@@ -10556,6 +10562,12 @@
 	    this._solver.addConstraint(relation);
 	}
 	
+	/**
+	 *  AutoLayoutJS API reference.
+	 *
+	 * @module AutoLayout
+	 */
+	
 	var View = (function () {
 	
 	    /**
@@ -10597,7 +10609,7 @@
 	         *
 	         * @param {Number} width Width of the view.
 	         * @param {Number} height Height of the view.
-	         * @return {AutoLayout} this
+	         * @return {View} this
 	         */
 	        value: function setSize(width, height /*, depth*/) {
 	            if (this._width === width && this._height === height) {
@@ -10627,7 +10639,8 @@
 	         * view.setSpacing([10, 20, 10, 20, 5, 5]); // top, right, bottom, left, horizontal, vertical
 	         * ```
 	         *
-	         * @param {Number|Array} spacing.
+	         * @param {Number|Array} spacing
+	         * @return {View} this
 	         */
 	        value: function setSpacing(spacing) {
 	            // convert spacing into array: [top, right, bottom, left, horz, vert]
@@ -10653,6 +10666,7 @@
 	                }
 	                this._solver.resolve();
 	            }
+	            return this;
 	        }
 	    }, {
 	        key: 'addConstraint',
@@ -10674,7 +10688,7 @@
 	         * }
 	         * ```
 	         * @param {Object} constraint Constraint definition.
-	         * @return {AutoLayout} this
+	         * @return {View} this
 	         */
 	        value: function addConstraint(constraint) {
 	            _addConstraint.call(this, constraint);
@@ -10700,7 +10714,7 @@
 	         * }
 	         * ```
 	         * @param {Array} constraints One or more constraint definitions.
-	         * @return {AutoLayout} this
+	         * @return {View} this
 	         */
 	        value: function addConstraints(constraints) {
 	            for (var i = 0; i < constraints.length; i++) {
@@ -10836,7 +10850,7 @@
 	/**
 	 * A SubView is automatically generated when constraints are added to a View.
 	 *
-	 * @class SubView
+	 * @namespace SubView
 	 */
 	
 	var SubView = (function () {
@@ -11082,6 +11096,13 @@
 	
 	var _SettingsViewEs62 = _interopRequireDefault(_SettingsViewEs6);
 	
+	function getParameterByName(name) {
+	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+	    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+	    var results = regex.exec(location.search);
+	    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+	}
+	
 	var InputView = (function (_View) {
 	    function InputView(options) {
 	        _classCallCheck(this, InputView);
@@ -11106,9 +11127,10 @@
 	        this.layout = new _famousFlexLayoutController2['default']({
 	            layout: (0, _vflToLayout2['default'])(['|[content]|', 'V:|[content]|']),
 	            dataSource: {
-	                content: this.tabBarController
+	                content: parseInt(getParameterByName('settings') || '1') ? this.tabBarController : this.editor
 	            }
 	        });
+	
 	        this.add(this.layout);
 	    }
 	
@@ -14062,6 +14084,12 @@
 	        });
 	        this.textArea.on('change', this._onChange.bind(this));
 	        this.textArea.on('keyup', this._onChange.bind(this));
+	
+	        if (!parseInt(getParameterByName('border') || '1')) {
+	            this.textArea.setProperties({
+	                border: 'none'
+	            });
+	        }
 	
 	        this.layout = new _famousFlexLayoutController2['default']({
 	            layout: (0, _vflToLayout2['default'])(['|[content]|', 'V:|[content]|']),

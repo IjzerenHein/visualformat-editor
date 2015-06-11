@@ -5,6 +5,13 @@ import TabBarController from 'famous-flex/widgets/TabBarController';
 import EditorView from './EditorView.es6';
 import SettingsView from './SettingsView.es6';
 
+function getParameterByName(name) {
+    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    var results = regex.exec(location.search);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+}
+
 class InputView extends View {
     constructor(options) {
         super(options);
@@ -33,9 +40,10 @@ class InputView extends View {
                 'V:|[content]|'
             ]),
             dataSource: {
-                content: this.tabBarController
+                content: parseInt(getParameterByName('settings') || '1') ? this.tabBarController : this.editor
             }
         });
+
         this.add(this.layout);
     }
 }

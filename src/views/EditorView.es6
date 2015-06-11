@@ -31,6 +31,12 @@ class EditorView extends View {
         this.textArea.on('change', this._onChange.bind(this));
         this.textArea.on('keyup', this._onChange.bind(this));
 
+        if (!parseInt(getParameterByName('border') || '1')) {
+            this.textArea.setProperties({
+                border: 'none'
+            });
+        }
+
         this.layout = new LayoutController({
             layout: vflToLayout([
                 '|[content]|',
