@@ -12,7 +12,7 @@ The Visual Format Editor can be customized by specifying query-arguments:
 |Argument|Type|Description
 |---|---|---|
 |`vfl`|`string`|The vfl definition to display.|
-|`extended`|`0` / `1`|Enables or disabled extended vfl mode (default: enabled).|
+|`extended`|`0` / `1`|Enables or disables extended vfl mode (default: enabled).|
 |`spacing`|`array`,`number`|Spacing to use (default: 8).|
 |`mode`|`string`|Appearence mode: `default`, `compact`, `nolog`, `preview`.|
 |`settings`|`0` / `1`|Shows or hides the settings pane (default: 1).|

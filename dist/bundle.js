@@ -153,7 +153,7 @@
 	    // Update handling
 	    function _update() {
 	        var vfl = inputView.editor.getVisualFormat();
-	        var constraints = outputView.parse(vfl);
+	        var constraints = outputView.parse(vfl, inputView.settings.getExtended());
 	        if (constraints) {
 	            var view = new AutoLayout.View();
 	            view.addConstraints(constraints);
@@ -161,7 +161,10 @@
 	        }
 	        _updateSettings(); //eslint-disable-line no-use-before-define
 	    }
-	    function _updateSettings() {
+	    function _updateSettings(forceParse) {
+	        if (forceParse) {
+	            return _update.call(this);
+	        }
 	        var view = visualOutputView.getAutoLayoutView();
 	        if (view) {
 	            inputView.settings.updateAutoLayoutView(view);
@@ -14162,7 +14165,7 @@
 	
 	var vfl = getParameterByName('vfl');
 	if (vfl === 'example') {
-	    vfl = 'H:|-[child1(child3)]-[child3]-|\n' + 'H:|-[child2(child4)]-[child4]-|\n' + 'H:[child5(child4)]-|\n' + 'V:|-[child1(child2)]-[child2]-|\n' + 'V:|-[child3(child4,child5)]-[child4]-[child5]-|';
+	    vfl = '|-[child1(child3)]-[child3]-|\n' + '|-[child2(child4)]-[child4]-|\n' + '[child5(child4)]-|\n' + 'V:|-[child1(child2)]-[child2]-|\n' + 'V:|-[child3(child4,child5)]-[child4]-[child5]-|';
 	}
 	vfl = vfl || '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|';
 	
@@ -23309,6 +23312,8 @@
 	
 	        _get(Object.getPrototypeOf(SettingsView.prototype), 'constructor', this).call(this, options);
 	
+	        this._extendedFormat = getParameterByName('extended') !== '' ? parseInt(getParameterByName('extended')) !== 0 : 1;
+	
 	        this._spacing = 8;
 	        try {
 	            this._spacing = JSON.parse(getParameterByName('spacing'));
@@ -23334,15 +23339,30 @@
 	            spacingInput: new _famousSurfacesInputSurface2['default']({
 	                value: JSON.stringify(this._spacing),
 	                classes: ['setting', 'input']
+	            }),
+	            extendedText: new _famousCoreSurface2['default']({
+	                content: '<div class="va">Extended format (EVFL):</div>',
+	                classes: ['setting', 'text']
+	            }),
+	            extendedInput: new _famousSurfacesInputSurface2['default']({
+	                type: 'checkbox',
+	                classes: ['setting', 'input']
 	            })
 	        };
+	        if (this._extendedFormat) {
+	            this.renderables.extendedInput.setAttributes({
+	                checked: true
+	            });
+	        }
 	        this.layout = new _famousFlexLayoutController2['default']({
-	            layout: (0, _vflToLayout2['default'])(['|[spacingText(==spacingInput)]-[spacingInput]|', 'V:|-[spacingText(==30,==spacingInput)]', 'V:|-[spacingInput]']),
+	            layout: (0, _vflToLayout2['default'])(['|[spacingText(==spacingInput)]-[spacingInput]|', '|[extendedText(==extendedInput)]-[extendedInput]|', 'V:|-[spacingText(==30,==spacingInput)]-[extendedText(==spacingText,==extendedInput)]', 'V:|-[spacingInput]-[extendedInput]']),
 	            dataSource: this.renderables
 	        });
 	        this.add(this.layout);
 	        this.renderables.spacingInput.on('change', this._updateSpacing.bind(this));
 	        this.renderables.spacingInput.on('keyup', this._updateSpacing.bind(this));
+	
+	        this.renderables.extendedInput.on('change', this._updateExtended.bind(this));
 	    }
 	
 	    _inherits(SettingsView, _View);
@@ -23359,11 +23379,25 @@
 	            } catch (err) {}
 	        }
 	    }, {
+	        key: '_updateExtended',
+	        value: function _updateExtended() {
+	            this._extendedFormat = this.renderables.extendedInput.getAttributes().checked;
+	            if (this.renderables.extendedInput._currentTarget) {
+	                this._extendedFormat = this.renderables.extendedInput._currentTarget.checked ? true : false;
+	            }
+	            this._eventOutput.emit('update', true);
+	        }
+	    }, {
 	        key: 'updateAutoLayoutView',
 	        value: function updateAutoLayoutView(alView) {
 	            if (this._spacing !== undefined) {
 	                alView.setSpacing(this._spacing);
 	            }
+	        }
+	    }, {
+	        key: 'getExtended',
+	        value: function getExtended() {
+	            return this._extendedFormat;
 	        }
 	    }]);
 	
@@ -23556,7 +23590,7 @@
 	        }
 	    }, {
 	        key: 'parse',
-	        value: function parse(visualFormat) {
+	        value: function parse(visualFormat, extended) {
 	            visualFormat = visualFormat.replace(/[\\]/g, '\n');
 	            try {
 	                var json = visualFormat.replace(/["']/g, '"');
@@ -23564,10 +23598,10 @@
 	            } catch (err) {}
 	            try {
 	                // update constraints
-	                var constraints = _autolayoutJs2['default'].VisualFormat.parse(visualFormat, { extended: true });
+	                var constraints = _autolayoutJs2['default'].VisualFormat.parse(visualFormat, { extended: extended });
 	                this.constraints.setContent('<pre>' + JSON.stringify(constraints, undefined, 2) + '</pre>');
 	                // update raw
-	                var raw = _autolayoutJs2['default'].VisualFormat.parse(visualFormat, { extended: true, outFormat: 'raw' });
+	                var raw = _autolayoutJs2['default'].VisualFormat.parse(visualFormat, { extended: extended, outFormat: 'raw' });
 	                this.raw.setContent('<pre>' + JSON.stringify(raw, undefined, 2) + '</pre>');
 	                // update log
 	                this._log('<code>Visual format parsed successfully.</code><br>');
