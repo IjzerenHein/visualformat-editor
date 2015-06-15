@@ -104,7 +104,7 @@ define(function(require) {
     // Update handling
     function _update() {
         var vfl = inputView.editor.getVisualFormat();
-        var constraints = outputView.parse(vfl);
+        var constraints = outputView.parse(vfl, inputView.settings.getExtended());
         if (constraints) {
             var view = new AutoLayout.View();
             view.addConstraints(constraints);
@@ -112,7 +112,10 @@ define(function(require) {
         }
         _updateSettings(); //eslint-disable-line no-use-before-define
     }
-    function _updateSettings() {
+    function _updateSettings(forceParse) {
+        if (forceParse) {
+            return _update.call(this);
+        }
         var view = visualOutputView.getAutoLayoutView();
         if (view) {
             inputView.settings.updateAutoLayoutView(view);

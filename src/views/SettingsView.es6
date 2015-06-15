@@ -15,6 +15,8 @@ class SettingsView extends View {
     constructor(options) {
         super(options);
 
+        this._extendedFormat = (getParameterByName('extended') !== '') ? (parseInt(getParameterByName('extended')) !== 0) : 1;
+
         this._spacing = 8;
         try {
             this._spacing = JSON.parse(getParameterByName('spacing'));
@@ -43,19 +45,35 @@ class SettingsView extends View {
             spacingInput: new InputSurface({
                 value: JSON.stringify(this._spacing),
                 classes: ['setting', 'input']
+            }),
+            extendedText: new Surface({
+                content: '<div class="va">Extended format (EVFL):</div>',
+                classes: ['setting', 'text']
+            }),
+            extendedInput: new InputSurface({
+                type: 'checkbox',
+                classes: ['setting', 'input']
             })
         };
+        if (this._extendedFormat) {
+            this.renderables.extendedInput.setAttributes({
+                checked: true
+            });
+        }
         this.layout = new LayoutController({
             layout: vflToLayout([
                 '|[spacingText(==spacingInput)]-[spacingInput]|',
-                'V:|-[spacingText(==30,==spacingInput)]',
-                'V:|-[spacingInput]'
+                '|[extendedText(==extendedInput)]-[extendedInput]|',
+                'V:|-[spacingText(==30,==spacingInput)]-[extendedText(==spacingText,==extendedInput)]',
+                'V:|-[spacingInput]-[extendedInput]'
             ]),
             dataSource: this.renderables
         });
         this.add(this.layout);
         this.renderables.spacingInput.on('change', this._updateSpacing.bind(this));
         this.renderables.spacingInput.on('keyup', this._updateSpacing.bind(this));
+
+        this.renderables.extendedInput.on('change', this._updateExtended.bind(this));
     }
 
     _updateSpacing() {
@@ -71,10 +89,22 @@ class SettingsView extends View {
         }
     }
 
+    _updateExtended() {
+        this._extendedFormat = this.renderables.extendedInput.getAttributes().checked;
+        if (this.renderables.extendedInput._currentTarget) {
+            this._extendedFormat = this.renderables.extendedInput._currentTarget.checked ? true : false;
+        }
+        this._eventOutput.emit('update', true);
+    }
+
     updateAutoLayoutView(alView) {
         if (this._spacing !== undefined) {
             alView.setSpacing(this._spacing);
         }
+    }
+
+    getExtended() {
+        return this._extendedFormat;
     }
 }
 

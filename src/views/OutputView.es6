@@ -57,7 +57,7 @@ class OutputView extends View {
         this.log.setContent(this.logContent);
     }
 
-    parse(visualFormat) {
+    parse(visualFormat, extended) {
         visualFormat = visualFormat.replace(/[\\]/g, '\n');
         try {
             const json = visualFormat.replace(/["']/g, '\"');
@@ -67,10 +67,10 @@ class OutputView extends View {
         }
         try {
             // update constraints
-            const constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
+            const constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: extended});
             this.constraints.setContent('<pre>' + JSON.stringify(constraints, undefined, 2) + '</pre>');
             // update raw
-            const raw = AutoLayout.VisualFormat.parse(visualFormat, {extended: true, outFormat: 'raw'});
+            const raw = AutoLayout.VisualFormat.parse(visualFormat, {extended: extended, outFormat: 'raw'});
             this.raw.setContent('<pre>' + JSON.stringify(raw, undefined, 2) + '</pre>');
             // update log
             this._log('<code>Visual format parsed successfully.</code><br>');

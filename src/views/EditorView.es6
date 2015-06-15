@@ -15,9 +15,9 @@ function getParameterByName(name) {
 var vfl = getParameterByName('vfl');
 if (vfl === 'example') {
     vfl =
-    'H:|-[child1(child3)]-[child3]-|\n' +
-    'H:|-[child2(child4)]-[child4]-|\n' +
-    'H:[child5(child4)]-|\n' +
+    '|-[child1(child3)]-[child3]-|\n' +
+    '|-[child2(child4)]-[child4]-|\n' +
+    '[child5(child4)]-|\n' +
     'V:|-[child1(child2)]-[child2]-|\n' +
     'V:|-[child3(child4,child5)]-[child4]-[child5]-|';
 }
