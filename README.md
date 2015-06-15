@@ -7,7 +7,19 @@ The Visual Format Editor allows you to parse and preview Apple's Visual Format L
 
 ## Query arguments
 
-TODO
+The Visual Format Editor can be customized by specifying query-arguments:
+
+|Argument|Type|Description
+|---|---|---|
+|`vfl`|`string`|The vfl definition to display.|
+|`extended`|`0` / `1`|Enables or disabled extended vfl mode (default: enabled).|
+|`spacing`|`array`,`number`|Spacing to use (default: 8).|
+|`mode`|`string`|Appearence mode: `default`, `compact`, `nolog`, `preview`.|
+|`settings`|`0` / `1`|Shows or hides the settings pane (default: 1).|
+
+Example:
+
+    visualformat-editor/.../index.html?spacing=[20,10]&extended=0
 
 
 ## Contribute
@@ -18,6 +30,6 @@ and give it a star.
 
 ## Contact
 -   @IjzerenHein
--   hrutjes@gmail.com (for hire)
+-   hrutjes@gmail.com
 
 © 2015 Hein Rutjes
