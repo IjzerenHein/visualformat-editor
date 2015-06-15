@@ -1,7 +1,9 @@
 import View from 'famous/core/View';
 import LayoutController from 'famous-flex/LayoutController';
 import vflToLayout from '../vflToLayout';
-import TextareaSurface from 'famous/surfaces/TextareaSurface';
+import Surface from 'famous/core/Surface';
+import CodeMirror from 'codemirror';
+import VflMode from '../mode/vfl/vfl'; //eslint-disable-line no-unused-vars
 
 function getParameterByName(name) {
     name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -25,17 +27,21 @@ class EditorView extends View {
     constructor(options) {
         super(options);
 
-        this.textArea = new TextareaSurface({
-            value: vfl
+        this.elm = document.createElement('div');
+        this.surface = new Surface({
+            content: this.elm,
+            classes: ['editor']
         });
-        this.textArea.on('change', this._onChange.bind(this));
-        this.textArea.on('keyup', this._onChange.bind(this));
-
-        if (!parseInt(getParameterByName('border') || '1')) {
-            this.textArea.setProperties({
-                border: 'none'
-            });
-        }
+        this.surface.on('deploy', () => {
+            if (!this.editor) {
+                this.editor = new CodeMirror(this.elm, {
+                    lineNumbers: true,
+                    theme: 'vfl'
+                });
+                this.editor.setValue(vfl);
+                this.editor.on('change', this._onChange.bind(this));
+            }
+        });
 
         this.layout = new LayoutController({
             layout: vflToLayout([
@@ -43,14 +49,14 @@ class EditorView extends View {
                 'V:|[content]|'
             ]),
             dataSource: {
-                content: this.textArea
+                content: this.surface
             }
         });
         this.add(this.layout);
     }
 
     _onChange() {
-        var val = this.textArea.getValue();
+        var val = this.editor.getValue();
         if (val !== this._vfl) {
             this._vfl = val;
             this._eventOutput.emit('update');
@@ -58,7 +64,7 @@ class EditorView extends View {
     }
 
     getVisualFormat() {
-        return this.textArea.getValue();
+        return this.editor ? this.editor.getValue() : vfl;
     }
 }
 

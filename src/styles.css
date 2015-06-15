@@ -30,8 +30,10 @@ textarea, input {
   tab-size: 2;
   resize: none;
 }
-textarea {
-  padding: 5px;
+.CodeMirror {
+  position: absolute !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 input {
   text-align: center;

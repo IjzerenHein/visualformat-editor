@@ -20,7 +20,6 @@
         "checkParamNames": true,
         "requireParamTypes": false
     },
-    "validateQuoteMarks": "'",
     "disallowMultipleVarDecl": true,
     "disallowSpacesInsideParentheses": true
 }
