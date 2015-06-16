@@ -4,11 +4,13 @@ function _layout(view, context) {
     view.setSize(context.size[0], context.size[1]);
     var subView;
     for (var key in view.subViews) {
-        subView = view.subViews[key];
-        context.set(subView.name, {
-            size: [subView.width, subView.height],
-            translate: [subView.left, subView.top, 0]
-        });
+        if (key.indexOf('_') !== 0) {
+            subView = view.subViews[key];
+            context.set(subView.name, {
+                size: [subView.width, subView.height],
+                translate: [subView.left, subView.top, 0]
+            });
+        }
     }
 }
 

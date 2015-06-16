@@ -48,10 +48,12 @@ class VisualOutputView extends View {
         this.contentRenderables = {};
         if (this.alView) {
             for (var subView in this.alView.subViews) {
-                this.contentRenderables[subView] = this.contentPool[subView] || new Surface({
-                    content: '<div class="va">' + subView + '</div>',
-                    classes: ['subView']
-                });
+                if (subView.indexOf('_') !== 0) {
+                    this.contentRenderables[subView] = this.contentPool[subView] || new Surface({
+                        content: '<div class="va">' + subView + '</div>',
+                        classes: ['subView']
+                    });
+                }
             }
         }
         this.content.setDataSource(this.contentRenderables);
