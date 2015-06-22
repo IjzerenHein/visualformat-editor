@@ -9,7 +9,8 @@ CodeMirror.defineSimpleMode("vfl", {
         {regex: /^[HV]/, token: "meta", push: "orientation"},
         {regex: /\|/, token: "keyword"},
         {regex: /-/, token: "def", push: "connection"},
-        {regex: /\[/, token: "bracket", push: "view"}
+        {regex: /\[/, token: "bracket", push: "view"},
+        {regex: /.*\/\/.*/, token: "comment"}
     ],
     orientation: [
         {regex: /:/, token: "def", pop: true}
