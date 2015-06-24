@@ -14,13 +14,13 @@ class VisualOutputView extends View {
             },
             layout: (context) => {
                 if (this.alView) {
-                    this.alView.setSize(context.size[0], context.size[1]);
                     var subView;
+                    this.alView.setSize(context.size[0], context.size[1]);
                     for (var key in this.alView.subViews) {
                         subView = this.alView.subViews[key];
                         context.set(subView.name, {
                             size: [subView.width, subView.height],
-                            translate: [subView.left, subView.top, 0]
+                            translate: [subView.left, subView.top, subView.zIndex]
                         });
                     }
                 }

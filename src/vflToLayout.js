@@ -8,7 +8,7 @@ function _layout(view, context) {
             subView = view.subViews[key];
             context.set(subView.name, {
                 size: [subView.width, subView.height],
-                translate: [subView.left, subView.top, 0]
+                translate: [subView.left, subView.top, subView.zIndex]
             });
         }
     }

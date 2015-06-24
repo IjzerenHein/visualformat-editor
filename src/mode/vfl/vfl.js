@@ -6,7 +6,7 @@ require("codemirror/addon/mode/simple");
 CodeMirror.defineSimpleMode("vfl", {
     // The start state contains the rules that are intially used
     start: [
-        {regex: /^[HV]/, token: "meta", push: "orientation"},
+        {regex: /^[HVZ]/, token: "meta", push: "orientation"},
         {regex: /\|/, token: "keyword"},
         {regex: /-/, token: "def", push: "connection"},
         {regex: /\[/, token: "bracket", push: "view"},
