@@ -83,11 +83,11 @@
 	    var Engine = __webpack_require__(/*! famous/core/Engine */ 1);
 	    var LayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 35);
 	    var AutoLayout = __webpack_require__(/*! autolayout.js */ 49);
-	    var InputView = __webpack_require__(/*! ./views/InputView.es6 */ 59);
-	    var OutputView = __webpack_require__(/*! ./views/OutputView.es6 */ 79);
-	    var VisualOutputView = __webpack_require__(/*! ./views/VisualOutputView.es6 */ 80);
-	    var vflToLayout = __webpack_require__(/*! ./vflToLayout */ 72);
-	    var Surface = __webpack_require__(/*! famous/core/Surface */ 69);
+	    var InputView = __webpack_require__(/*! ./views/InputView.es6 */ 60);
+	    var OutputView = __webpack_require__(/*! ./views/OutputView.es6 */ 80);
+	    var VisualOutputView = __webpack_require__(/*! ./views/VisualOutputView.es6 */ 81);
+	    var vflToLayout = __webpack_require__(/*! ./vflToLayout */ 73);
+	    var Surface = __webpack_require__(/*! famous/core/Surface */ 70);
 	
 	    // create the main context and layout
 	    var mainContext = Engine.createContext();
@@ -2717,7 +2717,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports =
-		".cm-s-vfl span.cm-def {color: #D8D8D8;}\n.cm-s-vfl span.cm-meta {color: #a71d5d;}\n.cm-s-vfl span.cm-number {color: #0086b3;}\n.cm-s-vfl span.cm-bracket {color: #193691;}\n.cm-s-vfl span.cm-keyword {color: #193691; font-weight: bold;}\n.cm-s-vfl span.cm-variable {color: #f09e53;}\n.cm-s-vfl span.cm-operator {color: #795da3}\n";
+		".cm-s-vfl span.cm-def {color: #D8D8D8;}\n.cm-s-vfl span.cm-meta {color: #a71d5d;}\n.cm-s-vfl span.cm-number {color: #0086b3;}\n.cm-s-vfl span.cm-bracket {color: #193691;}\n.cm-s-vfl span.cm-keyword {color: #193691; font-weight: bold;}\n.cm-s-vfl span.cm-variable {color: #f09e53;}\n.cm-s-vfl span.cm-operator {color: #795da3;}\n.cm-s-vfl span.cm-comment {color: #999999;}\n";
 
 /***/ },
 /* 34 */
@@ -8230,25 +8230,31 @@
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 	
-	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 50);
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 53);
 	
 	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
 	
-	var _RelationEs6 = __webpack_require__(/*! ./Relation.es6 */ 51);
+	var _RelationEs6 = __webpack_require__(/*! ./Relation.es6 */ 54);
 	
 	var _RelationEs62 = _interopRequireDefault(_RelationEs6);
 	
-	var _VisualFormatEs6 = __webpack_require__(/*! ./VisualFormat.es6 */ 52);
+	var _PriorityEs6 = __webpack_require__(/*! ./Priority.es6 */ 55);
+	
+	var _PriorityEs62 = _interopRequireDefault(_PriorityEs6);
+	
+	var _VisualFormatEs6 = __webpack_require__(/*! ./VisualFormat.es6 */ 50);
 	
 	var _VisualFormatEs62 = _interopRequireDefault(_VisualFormatEs6);
 	
-	var _ViewEs6 = __webpack_require__(/*! ./View.es6 */ 55);
+	var _ViewEs6 = __webpack_require__(/*! ./View.es6 */ 56);
 	
 	var _ViewEs62 = _interopRequireDefault(_ViewEs6);
 	
-	var _SubViewEs6 = __webpack_require__(/*! ./SubView.es6 */ 58);
+	var _SubViewEs6 = __webpack_require__(/*! ./SubView.es6 */ 59);
 	
 	var _SubViewEs62 = _interopRequireDefault(_SubViewEs6);
+	
+	//import DOM from './DOM.es6';
 	
 	/**
 	 * AutoLayout.
@@ -8256,6 +8262,7 @@
 	 * @namespace AutoLayout
 	 * @property {Attribute} Attribute
 	 * @property {Relation} Relation
+	 * @property {Priority} Priority
 	 * @property {VisualFormat} VisualFormat
 	 * @property {View} View
 	 * @property {SubView} SubView
@@ -8263,9 +8270,11 @@
 	var AutoLayout = {
 	  Attribute: _AttributeEs62['default'],
 	  Relation: _RelationEs62['default'],
+	  Priority: _PriorityEs62['default'],
 	  VisualFormat: _VisualFormatEs62['default'],
 	  View: _ViewEs62['default'],
 	  SubView: _SubViewEs62['default']
+	  //DOM: DOM
 	};
 	
 	exports['default'] = AutoLayout;
@@ -8273,69 +8282,6 @@
 
 /***/ },
 /* 50 */
-/*!********************************************!*\
-  !*** ../~/autolayout.js/src/Attribute.es6 ***!
-  \********************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Layout attributes.
-	 * @enum {String}
-	 */
-	'use strict';
-	
-	Object.defineProperty(exports, '__esModule', {
-	    value: true
-	});
-	var Attribute = {
-	    CONST: 'const',
-	    NOTANATTRIBUTE: 'const',
-	    VARIABLE: 'var',
-	    /** left aligned */
-	    LEFT: 'left',
-	    /** right aligned */
-	    RIGHT: 'right',
-	    TOP: 'top',
-	    BOTTOM: 'bottom',
-	    WIDTH: 'width',
-	    HEIGHT: 'height',
-	    CENTERX: 'centerX',
-	    CENTERY: 'centerY'
-	    /*LEADING: 'leading',
-	    TRAILING: 'trailing'*/
-	};
-	exports['default'] = Attribute;
-	module.exports = exports['default'];
-
-/***/ },
-/* 51 */
-/*!*******************************************!*\
-  !*** ../~/autolayout.js/src/Relation.es6 ***!
-  \*******************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/**
-	 * Relation types.
-	 * @enum {String}
-	 */
-	'use strict';
-	
-	Object.defineProperty(exports, '__esModule', {
-	    value: true
-	});
-	var Relation = {
-	    /** Less than or equal */
-	    LEQ: 'leq',
-	    /** Equal */
-	    EQU: 'equ',
-	    /** Greater than or equal */
-	    GEQ: 'geq'
-	};
-	exports['default'] = Relation;
-	module.exports = exports['default'];
-
-/***/ },
-/* 52 */
 /*!***********************************************!*\
   !*** ../~/autolayout.js/src/VisualFormat.es6 ***!
   \***********************************************/
@@ -8353,15 +8299,15 @@
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 	
-	var _parserParser = __webpack_require__(/*! ./parser/parser */ 53);
+	var _parserParser = __webpack_require__(/*! ./parser/parser */ 51);
 	
 	var _parserParser2 = _interopRequireDefault(_parserParser);
 	
-	var _parserParserExt = __webpack_require__(/*! ./parser/parserExt */ 54);
+	var _parserParserExt = __webpack_require__(/*! ./parser/parserExt */ 52);
 	
 	var _parserParserExt2 = _interopRequireDefault(_parserParserExt);
 	
-	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 50);
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 53);
 	
 	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
 	
@@ -8392,7 +8338,7 @@
 	         * @return {Array} Array of constraint definitions.
 	         */
 	        value: function parseLine(visualFormat, options) {
-	            if (visualFormat.length === 0) {
+	            if (visualFormat.length === 0 || options && options.extended && visualFormat.indexOf('//') === 0) {
 	                return [];
 	            }
 	            var constraints = [];
@@ -8413,13 +8359,20 @@
 	                    view1 = view2;
 	                    view2 = item.view;
 	                    if (view1 !== undefined && view2 !== undefined && relation) {
-	                        attr1 = horizontal ? _AttributeEs62['default'].RIGHT : _AttributeEs62['default'].BOTTOM;
-	                        attr2 = horizontal ? _AttributeEs62['default'].LEFT : _AttributeEs62['default'].TOP;
-	                        if (!view1) {
-	                            attr1 = horizontal ? _AttributeEs62['default'].LEFT : _AttributeEs62['default'].TOP;
-	                        }
-	                        if (!view2) {
-	                            attr2 = horizontal ? _AttributeEs62['default'].RIGHT : _AttributeEs62['default'].BOTTOM;
+	                        switch (res.orientation) {
+	                            case 'horizontal':
+	                                attr1 = view1 ? _AttributeEs62['default'].RIGHT : _AttributeEs62['default'].LEFT;
+	                                attr2 = view2 ? _AttributeEs62['default'].LEFT : _AttributeEs62['default'].RIGHT;
+	                                break;
+	                            case 'vertical':
+	                                attr1 = view1 ? _AttributeEs62['default'].BOTTOM : _AttributeEs62['default'].TOP;
+	                                attr2 = view2 ? _AttributeEs62['default'].TOP : _AttributeEs62['default'].BOTTOM;
+	                                break;
+	                            case 'zIndex':
+	                                attr1 = _AttributeEs62['default'].ZINDEX;
+	                                attr2 = _AttributeEs62['default'].ZINDEX;
+	                                relation.constant = view1 ? 'default' : 0;
+	                                break;
 	                        }
 	                        constraints.push({
 	                            view1: view1,
@@ -8428,7 +8381,8 @@
 	                            view2: view2,
 	                            attr2: attr2,
 	                            multiplier: relation.multiplier,
-	                            constant: relation.constant
+	                            constant: relation.constant === 'default' || !relation.constant ? relation.constant : -relation.constant,
+	                            priority: relation.priority
 	                            //,variable: relation.variable
 	                        });
 	                    }
@@ -8438,7 +8392,7 @@
 	                    if (item.constraints) {
 	                        for (var n = 0; n < item.constraints.length; n++) {
 	                            attr1 = horizontal ? _AttributeEs62['default'].WIDTH : _AttributeEs62['default'].HEIGHT;
-	                            attr2 = item.constraints[n].view || item.constraints[n].multiplier ? attr1 : item.constraints[n].variable ? _AttributeEs62['default'].VARIABLE : _AttributeEs62['default'].CONST;
+	                            attr2 = item.constraints[n].view || item.constraints[n].multiplier ? item.constraints[n].attribute || attr1 : item.constraints[n].variable ? _AttributeEs62['default'].VARIABLE : _AttributeEs62['default'].CONST;
 	                            constraints.push({
 	                                view1: item.view,
 	                                attr1: attr1,
@@ -8446,7 +8400,8 @@
 	                                view2: item.constraints[n].view,
 	                                attr2: attr2,
 	                                multiplier: item.constraints[n].multiplier,
-	                                constant: item.constraints[n].constant
+	                                constant: item.constraints[n].constant,
+	                                priority: item.constraints[n].priority
 	                                //,variable: item.constraints[n].variable
 	                            });
 	                        }
@@ -8516,7 +8471,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 53 */
+/* 51 */
 /*!***********************************************!*\
   !*** ../~/autolayout.js/src/parser/parser.js ***!
   \***********************************************/
@@ -8611,12 +8566,14 @@
 	        peg$c44 = function() { return { relation: 'geq', $parserOffset: offset() } },
 	        peg$c45 = function(n) { return { priority: n } },
 	        peg$c46 = function(n) { return { constant: n } },
-	        peg$c47 = /^[a-zA-Z0-9\-_]/,
-	        peg$c48 = { type: "class", value: "[a-zA-Z0-9\\-_]", description: "[a-zA-Z0-9\\-_]" },
-	        peg$c49 = function(v) { return { view: v } },
-	        peg$c50 = /^[0-9]/,
-	        peg$c51 = { type: "class", value: "[0-9]", description: "[0-9]" },
-	        peg$c52 = function(digits) { return parseInt(digits.join(""), 10); },
+	        peg$c47 = /^[a-zA-Z_]/,
+	        peg$c48 = { type: "class", value: "[a-zA-Z_]", description: "[a-zA-Z_]" },
+	        peg$c49 = /^[a-zA-Z0-9_]/,
+	        peg$c50 = { type: "class", value: "[a-zA-Z0-9_]", description: "[a-zA-Z0-9_]" },
+	        peg$c51 = function(f, v) { return { view: f + v } },
+	        peg$c52 = /^[0-9]/,
+	        peg$c53 = { type: "class", value: "[0-9]", description: "[0-9]" },
+	        peg$c54 = function(digits) { return parseInt(digits.join(""), 10); },
 	
 	        peg$currPos          = 0,
 	        peg$reportedPos      = 0,
@@ -9341,7 +9298,7 @@
 	    }
 	
 	    function peg$parseviewName() {
-	      var s0, s1, s2, s3;
+	      var s0, s1, s2, s3, s4;
 	
 	      s0 = peg$currPos;
 	      s1 = peg$currPos;
@@ -9372,10 +9329,41 @@
 	      }
 	      s1 = s2;
 	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c49(s1);
+	        s2 = peg$currPos;
+	        s3 = [];
+	        if (peg$c49.test(input.charAt(peg$currPos))) {
+	          s4 = input.charAt(peg$currPos);
+	          peg$currPos++;
+	        } else {
+	          s4 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c50); }
+	        }
+	        while (s4 !== peg$FAILED) {
+	          s3.push(s4);
+	          if (peg$c49.test(input.charAt(peg$currPos))) {
+	            s4 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s4 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c50); }
+	          }
+	        }
+	        if (s3 !== peg$FAILED) {
+	          s3 = input.substring(s2, peg$currPos);
+	        }
+	        s2 = s3;
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c51(s1, s2);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
 	      }
-	      s0 = s1;
 	
 	      return s0;
 	    }
@@ -9385,22 +9373,22 @@
 	
 	      s0 = peg$currPos;
 	      s1 = [];
-	      if (peg$c50.test(input.charAt(peg$currPos))) {
+	      if (peg$c52.test(input.charAt(peg$currPos))) {
 	        s2 = input.charAt(peg$currPos);
 	        peg$currPos++;
 	      } else {
 	        s2 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c51); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c53); }
 	      }
 	      if (s2 !== peg$FAILED) {
 	        while (s2 !== peg$FAILED) {
 	          s1.push(s2);
-	          if (peg$c50.test(input.charAt(peg$currPos))) {
+	          if (peg$c52.test(input.charAt(peg$currPos))) {
 	            s2 = input.charAt(peg$currPos);
 	            peg$currPos++;
 	          } else {
 	            s2 = peg$FAILED;
-	            if (peg$silentFails === 0) { peg$fail(peg$c51); }
+	            if (peg$silentFails === 0) { peg$fail(peg$c53); }
 	          }
 	        }
 	      } else {
@@ -9408,7 +9396,7 @@
 	      }
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c52(s1);
+	        s1 = peg$c54(s1);
 	      }
 	      s0 = s1;
 	
@@ -9446,7 +9434,7 @@
 	})();
 
 /***/ },
-/* 54 */
+/* 52 */
 /*!**************************************************!*\
   !*** ../~/autolayout.js/src/parser/parserExt.js ***!
   \**************************************************/
@@ -9491,7 +9479,7 @@
 	        peg$c2 = ":",
 	        peg$c3 = { type: "literal", value: ":", description: "\":\"" },
 	        peg$c4 = [],
-	        peg$c5 = function(o, superto, view, views, tosuper) { return {
+	        peg$c5 = function(o, superto, view, views, tosuper, comments) { return {
 	              orientation: o ? o[0] : 'horizontal',
 	              cascade: (superto || []).concat(
 	                [view],
@@ -9504,59 +9492,95 @@
 	        peg$c7 = { type: "literal", value: "H", description: "\"H\"" },
 	        peg$c8 = "V",
 	        peg$c9 = { type: "literal", value: "V", description: "\"V\"" },
-	        peg$c10 = function(orient) { return orient == 'H' ? 'horizontal' : 'vertical' },
-	        peg$c11 = "|",
-	        peg$c12 = { type: "literal", value: "|", description: "\"|\"" },
-	        peg$c13 = function() { return { view: null } },
-	        peg$c14 = "[",
-	        peg$c15 = { type: "literal", value: "[", description: "\"[\"" },
-	        peg$c16 = "]",
-	        peg$c17 = { type: "literal", value: "]", description: "\"]\"" },
-	        peg$c18 = function(view, predicates) { return extend(view, predicates ? { constraints: predicates } : {}) },
-	        peg$c19 = "-",
-	        peg$c20 = { type: "literal", value: "-", description: "\"-\"" },
-	        peg$c21 = function(predicateList) { return predicateList },
-	        peg$c22 = function() { return [{ relation: 'equ', constant: 'default', $parserOffset: offset() }] },
-	        peg$c23 = "",
-	        peg$c24 = function() { return [{ relation: 'equ', constant: 0, $parserOffset: offset() }] },
-	        peg$c25 = function(n) { return [{ relation: 'equ', constant: n, $parserOffset: offset() }] },
-	        peg$c26 = "(",
-	        peg$c27 = { type: "literal", value: "(", description: "\"(\"" },
-	        peg$c28 = ",",
-	        peg$c29 = { type: "literal", value: ",", description: "\",\"" },
-	        peg$c30 = ")",
-	        peg$c31 = { type: "literal", value: ")", description: "\")\"" },
-	        peg$c32 = function(p, ps) { return [p].concat(ps.map(function(p){ return p[1] })) },
-	        peg$c33 = "@",
-	        peg$c34 = { type: "literal", value: "@", description: "\"@\"" },
-	        peg$c35 = function(r, o, p) { return extend({ relation: 'equ' }, (r || {}), o, (p ? p[1]: {})) },
-	        peg$c36 = "==",
-	        peg$c37 = { type: "literal", value: "==", description: "\"==\"" },
-	        peg$c38 = function() { return { relation: 'equ', $parserOffset: offset() } },
-	        peg$c39 = "<=",
-	        peg$c40 = { type: "literal", value: "<=", description: "\"<=\"" },
-	        peg$c41 = function() { return { relation: 'leq', $parserOffset: offset() } },
-	        peg$c42 = ">=",
-	        peg$c43 = { type: "literal", value: ">=", description: "\">=\"" },
-	        peg$c44 = function() { return { relation: 'geq', $parserOffset: offset() } },
-	        peg$c45 = function(n) { return { priority: n } },
-	        peg$c46 = function(n) { return { constant: n } },
-	        peg$c47 = "%",
-	        peg$c48 = { type: "literal", value: "%", description: "\"%\"" },
-	        peg$c49 = function(n) { return { view: null, multiplier: n / 100 } },
-	        peg$c50 = function(vn, m) { return { view: vn.view, multiplier: m ? m : 1 } },
-	        peg$c51 = "/",
-	        peg$c52 = { type: "literal", value: "/", description: "\"/\"" },
-	        peg$c53 = function(n) { return 1 / n; },
-	        peg$c54 = "*",
-	        peg$c55 = { type: "literal", value: "*", description: "\"*\"" },
-	        peg$c56 = function(n) { return n; },
-	        peg$c57 = /^[a-zA-Z0-9\-_]/,
-	        peg$c58 = { type: "class", value: "[a-zA-Z0-9\\-_]", description: "[a-zA-Z0-9\\-_]" },
-	        peg$c59 = function(v) { return { view: v } },
-	        peg$c60 = /^[0-9]/,
-	        peg$c61 = { type: "class", value: "[0-9]", description: "[0-9]" },
-	        peg$c62 = function(digits) { return parseInt(digits.join(""), 10); },
+	        peg$c10 = "Z",
+	        peg$c11 = { type: "literal", value: "Z", description: "\"Z\"" },
+	        peg$c12 = function(orient) { return (orient == 'H') ? 'horizontal' : ((orient == 'V') ? 'vertical' : 'zIndex') },
+	        peg$c13 = " ",
+	        peg$c14 = { type: "literal", value: " ", description: "\" \"" },
+	        peg$c15 = "//",
+	        peg$c16 = { type: "literal", value: "//", description: "\"//\"" },
+	        peg$c17 = { type: "any", description: "any character" },
+	        peg$c18 = "|",
+	        peg$c19 = { type: "literal", value: "|", description: "\"|\"" },
+	        peg$c20 = function() { return { view: null } },
+	        peg$c21 = "[",
+	        peg$c22 = { type: "literal", value: "[", description: "\"[\"" },
+	        peg$c23 = "]",
+	        peg$c24 = { type: "literal", value: "]", description: "\"]\"" },
+	        peg$c25 = function(view, predicates) { return extend(view, predicates ? { constraints: predicates } : {}) },
+	        peg$c26 = "-",
+	        peg$c27 = { type: "literal", value: "-", description: "\"-\"" },
+	        peg$c28 = function(predicateList) { return predicateList },
+	        peg$c29 = function() { return [{ relation: 'equ', constant: 'default', $parserOffset: offset() }] },
+	        peg$c30 = "",
+	        peg$c31 = function() { return [{ relation: 'equ', constant: 0, $parserOffset: offset() }] },
+	        peg$c32 = function(n) { return [{ relation: 'equ', constant: n, $parserOffset: offset() }] },
+	        peg$c33 = "(",
+	        peg$c34 = { type: "literal", value: "(", description: "\"(\"" },
+	        peg$c35 = ",",
+	        peg$c36 = { type: "literal", value: ",", description: "\",\"" },
+	        peg$c37 = ")",
+	        peg$c38 = { type: "literal", value: ")", description: "\")\"" },
+	        peg$c39 = function(p, ps) { return [p].concat(ps.map(function(p){ return p[1] })) },
+	        peg$c40 = "@",
+	        peg$c41 = { type: "literal", value: "@", description: "\"@\"" },
+	        peg$c42 = function(r, o, p) { return extend({ relation: 'equ' }, (r || {}), o, (p ? p[1]: {})) },
+	        peg$c43 = "==",
+	        peg$c44 = { type: "literal", value: "==", description: "\"==\"" },
+	        peg$c45 = function() { return { relation: 'equ', $parserOffset: offset() } },
+	        peg$c46 = "<=",
+	        peg$c47 = { type: "literal", value: "<=", description: "\"<=\"" },
+	        peg$c48 = function() { return { relation: 'leq', $parserOffset: offset() } },
+	        peg$c49 = ">=",
+	        peg$c50 = { type: "literal", value: ">=", description: "\">=\"" },
+	        peg$c51 = function() { return { relation: 'geq', $parserOffset: offset() } },
+	        peg$c52 = function(n) { return { priority: n } },
+	        peg$c53 = function(n) { return { constant: n } },
+	        peg$c54 = "%",
+	        peg$c55 = { type: "literal", value: "%", description: "\"%\"" },
+	        peg$c56 = function(n) { return { view: null, multiplier: n / 100 } },
+	        peg$c57 = function(vn, a, m, c) { return { view: vn.view, attribute: a ? a : undefined, multiplier: m ? m : 1, constant: c ? c : undefined } },
+	        peg$c58 = ".left",
+	        peg$c59 = { type: "literal", value: ".left", description: "\".left\"" },
+	        peg$c60 = function() { return 'left'},
+	        peg$c61 = ".right",
+	        peg$c62 = { type: "literal", value: ".right", description: "\".right\"" },
+	        peg$c63 = function() { return 'right'},
+	        peg$c64 = ".top",
+	        peg$c65 = { type: "literal", value: ".top", description: "\".top\"" },
+	        peg$c66 = function() { return 'top'},
+	        peg$c67 = ".bottom",
+	        peg$c68 = { type: "literal", value: ".bottom", description: "\".bottom\"" },
+	        peg$c69 = function() { return 'bottom'},
+	        peg$c70 = ".width",
+	        peg$c71 = { type: "literal", value: ".width", description: "\".width\"" },
+	        peg$c72 = function() { return 'width'},
+	        peg$c73 = ".height",
+	        peg$c74 = { type: "literal", value: ".height", description: "\".height\"" },
+	        peg$c75 = function() { return 'height'},
+	        peg$c76 = ".centerX",
+	        peg$c77 = { type: "literal", value: ".centerX", description: "\".centerX\"" },
+	        peg$c78 = function() { return 'centerX'},
+	        peg$c79 = ".centerY",
+	        peg$c80 = { type: "literal", value: ".centerY", description: "\".centerY\"" },
+	        peg$c81 = function() { return 'centerY'},
+	        peg$c82 = "/",
+	        peg$c83 = { type: "literal", value: "/", description: "\"/\"" },
+	        peg$c84 = function(n) { return 1 / n; },
+	        peg$c85 = "*",
+	        peg$c86 = { type: "literal", value: "*", description: "\"*\"" },
+	        peg$c87 = function(n) { return n; },
+	        peg$c88 = function(n) { return -n; },
+	        peg$c89 = "+",
+	        peg$c90 = { type: "literal", value: "+", description: "\"+\"" },
+	        peg$c91 = /^[a-zA-Z_]/,
+	        peg$c92 = { type: "class", value: "[a-zA-Z_]", description: "[a-zA-Z_]" },
+	        peg$c93 = /^[a-zA-Z0-9_]/,
+	        peg$c94 = { type: "class", value: "[a-zA-Z0-9_]", description: "[a-zA-Z0-9_]" },
+	        peg$c95 = function(f, v) { return { view: f + v } },
+	        peg$c96 = /^[0-9]/,
+	        peg$c97 = { type: "class", value: "[0-9]", description: "[0-9]" },
+	        peg$c98 = function(digits) { return parseInt(digits.join(""), 10); },
 	
 	        peg$currPos          = 0,
 	        peg$reportedPos      = 0,
@@ -9828,9 +9852,18 @@
 	                s5 = peg$c1;
 	              }
 	              if (s5 !== peg$FAILED) {
-	                peg$reportedPos = s0;
-	                s1 = peg$c5(s1, s2, s3, s4, s5);
-	                s0 = s1;
+	                s6 = peg$parsecomments();
+	                if (s6 === peg$FAILED) {
+	                  s6 = peg$c1;
+	                }
+	                if (s6 !== peg$FAILED) {
+	                  peg$reportedPos = s0;
+	                  s1 = peg$c5(s1, s2, s3, s4, s5, s6);
+	                  s0 = s1;
+	                } else {
+	                  peg$currPos = s0;
+	                  s0 = peg$c0;
+	                }
 	              } else {
 	                peg$currPos = s0;
 	                s0 = peg$c0;
@@ -9874,12 +9907,89 @@
 	          s1 = peg$FAILED;
 	          if (peg$silentFails === 0) { peg$fail(peg$c9); }
 	        }
+	        if (s1 === peg$FAILED) {
+	          if (input.charCodeAt(peg$currPos) === 90) {
+	            s1 = peg$c10;
+	            peg$currPos++;
+	          } else {
+	            s1 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c11); }
+	          }
+	        }
 	      }
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c10(s1);
+	        s1 = peg$c12(s1);
 	      }
 	      s0 = s1;
+	
+	      return s0;
+	    }
+	
+	    function peg$parsecomments() {
+	      var s0, s1, s2, s3, s4;
+	
+	      s0 = peg$currPos;
+	      s1 = [];
+	      if (input.charCodeAt(peg$currPos) === 32) {
+	        s2 = peg$c13;
+	        peg$currPos++;
+	      } else {
+	        s2 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c14); }
+	      }
+	      while (s2 !== peg$FAILED) {
+	        s1.push(s2);
+	        if (input.charCodeAt(peg$currPos) === 32) {
+	          s2 = peg$c13;
+	          peg$currPos++;
+	        } else {
+	          s2 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c14); }
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        if (input.substr(peg$currPos, 2) === peg$c15) {
+	          s2 = peg$c15;
+	          peg$currPos += 2;
+	        } else {
+	          s2 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c16); }
+	        }
+	        if (s2 !== peg$FAILED) {
+	          s3 = [];
+	          if (input.length > peg$currPos) {
+	            s4 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s4 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c17); }
+	          }
+	          while (s4 !== peg$FAILED) {
+	            s3.push(s4);
+	            if (input.length > peg$currPos) {
+	              s4 = input.charAt(peg$currPos);
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c17); }
+	            }
+	          }
+	          if (s3 !== peg$FAILED) {
+	            s1 = [s1, s2, s3];
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
 	
 	      return s0;
 	    }
@@ -9889,15 +9999,15 @@
 	
 	      s0 = peg$currPos;
 	      if (input.charCodeAt(peg$currPos) === 124) {
-	        s1 = peg$c11;
+	        s1 = peg$c18;
 	        peg$currPos++;
 	      } else {
 	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c12); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c19); }
 	      }
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c13();
+	        s1 = peg$c20();
 	      }
 	      s0 = s1;
 	
@@ -9909,11 +10019,11 @@
 	
 	      s0 = peg$currPos;
 	      if (input.charCodeAt(peg$currPos) === 91) {
-	        s1 = peg$c14;
+	        s1 = peg$c21;
 	        peg$currPos++;
 	      } else {
 	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c15); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c22); }
 	      }
 	      if (s1 !== peg$FAILED) {
 	        s2 = peg$parseviewName();
@@ -9924,15 +10034,15 @@
 	          }
 	          if (s3 !== peg$FAILED) {
 	            if (input.charCodeAt(peg$currPos) === 93) {
-	              s4 = peg$c16;
+	              s4 = peg$c23;
 	              peg$currPos++;
 	            } else {
 	              s4 = peg$FAILED;
-	              if (peg$silentFails === 0) { peg$fail(peg$c17); }
+	              if (peg$silentFails === 0) { peg$fail(peg$c24); }
 	            }
 	            if (s4 !== peg$FAILED) {
 	              peg$reportedPos = s0;
-	              s1 = peg$c18(s2, s3);
+	              s1 = peg$c25(s2, s3);
 	              s0 = s1;
 	            } else {
 	              peg$currPos = s0;
@@ -9959,25 +10069,25 @@
 	
 	      s0 = peg$currPos;
 	      if (input.charCodeAt(peg$currPos) === 45) {
-	        s1 = peg$c19;
+	        s1 = peg$c26;
 	        peg$currPos++;
 	      } else {
 	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c27); }
 	      }
 	      if (s1 !== peg$FAILED) {
 	        s2 = peg$parsepredicateList();
 	        if (s2 !== peg$FAILED) {
 	          if (input.charCodeAt(peg$currPos) === 45) {
-	            s3 = peg$c19;
+	            s3 = peg$c26;
 	            peg$currPos++;
 	          } else {
 	            s3 = peg$FAILED;
-	            if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	            if (peg$silentFails === 0) { peg$fail(peg$c27); }
 	          }
 	          if (s3 !== peg$FAILED) {
 	            peg$reportedPos = s0;
-	            s1 = peg$c21(s2);
+	            s1 = peg$c28(s2);
 	            s0 = s1;
 	          } else {
 	            peg$currPos = s0;
@@ -9994,23 +10104,23 @@
 	      if (s0 === peg$FAILED) {
 	        s0 = peg$currPos;
 	        if (input.charCodeAt(peg$currPos) === 45) {
-	          s1 = peg$c19;
+	          s1 = peg$c26;
 	          peg$currPos++;
 	        } else {
 	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) { peg$fail(peg$c20); }
+	          if (peg$silentFails === 0) { peg$fail(peg$c27); }
 	        }
 	        if (s1 !== peg$FAILED) {
 	          peg$reportedPos = s0;
-	          s1 = peg$c22();
+	          s1 = peg$c29();
 	        }
 	        s0 = s1;
 	        if (s0 === peg$FAILED) {
 	          s0 = peg$currPos;
-	          s1 = peg$c23;
+	          s1 = peg$c30;
 	          if (s1 !== peg$FAILED) {
 	            peg$reportedPos = s0;
-	            s1 = peg$c24();
+	            s1 = peg$c31();
 	          }
 	          s0 = s1;
 	        }
@@ -10037,7 +10147,7 @@
 	      s1 = peg$parsenumber();
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c25(s1);
+	        s1 = peg$c32(s1);
 	      }
 	      s0 = s1;
 	
@@ -10049,11 +10159,11 @@
 	
 	      s0 = peg$currPos;
 	      if (input.charCodeAt(peg$currPos) === 40) {
-	        s1 = peg$c26;
+	        s1 = peg$c33;
 	        peg$currPos++;
 	      } else {
 	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c27); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c34); }
 	      }
 	      if (s1 !== peg$FAILED) {
 	        s2 = peg$parsepredicate();
@@ -10061,11 +10171,11 @@
 	          s3 = [];
 	          s4 = peg$currPos;
 	          if (input.charCodeAt(peg$currPos) === 44) {
-	            s5 = peg$c28;
+	            s5 = peg$c35;
 	            peg$currPos++;
 	          } else {
 	            s5 = peg$FAILED;
-	            if (peg$silentFails === 0) { peg$fail(peg$c29); }
+	            if (peg$silentFails === 0) { peg$fail(peg$c36); }
 	          }
 	          if (s5 !== peg$FAILED) {
 	            s6 = peg$parsepredicate();
@@ -10084,11 +10194,11 @@
 	            s3.push(s4);
 	            s4 = peg$currPos;
 	            if (input.charCodeAt(peg$currPos) === 44) {
-	              s5 = peg$c28;
+	              s5 = peg$c35;
 	              peg$currPos++;
 	            } else {
 	              s5 = peg$FAILED;
-	              if (peg$silentFails === 0) { peg$fail(peg$c29); }
+	              if (peg$silentFails === 0) { peg$fail(peg$c36); }
 	            }
 	            if (s5 !== peg$FAILED) {
 	              s6 = peg$parsepredicate();
@@ -10106,15 +10216,15 @@
 	          }
 	          if (s3 !== peg$FAILED) {
 	            if (input.charCodeAt(peg$currPos) === 41) {
-	              s4 = peg$c30;
+	              s4 = peg$c37;
 	              peg$currPos++;
 	            } else {
 	              s4 = peg$FAILED;
-	              if (peg$silentFails === 0) { peg$fail(peg$c31); }
+	              if (peg$silentFails === 0) { peg$fail(peg$c38); }
 	            }
 	            if (s4 !== peg$FAILED) {
 	              peg$reportedPos = s0;
-	              s1 = peg$c32(s2, s3);
+	              s1 = peg$c39(s2, s3);
 	              s0 = s1;
 	            } else {
 	              peg$currPos = s0;
@@ -10149,11 +10259,11 @@
 	        if (s2 !== peg$FAILED) {
 	          s3 = peg$currPos;
 	          if (input.charCodeAt(peg$currPos) === 64) {
-	            s4 = peg$c33;
+	            s4 = peg$c40;
 	            peg$currPos++;
 	          } else {
 	            s4 = peg$FAILED;
-	            if (peg$silentFails === 0) { peg$fail(peg$c34); }
+	            if (peg$silentFails === 0) { peg$fail(peg$c41); }
 	          }
 	          if (s4 !== peg$FAILED) {
 	            s5 = peg$parsepriority();
@@ -10173,7 +10283,7 @@
 	          }
 	          if (s3 !== peg$FAILED) {
 	            peg$reportedPos = s0;
-	            s1 = peg$c35(s1, s2, s3);
+	            s1 = peg$c42(s1, s2, s3);
 	            s0 = s1;
 	          } else {
 	            peg$currPos = s0;
@@ -10195,44 +10305,44 @@
 	      var s0, s1;
 	
 	      s0 = peg$currPos;
-	      if (input.substr(peg$currPos, 2) === peg$c36) {
-	        s1 = peg$c36;
+	      if (input.substr(peg$currPos, 2) === peg$c43) {
+	        s1 = peg$c43;
 	        peg$currPos += 2;
 	      } else {
 	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c37); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c44); }
 	      }
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c38();
+	        s1 = peg$c45();
 	      }
 	      s0 = s1;
 	      if (s0 === peg$FAILED) {
 	        s0 = peg$currPos;
-	        if (input.substr(peg$currPos, 2) === peg$c39) {
-	          s1 = peg$c39;
+	        if (input.substr(peg$currPos, 2) === peg$c46) {
+	          s1 = peg$c46;
 	          peg$currPos += 2;
 	        } else {
 	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) { peg$fail(peg$c40); }
+	          if (peg$silentFails === 0) { peg$fail(peg$c47); }
 	        }
 	        if (s1 !== peg$FAILED) {
 	          peg$reportedPos = s0;
-	          s1 = peg$c41();
+	          s1 = peg$c48();
 	        }
 	        s0 = s1;
 	        if (s0 === peg$FAILED) {
 	          s0 = peg$currPos;
-	          if (input.substr(peg$currPos, 2) === peg$c42) {
-	            s1 = peg$c42;
+	          if (input.substr(peg$currPos, 2) === peg$c49) {
+	            s1 = peg$c49;
 	            peg$currPos += 2;
 	          } else {
 	            s1 = peg$FAILED;
-	            if (peg$silentFails === 0) { peg$fail(peg$c43); }
+	            if (peg$silentFails === 0) { peg$fail(peg$c50); }
 	          }
 	          if (s1 !== peg$FAILED) {
 	            peg$reportedPos = s0;
-	            s1 = peg$c44();
+	            s1 = peg$c51();
 	          }
 	          s0 = s1;
 	        }
@@ -10262,7 +10372,7 @@
 	      s1 = peg$parsenumber();
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c45(s1);
+	        s1 = peg$c52(s1);
 	      }
 	      s0 = s1;
 	
@@ -10276,7 +10386,7 @@
 	      s1 = peg$parsenumber();
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c46(s1);
+	        s1 = peg$c53(s1);
 	      }
 	      s0 = s1;
 	
@@ -10290,15 +10400,15 @@
 	      s1 = peg$parsenumber();
 	      if (s1 !== peg$FAILED) {
 	        if (input.charCodeAt(peg$currPos) === 37) {
-	          s2 = peg$c47;
+	          s2 = peg$c54;
 	          peg$currPos++;
 	        } else {
 	          s2 = peg$FAILED;
-	          if (peg$silentFails === 0) { peg$fail(peg$c48); }
+	          if (peg$silentFails === 0) { peg$fail(peg$c55); }
 	        }
 	        if (s2 !== peg$FAILED) {
 	          peg$reportedPos = s0;
-	          s1 = peg$c49(s1);
+	          s1 = peg$c56(s1);
 	          s0 = s1;
 	        } else {
 	          peg$currPos = s0;
@@ -10313,19 +10423,37 @@
 	    }
 	
 	    function peg$parseviewPredicate() {
-	      var s0, s1, s2;
+	      var s0, s1, s2, s3, s4;
 	
 	      s0 = peg$currPos;
 	      s1 = peg$parseviewName();
 	      if (s1 !== peg$FAILED) {
-	        s2 = peg$parsemultiplier();
+	        s2 = peg$parseattribute();
 	        if (s2 === peg$FAILED) {
 	          s2 = peg$c1;
 	        }
 	        if (s2 !== peg$FAILED) {
-	          peg$reportedPos = s0;
-	          s1 = peg$c50(s1, s2);
-	          s0 = s1;
+	          s3 = peg$parsemultiplier();
+	          if (s3 === peg$FAILED) {
+	            s3 = peg$c1;
+	          }
+	          if (s3 !== peg$FAILED) {
+	            s4 = peg$parseconstantExpr();
+	            if (s4 === peg$FAILED) {
+	              s4 = peg$c1;
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c57(s1, s2, s3, s4);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$c0;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
 	        } else {
 	          peg$currPos = s0;
 	          s0 = peg$c0;
@@ -10338,22 +10466,147 @@
 	      return s0;
 	    }
 	
+	    function peg$parseattribute() {
+	      var s0, s1;
+	
+	      s0 = peg$currPos;
+	      if (input.substr(peg$currPos, 5) === peg$c58) {
+	        s1 = peg$c58;
+	        peg$currPos += 5;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c59); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$reportedPos = s0;
+	        s1 = peg$c60();
+	      }
+	      s0 = s1;
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.substr(peg$currPos, 6) === peg$c61) {
+	          s1 = peg$c61;
+	          peg$currPos += 6;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c62); }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c63();
+	        }
+	        s0 = s1;
+	        if (s0 === peg$FAILED) {
+	          s0 = peg$currPos;
+	          if (input.substr(peg$currPos, 4) === peg$c64) {
+	            s1 = peg$c64;
+	            peg$currPos += 4;
+	          } else {
+	            s1 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c65); }
+	          }
+	          if (s1 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c66();
+	          }
+	          s0 = s1;
+	          if (s0 === peg$FAILED) {
+	            s0 = peg$currPos;
+	            if (input.substr(peg$currPos, 7) === peg$c67) {
+	              s1 = peg$c67;
+	              peg$currPos += 7;
+	            } else {
+	              s1 = peg$FAILED;
+	              if (peg$silentFails === 0) { peg$fail(peg$c68); }
+	            }
+	            if (s1 !== peg$FAILED) {
+	              peg$reportedPos = s0;
+	              s1 = peg$c69();
+	            }
+	            s0 = s1;
+	            if (s0 === peg$FAILED) {
+	              s0 = peg$currPos;
+	              if (input.substr(peg$currPos, 6) === peg$c70) {
+	                s1 = peg$c70;
+	                peg$currPos += 6;
+	              } else {
+	                s1 = peg$FAILED;
+	                if (peg$silentFails === 0) { peg$fail(peg$c71); }
+	              }
+	              if (s1 !== peg$FAILED) {
+	                peg$reportedPos = s0;
+	                s1 = peg$c72();
+	              }
+	              s0 = s1;
+	              if (s0 === peg$FAILED) {
+	                s0 = peg$currPos;
+	                if (input.substr(peg$currPos, 7) === peg$c73) {
+	                  s1 = peg$c73;
+	                  peg$currPos += 7;
+	                } else {
+	                  s1 = peg$FAILED;
+	                  if (peg$silentFails === 0) { peg$fail(peg$c74); }
+	                }
+	                if (s1 !== peg$FAILED) {
+	                  peg$reportedPos = s0;
+	                  s1 = peg$c75();
+	                }
+	                s0 = s1;
+	                if (s0 === peg$FAILED) {
+	                  s0 = peg$currPos;
+	                  if (input.substr(peg$currPos, 8) === peg$c76) {
+	                    s1 = peg$c76;
+	                    peg$currPos += 8;
+	                  } else {
+	                    s1 = peg$FAILED;
+	                    if (peg$silentFails === 0) { peg$fail(peg$c77); }
+	                  }
+	                  if (s1 !== peg$FAILED) {
+	                    peg$reportedPos = s0;
+	                    s1 = peg$c78();
+	                  }
+	                  s0 = s1;
+	                  if (s0 === peg$FAILED) {
+	                    s0 = peg$currPos;
+	                    if (input.substr(peg$currPos, 8) === peg$c79) {
+	                      s1 = peg$c79;
+	                      peg$currPos += 8;
+	                    } else {
+	                      s1 = peg$FAILED;
+	                      if (peg$silentFails === 0) { peg$fail(peg$c80); }
+	                    }
+	                    if (s1 !== peg$FAILED) {
+	                      peg$reportedPos = s0;
+	                      s1 = peg$c81();
+	                    }
+	                    s0 = s1;
+	                  }
+	                }
+	              }
+	            }
+	          }
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
 	    function peg$parsemultiplier() {
 	      var s0, s1, s2;
 	
 	      s0 = peg$currPos;
 	      if (input.charCodeAt(peg$currPos) === 47) {
-	        s1 = peg$c51;
+	        s1 = peg$c82;
 	        peg$currPos++;
 	      } else {
 	        s1 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c52); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c83); }
 	      }
 	      if (s1 !== peg$FAILED) {
 	        s2 = peg$parsenumber();
 	        if (s2 !== peg$FAILED) {
 	          peg$reportedPos = s0;
-	          s1 = peg$c53(s2);
+	          s1 = peg$c84(s2);
 	          s0 = s1;
 	        } else {
 	          peg$currPos = s0;
@@ -10366,17 +10619,70 @@
 	      if (s0 === peg$FAILED) {
 	        s0 = peg$currPos;
 	        if (input.charCodeAt(peg$currPos) === 42) {
-	          s1 = peg$c54;
+	          s1 = peg$c85;
 	          peg$currPos++;
 	        } else {
 	          s1 = peg$FAILED;
-	          if (peg$silentFails === 0) { peg$fail(peg$c55); }
+	          if (peg$silentFails === 0) { peg$fail(peg$c86); }
 	        }
 	        if (s1 !== peg$FAILED) {
 	          s2 = peg$parsenumber();
 	          if (s2 !== peg$FAILED) {
 	            peg$reportedPos = s0;
-	            s1 = peg$c56(s2);
+	            s1 = peg$c87(s2);
+	            s0 = s1;
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$c0;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      }
+	
+	      return s0;
+	    }
+	
+	    function peg$parseconstantExpr() {
+	      var s0, s1, s2;
+	
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 45) {
+	        s1 = peg$c26;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) { peg$fail(peg$c27); }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parsenumber();
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c88(s2);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
+	      }
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.charCodeAt(peg$currPos) === 43) {
+	          s1 = peg$c89;
+	          peg$currPos++;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c90); }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          s2 = peg$parsenumber();
+	          if (s2 !== peg$FAILED) {
+	            peg$reportedPos = s0;
+	            s1 = peg$c87(s2);
 	            s0 = s1;
 	          } else {
 	            peg$currPos = s0;
@@ -10392,27 +10698,27 @@
 	    }
 	
 	    function peg$parseviewName() {
-	      var s0, s1, s2, s3;
+	      var s0, s1, s2, s3, s4;
 	
 	      s0 = peg$currPos;
 	      s1 = peg$currPos;
 	      s2 = [];
-	      if (peg$c57.test(input.charAt(peg$currPos))) {
+	      if (peg$c91.test(input.charAt(peg$currPos))) {
 	        s3 = input.charAt(peg$currPos);
 	        peg$currPos++;
 	      } else {
 	        s3 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c58); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c92); }
 	      }
 	      if (s3 !== peg$FAILED) {
 	        while (s3 !== peg$FAILED) {
 	          s2.push(s3);
-	          if (peg$c57.test(input.charAt(peg$currPos))) {
+	          if (peg$c91.test(input.charAt(peg$currPos))) {
 	            s3 = input.charAt(peg$currPos);
 	            peg$currPos++;
 	          } else {
 	            s3 = peg$FAILED;
-	            if (peg$silentFails === 0) { peg$fail(peg$c58); }
+	            if (peg$silentFails === 0) { peg$fail(peg$c92); }
 	          }
 	        }
 	      } else {
@@ -10423,10 +10729,41 @@
 	      }
 	      s1 = s2;
 	      if (s1 !== peg$FAILED) {
-	        peg$reportedPos = s0;
-	        s1 = peg$c59(s1);
+	        s2 = peg$currPos;
+	        s3 = [];
+	        if (peg$c93.test(input.charAt(peg$currPos))) {
+	          s4 = input.charAt(peg$currPos);
+	          peg$currPos++;
+	        } else {
+	          s4 = peg$FAILED;
+	          if (peg$silentFails === 0) { peg$fail(peg$c94); }
+	        }
+	        while (s4 !== peg$FAILED) {
+	          s3.push(s4);
+	          if (peg$c93.test(input.charAt(peg$currPos))) {
+	            s4 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s4 = peg$FAILED;
+	            if (peg$silentFails === 0) { peg$fail(peg$c94); }
+	          }
+	        }
+	        if (s3 !== peg$FAILED) {
+	          s3 = input.substring(s2, peg$currPos);
+	        }
+	        s2 = s3;
+	        if (s2 !== peg$FAILED) {
+	          peg$reportedPos = s0;
+	          s1 = peg$c95(s1, s2);
+	          s0 = s1;
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$c0;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$c0;
 	      }
-	      s0 = s1;
 	
 	      return s0;
 	    }
@@ -10436,22 +10773,22 @@
 	
 	      s0 = peg$currPos;
 	      s1 = [];
-	      if (peg$c60.test(input.charAt(peg$currPos))) {
+	      if (peg$c96.test(input.charAt(peg$currPos))) {
 	        s2 = input.charAt(peg$currPos);
 	        peg$currPos++;
 	      } else {
 	        s2 = peg$FAILED;
-	        if (peg$silentFails === 0) { peg$fail(peg$c61); }
+	        if (peg$silentFails === 0) { peg$fail(peg$c97); }
 	      }
 	      if (s2 !== peg$FAILED) {
 	        while (s2 !== peg$FAILED) {
 	          s1.push(s2);
-	          if (peg$c60.test(input.charAt(peg$currPos))) {
+	          if (peg$c96.test(input.charAt(peg$currPos))) {
 	            s2 = input.charAt(peg$currPos);
 	            peg$currPos++;
 	          } else {
 	            s2 = peg$FAILED;
-	            if (peg$silentFails === 0) { peg$fail(peg$c61); }
+	            if (peg$silentFails === 0) { peg$fail(peg$c97); }
 	          }
 	        }
 	      } else {
@@ -10459,7 +10796,7 @@
 	      }
 	      if (s1 !== peg$FAILED) {
 	        peg$reportedPos = s0;
-	        s1 = peg$c62(s1);
+	        s1 = peg$c98(s1);
 	      }
 	      s0 = s1;
 	
@@ -10497,7 +10834,95 @@
 	})();
 
 /***/ },
+/* 53 */
+/*!********************************************!*\
+  !*** ../~/autolayout.js/src/Attribute.es6 ***!
+  \********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Layout attributes.
+	 * @enum {String}
+	 */
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	var Attribute = {
+	    CONST: 'const',
+	    NOTANATTRIBUTE: 'const',
+	    VARIABLE: 'var',
+	    LEFT: 'left',
+	    RIGHT: 'right',
+	    TOP: 'top',
+	    BOTTOM: 'bottom',
+	    WIDTH: 'width',
+	    HEIGHT: 'height',
+	    CENTERX: 'centerX',
+	    CENTERY: 'centerY',
+	    /*LEADING: 'leading',
+	    TRAILING: 'trailing'*/
+	    /** Used by the extended VFL syntax. */
+	    ZINDEX: 'zIndex'
+	};
+	exports['default'] = Attribute;
+	module.exports = exports['default'];
+
+/***/ },
+/* 54 */
+/*!*******************************************!*\
+  !*** ../~/autolayout.js/src/Relation.es6 ***!
+  \*******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Relation types.
+	 * @enum {String}
+	 */
+	'use strict';
+	
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	var Relation = {
+	    /** Less than or equal */
+	    LEQ: 'leq',
+	    /** Equal */
+	    EQU: 'equ',
+	    /** Greater than or equal */
+	    GEQ: 'geq'
+	};
+	exports['default'] = Relation;
+	module.exports = exports['default'];
+
+/***/ },
 /* 55 */
+/*!*******************************************!*\
+  !*** ../~/autolayout.js/src/Priority.es6 ***!
+  \*******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/**
+	 * Layout priorities.
+	 * @enum {String}
+	 */
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+	    value: true
+	});
+	var Priority = {
+	    REQUIRED: 1000,
+	    DEFAULTHIGH: 750,
+	    DEFAULTLOW: 250
+	    //FITTINGSIZELEVEL: 50,
+	};
+	exports["default"] = Priority;
+	module.exports = exports["default"];
+
+/***/ },
+/* 56 */
 /*!***************************************!*\
   !*** ../~/autolayout.js/src/View.es6 ***!
   \***************************************/
@@ -10515,21 +10940,23 @@
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 	
-	var _cassowaryBinC = __webpack_require__(/*! cassowary/bin/c */ 56);
+	var _cassowaryBinC = __webpack_require__(/*! cassowary/bin/c */ 57);
 	
 	var _cassowaryBinC2 = _interopRequireDefault(_cassowaryBinC);
 	
-	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 50);
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 53);
 	
 	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
 	
-	var _RelationEs6 = __webpack_require__(/*! ./Relation.es6 */ 51);
+	var _RelationEs6 = __webpack_require__(/*! ./Relation.es6 */ 54);
 	
 	var _RelationEs62 = _interopRequireDefault(_RelationEs6);
 	
-	var _SubViewEs6 = __webpack_require__(/*! ./SubView.es6 */ 58);
+	var _SubViewEs6 = __webpack_require__(/*! ./SubView.es6 */ 59);
 	
 	var _SubViewEs62 = _interopRequireDefault(_SubViewEs6);
+	
+	var defaultPriorityStrength = new _cassowaryBinC2['default'].Strength('defaultPriority', 0, 1000, 1000);
 	
 	function _getConst(name, value) {
 	    var vr = new _cassowaryBinC2['default'].Variable({ value: value });
@@ -10568,19 +10995,24 @@
 	            case 'trailing':
 	                index = 4;
 	                break;
+	            case 'zIndex':
+	                index = 6;
+	                break;
 	            default:
 	                index = 5;
 	        }
 	    }
-	    this._spacingVars = this._spacingVars || new Array(6);
+	    this._spacingVars = this._spacingVars || new Array(7);
+	    this._spacingExpr = this._spacingExpr || new Array(7);
 	    if (!this._spacingVars[index]) {
 	        this._spacingVars[index] = new _cassowaryBinC2['default'].Variable({
 	            value: this._spacing[index],
 	            name: 'spacing[' + index + ']'
 	        });
 	        this._solver.addEditVar(this._spacingVars[index]);
+	        this._spacingExpr[index] = _cassowaryBinC2['default'].minus(0, this._spacingVars[index]);
 	    }
-	    return this._spacingVars[index];
+	    return this._spacingExpr[index];
 	}
 	
 	function _addConstraint(constraint) {
@@ -10598,22 +11030,23 @@
 	    } else {
 	        attr2 = _getSubView.call(this, constraint.view2)._getAttr(constraint.attr2);
 	        if (multiplier !== 1 && constant) {
-	            attr2 = _cassowaryBinC2['default'].times(_cassowaryBinC2['default'].minus(attr2, constant), multiplier);
+	            attr2 = _cassowaryBinC2['default'].plus(_cassowaryBinC2['default'].times(attr2, multiplier), constant);
 	        } else if (constant) {
-	            attr2 = _cassowaryBinC2['default'].minus(attr2, constant);
+	            attr2 = _cassowaryBinC2['default'].plus(attr2, constant);
 	        } else if (multiplier !== 1) {
 	            attr2 = _cassowaryBinC2['default'].times(attr2, multiplier);
 	        }
 	    }
+	    var strength = constraint.priority !== undefined && constraint.priority < 1000 ? new _cassowaryBinC2['default'].Strength('priority', 0, constraint.priority, 1000) : defaultPriorityStrength;
 	    switch (constraint.relation) {
 	        case _RelationEs62['default'].EQU:
-	            relation = new _cassowaryBinC2['default'].Equation(attr1, attr2);
+	            relation = new _cassowaryBinC2['default'].Equation(attr1, attr2, strength);
 	            break;
 	        case _RelationEs62['default'].GEQ:
-	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].GEQ, attr2);
+	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].GEQ, attr2, strength);
 	            break;
 	        case _RelationEs62['default'].LEQ:
-	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].LEQ, attr2);
+	            relation = new _cassowaryBinC2['default'].Inequality(attr1, _cassowaryBinC2['default'].LEQ, attr2, strength);
 	            break;
 	        default:
 	            throw 'Invalid relation specified: ' + constraint.relation;
@@ -10634,6 +11067,7 @@
 	 * |[SubView](#autolayoutsubview--object)|`class`|SubView's are automatically created when constraints are added to views. They give access to the evaluated results.|
 	 * |[Attribute](#autolayoutattribute--enum)|`enum`|Attribute types that are supported when adding constraints.|
 	 * |[Relation](#autolayoutrelation--enum)|`enum`|Relationship types that are supported when adding constraints.|
+	 * |[Priority](#autolayoutpriority--enum)|`enum`|Default priority values for when adding constraints.|
 	 *
 	 * ### AutoLayout
 	 *
@@ -10647,8 +11081,8 @@
 	     * @param {Object} [options] Configuration options.
 	     * @param {Number} [options.width] Initial width of the view.
 	     * @param {Number} [options.height] Initial height of the view.
-	     * @param {Number|Object} [options.spacing] Spacing for the view (default: 8), see `setSpacing`.
-	     * @param {Array} [options.constraints] One or more constraint definitions.
+	     * @param {Number|Object} [options.spacing] Spacing for the view (default: 8) (see `setSpacing`).
+	     * @param {Array} [options.constraints] One or more constraint definitions (see `addConstraints`).
 	     */
 	
 	    function View(options) {
@@ -10684,18 +11118,8 @@
 	         * @return {View} this
 	         */
 	        value: function setSize(width, height /*, depth*/) {
-	            if (this._width === width && this._height === height) {
-	                return undefined;
-	            }
-	            if (width !== undefined && this._width !== width) {
-	                this._width = width;
-	                this._solver.suggestValue(this._parentSubView._getAttr(_AttributeEs62['default'].WIDTH), this._width);
-	            }
-	            if (height !== undefined && this._height !== height) {
-	                this._height = height;
-	                this._solver.suggestValue(this._parentSubView._getAttr(_AttributeEs62['default'].HEIGHT), this._height);
-	            }
-	            this._solver.resolve();
+	            this._parentSubView.intrinsicWidth = width;
+	            this._parentSubView.intrinsicHeight = height;
 	            return this;
 	        }
 	    }, {
@@ -10704,40 +11128,47 @@
 	        /**
 	         * Sets the spacing for the view.
 	         *
-	         * The spacing can be set for 6 different variables:
-	         * `top`, `right`, `bottom`, `left`, `width` and `height`. The `left`-spacing is
+	         * The spacing can be set for 7 different variables:
+	         * `top`, `right`, `bottom`, `left`, `width`, `height` and `zIndex`. The `left`-spacing is
 	         * used when a spacer is used between the parent-view and a sub-view (e.g. `|-[subView]`).
 	         * The same is true for the `right`, `top` and `bottom` spacers. The `width` and `height` are
 	         * used for spacers in between sub-views (e.g. `[view1]-[view2]`).
 	         *
 	         * Instead of using the full spacing syntax, it is also possible to use shorthand notations:
 	         *
-	         * |Syntax|Description|
-	         * |---|---|
-	         * |`[top, right, bottom, left, width, height]`|Full syntax **(clockwise order)**.|
-	         * |`[horizontal, vertical]`|Horizontal = left, right, width, vertical = top, bottom, height.|
-	         * |`spacing`|All spacing variables are the same.|
+	         * |Syntax|Type|Description|
+	         * |---|---|---|
+	         * |`[top, right, bottom, left, width, height, zIndex]`|Array(7)|Full syntax including z-index **(clockwise order)**.|
+	         * |`[top, right, bottom, left, width, height]`|Array(6)|Full horizontal & vertical spacing syntax (no z-index) **(clockwise order)**.|
+	         * |`[horizontal, vertical, zIndex]`|Array(3)|Horizontal = left, right, width, vertical = top, bottom, height.|
+	         * |`[horizontal, vertical]`|Array(2)|Horizontal = left, right, width, vertical = top, bottom, height, z-index = 1.|
+	         * |`spacing`|Number|Horizontal & vertical spacing are all the same, z-index = 1.|
 	         *
 	         * Examples:
 	         * ```javascript
-	         * view.setSpacing(10); // all spacings 10
-	         * view.setSpacing([10, 15]); // horizontal spacing 10, and vertical spacing 15
+	         * view.setSpacing(10); // horizontal & vertical spacing 10
+	         * view.setSpacing([10, 15, 2]); // horizontal spacing 10, vertical spacing 15, z-axis spacing 2
 	         * view.setSpacing([10, 20, 10, 20, 5, 5]); // top, right, bottom, left, horizontal, vertical
+	         * view.setSpacing([10, 20, 10, 20, 5, 5, 1]); // top, right, bottom, left, horizontal, vertical, z
 	         * ```
 	         *
 	         * @param {Number|Array} spacing
 	         * @return {View} this
 	         */
 	        value: function setSpacing(spacing) {
-	            // convert spacing into array: [top, right, bottom, left, horz, vert]
+	            // convert spacing into array: [top, right, bottom, left, horz, vert, z-index]
 	            switch (Array.isArray(spacing) ? spacing.length : -1) {
 	                case -1:
-	                    spacing = [spacing, spacing, spacing, spacing, spacing, spacing];break;
+	                    spacing = [spacing, spacing, spacing, spacing, spacing, spacing, 1];break;
 	                case 1:
-	                    spacing = [spacing[0], spacing[0], spacing[0], spacing[0], spacing[0], spacing[0]];break;
+	                    spacing = [spacing[0], spacing[0], spacing[0], spacing[0], spacing[0], spacing[0], 1];break;
 	                case 2:
-	                    spacing = [spacing[1], spacing[0], spacing[1], spacing[0], spacing[0], spacing[1]];break;
+	                    spacing = [spacing[1], spacing[0], spacing[1], spacing[0], spacing[0], spacing[1], 1];break;
+	                case 3:
+	                    spacing = [spacing[1], spacing[0], spacing[1], spacing[0], spacing[0], spacing[1], spacing[2]];break;
 	                case 6:
+	                    spacing = [spacing[0], spacing[1], spacing[2], spacing[3], spacing[4], spacing[5], 1];break;
+	                case 7:
 	                    break;
 	                default:
 	                    throw 'Invalid spacing syntax';
@@ -10770,7 +11201,8 @@
 	         *   view2: {String},
 	         *   attr2: {AutoLayout.Attribute},
 	         *   multiplier: {Number},
-	         *   constant: {Number}
+	         *   constant: {Number},
+	         *   priority: {Number}(0..1000)
 	         * }
 	         * ```
 	         * @param {Object} constraint Constraint definition.
@@ -10796,7 +11228,8 @@
 	         *   view2: {String},
 	         *   attr2: {AutoLayout.Attribute},
 	         *   multiplier: {Number},
-	         *   constant: {Number}
+	         *   constant: {Number},
+	         *   priority: {Number}(0..1000)
 	         * }
 	         * ```
 	         * @param {Array} constraints One or more constraint definitions.
@@ -10813,26 +11246,70 @@
 	
 	        /**
 	         * Width that was set using `setSize`.
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
-	            return this._width;
+	            return this._parentSubView.intrinsicWidth;
 	        }
 	    }, {
 	        key: 'height',
 	
 	        /**
 	         * Height that was set using `setSize`.
+	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
-	            return this._height;
+	            return this._parentSubView.intrinsicHeight;
+	        }
+	    }, {
+	        key: 'fittingWidth',
+	
+	        /**
+	         * Width that is calculated from the constraints and the `.intrinsicWidth` of
+	         * the sub-views.
+	         *
+	         * When the width has been explicitely set using `setSize`, the fittingWidth
+	         * will **always** be the same as the explicitely set width. To calculate the size
+	         * based on the content, use:
+	         * ```javascript
+	         * var view = new AutoLayout.View({
+	         *   constraints: VisualFormat.parse('|-[view1]-[view2]-'),
+	         *   spacing: 20
+	         * });
+	         * view.subViews.view1.intrinsicWidth = 100;
+	         * view.subViews.view2.intrinsicWidth = 100;
+	         * console.log('fittingWidth: ' + view.fittingWidth); // 260
+	         * ```
+	         *
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._parentSubView.width;
+	        }
+	    }, {
+	        key: 'fittingHeight',
+	
+	        /**
+	         * Height that is calculated from the constraints and the `.intrinsicHeight` of
+	         * the sub-views.
+	         *
+	         * See `.fittingWidth`.
+	         *
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._parentSubView.height;
 	        }
 	    }, {
 	        key: 'subViews',
 	
 	        /**
 	         * Dictionary of `SubView` objects that have been created when adding constraints.
+	         * @readonly
 	         * @type {Object.SubView}
 	         */
 	        get: function () {
@@ -10857,7 +11334,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 56 */
+/* 57 */
 /*!***********************************************!*\
   !*** ../~/autolayout.js/~/cassowary/bin/c.js ***!
   \***********************************************/
@@ -10885,10 +11362,10 @@
 	      (module.compiled = true && module) : this
 	);
 	
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ../~/webpack/buildin/module.js */ 57)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(/*! ../~/webpack/buildin/module.js */ 58)(module)))
 
 /***/ },
-/* 57 */
+/* 58 */
 /*!**************************************!*\
   !*** ../~/webpack/buildin/module.js ***!
   \**************************************/
@@ -10907,7 +11384,7 @@
 
 
 /***/ },
-/* 58 */
+/* 59 */
 /*!******************************************!*\
   !*** ../~/autolayout.js/src/SubView.es6 ***!
   \******************************************/
@@ -10925,11 +11402,11 @@
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 	
-	var _cassowaryBinC = __webpack_require__(/*! cassowary/bin/c */ 56);
+	var _cassowaryBinC = __webpack_require__(/*! cassowary/bin/c */ 57);
 	
 	var _cassowaryBinC2 = _interopRequireDefault(_cassowaryBinC);
 	
-	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 50);
+	var _AttributeEs6 = __webpack_require__(/*! ./Attribute.es6 */ 53);
 	
 	var _AttributeEs62 = _interopRequireDefault(_AttributeEs6);
 	
@@ -10947,14 +11424,12 @@
 	        this._solver = options.solver;
 	        this._attr = {};
 	        if (!options.name) {
-	            this._attr[_AttributeEs62['default'].LEFT] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_AttributeEs62['default'].LEFT], _cassowaryBinC2['default'].Strength.required, 0));
-	            this._attr[_AttributeEs62['default'].TOP] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_AttributeEs62['default'].TOP], _cassowaryBinC2['default'].Strength.required, 0));
-	            this._attr[_AttributeEs62['default'].WIDTH] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addEditVar(this._attr[_AttributeEs62['default'].WIDTH]);
-	            this._attr[_AttributeEs62['default'].HEIGHT] = new _cassowaryBinC2['default'].Variable({ value: 0 });
-	            this._solver.addEditVar(this._attr[_AttributeEs62['default'].HEIGHT]);
+	            this._attr[_AttributeEs62['default'].LEFT] = new _cassowaryBinC2['default'].Variable({ value: 0, name: '|.left' });
+	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_AttributeEs62['default'].LEFT], _cassowaryBinC2['default'].Strength.required));
+	            this._attr[_AttributeEs62['default'].TOP] = new _cassowaryBinC2['default'].Variable({ value: 0, name: '|.top' });
+	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_AttributeEs62['default'].TOP], _cassowaryBinC2['default'].Strength.required));
+	            this._attr[_AttributeEs62['default'].ZINDEX] = new _cassowaryBinC2['default'].Variable({ value: 0, name: '|.zIndex' });
+	            this._solver.addConstraint(new _cassowaryBinC2['default'].StayConstraint(this._attr[_AttributeEs62['default'].ZINDEX], _cassowaryBinC2['default'].Strength.required));
 	        }
 	    }
 	
@@ -11001,30 +11476,31 @@
 	                case _AttributeEs62['default'].TOP:
 	                case _AttributeEs62['default'].WIDTH:
 	                case _AttributeEs62['default'].HEIGHT:
-	                    this._attr[attr] = new _cassowaryBinC2['default'].Variable({ value: 0 });
+	                case _AttributeEs62['default'].ZINDEX:
+	                    this._attr[attr] = new _cassowaryBinC2['default'].Variable({ value: 0, name: (this._name || '|') + '.' + attr });
 	                    break;
 	                case _AttributeEs62['default'].RIGHT:
 	                    this._getAttr(_AttributeEs62['default'].LEFT);
 	                    this._getAttr(_AttributeEs62['default'].WIDTH);
-	                    this._attr[_AttributeEs62['default'].RIGHT] = new _cassowaryBinC2['default'].Variable();
+	                    this._attr[_AttributeEs62['default'].RIGHT] = new _cassowaryBinC2['default'].Variable({ name: (this._name || '|') + '.' + attr });
 	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].RIGHT], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].LEFT], this._attr[_AttributeEs62['default'].WIDTH])));
 	                    break;
 	                case _AttributeEs62['default'].BOTTOM:
 	                    this._getAttr(_AttributeEs62['default'].TOP);
 	                    this._getAttr(_AttributeEs62['default'].HEIGHT);
-	                    this._attr[_AttributeEs62['default'].BOTTOM] = new _cassowaryBinC2['default'].Variable();
+	                    this._attr[_AttributeEs62['default'].BOTTOM] = new _cassowaryBinC2['default'].Variable({ name: (this._name || '|') + '.' + attr });
 	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].BOTTOM], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].TOP], this._attr[_AttributeEs62['default'].HEIGHT])));
 	                    break;
 	                case _AttributeEs62['default'].CENTERX:
 	                    this._getAttr(_AttributeEs62['default'].LEFT);
 	                    this._getAttr(_AttributeEs62['default'].WIDTH);
-	                    this._attr[_AttributeEs62['default'].CENTERX] = new _cassowaryBinC2['default'].Variable();
+	                    this._attr[_AttributeEs62['default'].CENTERX] = new _cassowaryBinC2['default'].Variable({ name: (this._name || '|') + '.' + attr });
 	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].CENTERX], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].LEFT], _cassowaryBinC2['default'].divide(this._attr[_AttributeEs62['default'].WIDTH], 2))));
 	                    break;
 	                case _AttributeEs62['default'].CENTERY:
 	                    this._getAttr(_AttributeEs62['default'].TOP);
 	                    this._getAttr(_AttributeEs62['default'].HEIGHT);
-	                    this._attr[_AttributeEs62['default'].CENTERY] = new _cassowaryBinC2['default'].Variable();
+	                    this._attr[_AttributeEs62['default'].CENTERY] = new _cassowaryBinC2['default'].Variable({ name: (this._name || '|') + '.' + attr });
 	                    this._solver.addConstraint(new _cassowaryBinC2['default'].Equation(this._attr[_AttributeEs62['default'].CENTERY], _cassowaryBinC2['default'].plus(this._attr[_AttributeEs62['default'].TOP], _cassowaryBinC2['default'].divide(this._attr[_AttributeEs62['default'].HEIGHT], 2))));
 	                    break;
 	            }
@@ -11068,7 +11544,6 @@
 	
 	        /**
 	         * Width value (`Attribute.WIDTH`).
-	         * @readonly
 	         * @type {Number}
 	         */
 	        get: function () {
@@ -11084,6 +11559,61 @@
 	         */
 	        get: function () {
 	            return this._getAttr(_AttributeEs62['default'].HEIGHT).value;
+	        }
+	    }, {
+	        key: 'intrinsicWidth',
+	
+	        /**
+	         * Intrinsic width of the sub-view.
+	         *
+	         * Use this property to explicitely set the width of the sub-view, e.g.:
+	         * ```javascript
+	         * var view = new AutoLayout.View(AutoLayout.VisualFormat.parse('|[child1][child2]|'), {
+	         *   width: 500
+	         * });
+	         * view.subViews.child1.intrinsicWidth = 100;
+	         * console.log('child2 width: ' + view.subViews.child2.width); // 400
+	         * ```
+	         *
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._intrinsicWidth;
+	        },
+	        set: function (value) {
+	            if (value !== undefined && value !== this._intrinsicWidth) {
+	                var attr = this._getAttr(_AttributeEs62['default'].WIDTH);
+	                if (this._intrinsicWidth === undefined) {
+	                    this._solver.addEditVar(attr, new _cassowaryBinC2['default'].Strength('required', this._name ? 998 : 999, 1000, 1000));
+	                }
+	                this._intrinsicWidth = value;
+	                this._solver.suggestValue(attr, value);
+	                this._solver.resolve();
+	            }
+	        }
+	    }, {
+	        key: 'intrinsicHeight',
+	
+	        /**
+	         * Intrinsic height of the sub-view.
+	         *
+	         * See `intrinsicWidth`.
+	         *
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._intrinsicHeight;
+	        },
+	        set: function (value) {
+	            if (value !== undefined && value !== this._intrinsicHeight) {
+	                var attr = this._getAttr(_AttributeEs62['default'].HEIGHT);
+	                if (this._intrinsicHeight === undefined) {
+	                    this._solver.addEditVar(attr, new _cassowaryBinC2['default'].Strength('required', this._name ? 998 : 999, 1000, 1000));
+	                }
+	                this._intrinsicHeight = value;
+	                this._solver.suggestValue(attr, value);
+	                this._solver.resolve();
+	            }
 	        }
 	    }, {
 	        key: 'top',
@@ -11129,6 +11659,17 @@
 	        get: function () {
 	            return this._getAttr(_AttributeEs62['default'].CENTERY).value;
 	        }
+	    }, {
+	        key: 'zIndex',
+	
+	        /**
+	         * Z-index (`Attribute.ZINDEX`).
+	         * @readonly
+	         * @type {Number}
+	         */
+	        get: function () {
+	            return this._getAttr(_AttributeEs62['default'].ZINDEX).value;
+	        }
 	    }]);
 	
 	    return SubView;
@@ -11138,7 +11679,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 59 */
+/* 60 */
 /*!*****************************!*\
   !*** ./views/InputView.es6 ***!
   \*****************************/
@@ -11158,7 +11699,7 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 61);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 62);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
@@ -11166,19 +11707,19 @@
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 72);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 73);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
-	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 60);
+	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 61);
 	
 	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
 	
-	var _EditorViewEs6 = __webpack_require__(/*! ./EditorView.es6 */ 73);
+	var _EditorViewEs6 = __webpack_require__(/*! ./EditorView.es6 */ 74);
 	
 	var _EditorViewEs62 = _interopRequireDefault(_EditorViewEs6);
 	
-	var _SettingsViewEs6 = __webpack_require__(/*! ./SettingsView.es6 */ 77);
+	var _SettingsViewEs6 = __webpack_require__(/*! ./SettingsView.es6 */ 78);
 	
 	var _SettingsViewEs62 = _interopRequireDefault(_SettingsViewEs6);
 	
@@ -11229,7 +11770,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 60 */
+/* 61 */
 /*!********************************************************!*\
   !*** ../~/famous-flex/src/widgets/TabBarController.js ***!
   \********************************************************/
@@ -11253,12 +11794,12 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var View = __webpack_require__(/*! famous/core/View */ 61);
-	    var AnimationController = __webpack_require__(/*! ../AnimationController */ 62);
-	    var TabBar = __webpack_require__(/*! ./TabBar */ 68);
+	    var View = __webpack_require__(/*! famous/core/View */ 62);
+	    var AnimationController = __webpack_require__(/*! ../AnimationController */ 63);
+	    var TabBar = __webpack_require__(/*! ./TabBar */ 69);
 	    var LayoutDockHelper = __webpack_require__(/*! ../helpers/LayoutDockHelper */ 48);
 	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 35);
-	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 67);
+	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 68);
 	
 	    /**
 	     * @class
@@ -11481,7 +12022,7 @@
 
 
 /***/ },
-/* 61 */
+/* 62 */
 /*!********************************!*\
   !*** ../~/famous/core/View.js ***!
   \********************************/
@@ -11532,7 +12073,7 @@
 	module.exports = View;
 
 /***/ },
-/* 62 */
+/* 63 */
 /*!***************************************************!*\
   !*** ../~/famous-flex/src/AnimationController.js ***!
   \***************************************************/
@@ -11556,14 +12097,14 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var View = __webpack_require__(/*! famous/core/View */ 61);
+	    var View = __webpack_require__(/*! famous/core/View */ 62);
 	    var LayoutController = __webpack_require__(/*! ./LayoutController */ 35);
 	    var Transform = __webpack_require__(/*! famous/core/Transform */ 6);
-	    var Modifier = __webpack_require__(/*! famous/core/Modifier */ 64);
-	    var StateModifier = __webpack_require__(/*! famous/modifiers/StateModifier */ 63);
+	    var Modifier = __webpack_require__(/*! famous/core/Modifier */ 65);
+	    var StateModifier = __webpack_require__(/*! famous/modifiers/StateModifier */ 64);
 	    var RenderNode = __webpack_require__(/*! famous/core/RenderNode */ 3);
-	    var Timer = __webpack_require__(/*! famous/utilities/Timer */ 66);
-	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 67);
+	    var Timer = __webpack_require__(/*! famous/utilities/Timer */ 67);
+	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 68);
 	
 	    /**
 	     * @class
@@ -12195,7 +12736,7 @@
 
 
 /***/ },
-/* 63 */
+/* 64 */
 /*!**********************************************!*\
   !*** ../~/famous/modifiers/StateModifier.js ***!
   \**********************************************/
@@ -12208,10 +12749,10 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Modifier = __webpack_require__(/*! ../core/Modifier */ 64);
+	var Modifier = __webpack_require__(/*! ../core/Modifier */ 65);
 	var Transform = __webpack_require__(/*! ../core/Transform */ 6);
 	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 10);
-	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 65);
+	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 66);
 	function StateModifier(options) {
 	    this._transformState = new TransitionableTransform(Transform.identity);
 	    this._opacityState = new Transitionable(1);
@@ -12357,7 +12898,7 @@
 	module.exports = StateModifier;
 
 /***/ },
-/* 64 */
+/* 65 */
 /*!************************************!*\
   !*** ../~/famous/core/Modifier.js ***!
   \************************************/
@@ -12372,7 +12913,7 @@
 	 */
 	var Transform = __webpack_require__(/*! ./Transform */ 6);
 	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 10);
-	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 65);
+	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 66);
 	function Modifier(options) {
 	    this._transformGetter = null;
 	    this._opacityGetter = null;
@@ -12617,7 +13158,7 @@
 	module.exports = Modifier;
 
 /***/ },
-/* 65 */
+/* 66 */
 /*!**********************************************************!*\
   !*** ../~/famous/transitions/TransitionableTransform.js ***!
   \**********************************************************/
@@ -12749,7 +13290,7 @@
 	module.exports = TransitionableTransform;
 
 /***/ },
-/* 66 */
+/* 67 */
 /*!**************************************!*\
   !*** ../~/famous/utilities/Timer.js ***!
   \**************************************/
@@ -12856,7 +13397,7 @@
 	};
 
 /***/ },
-/* 67 */
+/* 68 */
 /*!*****************************************!*\
   !*** ../~/famous/transitions/Easing.js ***!
   \*****************************************/
@@ -13030,7 +13571,7 @@
 	module.exports = Easing;
 
 /***/ },
-/* 68 */
+/* 69 */
 /*!**********************************************!*\
   !*** ../~/famous-flex/src/widgets/TabBar.js ***!
   \**********************************************/
@@ -13102,10 +13643,10 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Surface = __webpack_require__(/*! famous/core/Surface */ 69);
-	    var View = __webpack_require__(/*! famous/core/View */ 61);
+	    var Surface = __webpack_require__(/*! famous/core/Surface */ 70);
+	    var View = __webpack_require__(/*! famous/core/View */ 62);
 	    var LayoutController = __webpack_require__(/*! ../LayoutController */ 35);
-	    var TabBarLayout = __webpack_require__(/*! ../layouts/TabBarLayout */ 71);
+	    var TabBarLayout = __webpack_require__(/*! ../layouts/TabBarLayout */ 72);
 	
 	    /**
 	     * @class
@@ -13366,7 +13907,7 @@
 
 
 /***/ },
-/* 69 */
+/* 70 */
 /*!***********************************!*\
   !*** ../~/famous/core/Surface.js ***!
   \***********************************/
@@ -13379,7 +13920,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var ElementOutput = __webpack_require__(/*! ./ElementOutput */ 70);
+	var ElementOutput = __webpack_require__(/*! ./ElementOutput */ 71);
 	function Surface(options) {
 	    ElementOutput.call(this);
 	    this.options = {};
@@ -13683,7 +14224,7 @@
 	module.exports = Surface;
 
 /***/ },
-/* 70 */
+/* 71 */
 /*!*****************************************!*\
   !*** ../~/famous/core/ElementOutput.js ***!
   \*****************************************/
@@ -13873,7 +14414,7 @@
 	module.exports = ElementOutput;
 
 /***/ },
-/* 71 */
+/* 72 */
 /*!****************************************************!*\
   !*** ../~/famous-flex/src/layouts/TabBarLayout.js ***!
   \****************************************************/
@@ -14074,7 +14615,7 @@
 
 
 /***/ },
-/* 72 */
+/* 73 */
 /*!************************!*\
   !*** ./vflToLayout.js ***!
   \************************/
@@ -14086,11 +14627,13 @@
 	    view.setSize(context.size[0], context.size[1]);
 	    var subView;
 	    for (var key in view.subViews) {
-	        subView = view.subViews[key];
-	        context.set(subView.name, {
-	            size: [subView.width, subView.height],
-	            translate: [subView.left, subView.top, 0]
-	        });
+	        if (key.indexOf('_') !== 0) {
+	            subView = view.subViews[key];
+	            context.set(subView.name, {
+	                size: [subView.width, subView.height],
+	                translate: [subView.left, subView.top, subView.zIndex]
+	            });
+	        }
 	    }
 	}
 	
@@ -14108,7 +14651,7 @@
 
 
 /***/ },
-/* 73 */
+/* 74 */
 /*!******************************!*\
   !*** ./views/EditorView.es6 ***!
   \******************************/
@@ -14130,7 +14673,7 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 61);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 62);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
@@ -14138,19 +14681,19 @@
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 72);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 73);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 69);
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 70);
 	
 	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
 	
-	var _codemirror = __webpack_require__(/*! codemirror */ 74);
+	var _codemirror = __webpack_require__(/*! codemirror */ 75);
 	
 	var _codemirror2 = _interopRequireDefault(_codemirror);
 	
-	var _modeVflVfl = __webpack_require__(/*! ../mode/vfl/vfl */ 75);
+	var _modeVflVfl = __webpack_require__(/*! ../mode/vfl/vfl */ 76);
 	
 	var _modeVflVfl2 = _interopRequireDefault(_modeVflVfl);
 	
@@ -14227,7 +14770,7 @@
 	module.exports = exports['default'];
 
 /***/ },
-/* 74 */
+/* 75 */
 /*!*****************************************!*\
   !*** ../~/codemirror/lib/codemirror.js ***!
   \*****************************************/
@@ -22981,7 +23524,7 @@
 
 
 /***/ },
-/* 75 */
+/* 76 */
 /*!*************************!*\
   !*** ./mode/vfl/vfl.js ***!
   \*************************/
@@ -22990,15 +23533,16 @@
 	/* Visual format language definition.
 	 */
 	/*eslint quotes:[2, "double"]*/
-	var CodeMirror = __webpack_require__(/*! codemirror */ 74);
-	__webpack_require__(/*! codemirror/addon/mode/simple */ 76);
+	var CodeMirror = __webpack_require__(/*! codemirror */ 75);
+	__webpack_require__(/*! codemirror/addon/mode/simple */ 77);
 	CodeMirror.defineSimpleMode("vfl", {
 	    // The start state contains the rules that are intially used
 	    start: [
-	        {regex: /^[HV]/, token: "meta", push: "orientation"},
+	        {regex: /^[HVZ]/, token: "meta", push: "orientation"},
 	        {regex: /\|/, token: "keyword"},
 	        {regex: /-/, token: "def", push: "connection"},
-	        {regex: /\[/, token: "bracket", push: "view"}
+	        {regex: /\[/, token: "bracket", push: "view"},
+	        {regex: /.*\/\/.*/, token: "comment"}
 	    ],
 	    orientation: [
 	        {regex: /:/, token: "def", pop: true}
@@ -23035,7 +23579,7 @@
 
 
 /***/ },
-/* 76 */
+/* 77 */
 /*!********************************************!*\
   !*** ../~/codemirror/addon/mode/simple.js ***!
   \********************************************/
@@ -23046,7 +23590,7 @@
 	
 	(function(mod) {
 	  if (true) // CommonJS
-	    mod(__webpack_require__(/*! ../../lib/codemirror */ 74));
+	    mod(__webpack_require__(/*! ../../lib/codemirror */ 75));
 	  else if (typeof define == "function" && define.amd) // AMD
 	    define(["../../lib/codemirror"], mod);
 	  else // Plain browser env
@@ -23257,7 +23801,7 @@
 
 
 /***/ },
-/* 77 */
+/* 78 */
 /*!********************************!*\
   !*** ./views/SettingsView.es6 ***!
   \********************************/
@@ -23279,15 +23823,15 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 61);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 62);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
-	var _famousSurfacesInputSurface = __webpack_require__(/*! famous/surfaces/InputSurface */ 78);
+	var _famousSurfacesInputSurface = __webpack_require__(/*! famous/surfaces/InputSurface */ 79);
 	
 	var _famousSurfacesInputSurface2 = _interopRequireDefault(_famousSurfacesInputSurface);
 	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 69);
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 70);
 	
 	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
 	
@@ -23295,7 +23839,7 @@
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 72);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 73);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
@@ -23412,7 +23956,7 @@
 	//
 
 /***/ },
-/* 78 */
+/* 79 */
 /*!********************************************!*\
   !*** ../~/famous/surfaces/InputSurface.js ***!
   \********************************************/
@@ -23425,7 +23969,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Surface = __webpack_require__(/*! ../core/Surface */ 69);
+	var Surface = __webpack_require__(/*! ../core/Surface */ 70);
 	function InputSurface(options) {
 	    this._placeholder = options.placeholder || '';
 	    this._value = options.value || '';
@@ -23492,7 +24036,7 @@
 	module.exports = InputSurface;
 
 /***/ },
-/* 79 */
+/* 80 */
 /*!******************************!*\
   !*** ./views/OutputView.es6 ***!
   \******************************/
@@ -23514,11 +24058,11 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 61);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 62);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 69);
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 70);
 	
 	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
 	
@@ -23526,11 +24070,11 @@
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 60);
+	var _famousFlexWidgetsTabBarController = __webpack_require__(/*! famous-flex/widgets/TabBarController */ 61);
 	
 	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 72);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 73);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
@@ -23628,7 +24172,7 @@
 	//
 
 /***/ },
-/* 80 */
+/* 81 */
 /*!************************************!*\
   !*** ./views/VisualOutputView.es6 ***!
   \************************************/
@@ -23650,11 +24194,11 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) subClass.__proto__ = superClass; }
 	
-	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 61);
+	var _famousCoreView = __webpack_require__(/*! famous/core/View */ 62);
 	
 	var _famousCoreView2 = _interopRequireDefault(_famousCoreView);
 	
-	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 69);
+	var _famousCoreSurface = __webpack_require__(/*! famous/core/Surface */ 70);
 	
 	var _famousCoreSurface2 = _interopRequireDefault(_famousCoreSurface);
 	
@@ -23662,7 +24206,7 @@
 	
 	var _famousFlexLayoutController2 = _interopRequireDefault(_famousFlexLayoutController);
 	
-	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 72);
+	var _vflToLayout = __webpack_require__(/*! ../vflToLayout */ 73);
 	
 	var _vflToLayout2 = _interopRequireDefault(_vflToLayout);
 	
@@ -23681,13 +24225,13 @@
 	            },
 	            layout: function layout(context) {
 	                if (_this.alView) {
-	                    _this.alView.setSize(context.size[0], context.size[1]);
 	                    var subView;
+	                    _this.alView.setSize(context.size[0], context.size[1]);
 	                    for (var key in _this.alView.subViews) {
 	                        subView = _this.alView.subViews[key];
 	                        context.set(subView.name, {
 	                            size: [subView.width, subView.height],
-	                            translate: [subView.left, subView.top, 0]
+	                            translate: [subView.left, subView.top, subView.zIndex]
 	                        });
 	                    }
 	                }
@@ -23716,10 +24260,12 @@
 	            this.contentRenderables = {};
 	            if (this.alView) {
 	                for (var subView in this.alView.subViews) {
-	                    this.contentRenderables[subView] = this.contentPool[subView] || new _famousCoreSurface2['default']({
-	                        content: '<div class="va">' + subView + '</div>',
-	                        classes: ['subView']
-	                    });
+	                    if (subView.indexOf('_') !== 0) {
+	                        this.contentRenderables[subView] = this.contentPool[subView] || new _famousCoreSurface2['default']({
+	                            content: '<div class="va">' + subView + '</div>',
+	                            classes: ['subView']
+	                        });
+	                    }
 	                }
 	            }
 	            this.content.setDataSource(this.contentRenderables);
