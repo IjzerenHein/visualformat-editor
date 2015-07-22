@@ -18,10 +18,17 @@ class VisualOutputView extends View {
                     this.alView.setSize(context.size[0], context.size[1]);
                     for (var key in this.alView.subViews) {
                         subView = this.alView.subViews[key];
-                        context.set(subView.name, {
-                            size: [subView.width, subView.height],
-                            translate: [subView.left, subView.top, subView.zIndex]
-                        });
+                        if ((subView.type !== 'stack') && (key.indexOf('_') !== 0)) {
+                            const node = context.get(subView.name);
+                            context.set(node, {
+                                size: [subView.width, subView.height],
+                                translate: [subView.left, subView.top, subView.zIndex * 5]
+                            });
+                            var color = 204 - (subView.zIndex * 20);
+                            node.renderNode.setProperties({
+                                backgroundColor: `rgb(${color}, ${color}, ${color})`
+                            });
+                        }
                     }
                 }
             }
@@ -53,6 +60,9 @@ class VisualOutputView extends View {
                         content: '<div class="va">' + subView + '</div>',
                         classes: ['subView']
                     });
+                    if ((subView.indexOf('round') === 0) || (subView.indexOf('circle') >= 0)) {
+                        this.contentRenderables[subView].addClass('round');
+                    }
                 }
             }
         }

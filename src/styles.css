@@ -95,6 +95,9 @@ input {
 .subView {
   border: 1px solid #DDDDDD;
   border-radius: 5px;
-  background-color: #CCCCCC;
+  /*background-color: #CCCCCC; set from code */
   text-align: center;
+}
+.subView.round {
+  border-radius: 50%;
 }
