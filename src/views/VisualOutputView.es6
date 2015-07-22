@@ -34,10 +34,10 @@ class VisualOutputView extends View {
             }
         });
         this.layout = new LayoutController({
-            layout: vflToLayout([
-                '|[content]|',
-                'V:|[content]|'
-            ]),
+            layout: vflToLayout(`
+                |[content]|
+                V:|[content]|
+            `),
             dataSource: {
                 content: this.content
             }

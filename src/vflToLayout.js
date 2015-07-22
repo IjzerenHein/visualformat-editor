@@ -8,7 +8,7 @@ function _layout(view, context) {
             subView = view.subViews[key];
             context.set(subView.name, {
                 size: [subView.width, subView.height],
-                translate: [subView.left, subView.top, subView.zIndex]
+                translate: [subView.left, subView.top, subView.zIndex * 5]
             });
         }
     }
@@ -17,7 +17,7 @@ function _layout(view, context) {
 module.exports = function(visualFormat, options) {
     var view = new AutoLayout.View(options);
     try {
-        var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true});
+        var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true, strict: false});
         view.addConstraints(constraints);
         return _layout.bind(view, view);
     }

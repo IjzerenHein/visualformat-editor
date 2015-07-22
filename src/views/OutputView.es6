@@ -41,10 +41,10 @@ class OutputView extends View {
         ]);
 
         this.layout = new LayoutController({
-            layout: vflToLayout([
-                '|[content]|',
-                'V:|[content]|'
-            ]),
+            layout: vflToLayout(`
+                |[content]|
+                V:|[content]|
+            `),
             dataSource: {
                 content: this.tabBarController
             }
@@ -67,7 +67,7 @@ class OutputView extends View {
         }
         try {
             // update constraints
-            const constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: extended});
+            const constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: extended, strict: false});
             this.constraints.setContent('<pre>' + JSON.stringify(constraints, undefined, 2) + '</pre>');
             // update raw
             const raw = AutoLayout.VisualFormat.parse(visualFormat, {extended: extended, outFormat: 'raw'});

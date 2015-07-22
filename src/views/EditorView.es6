@@ -14,14 +14,20 @@ function getParameterByName(name) {
 
 var vfl = getParameterByName('vfl');
 if (vfl === 'example') {
-    vfl =
-    '|-[child1(child3)]-[child3]-|\n' +
-    '|-[child2(child4)]-[child4]-|\n' +
-    '[child5(child4)]-|\n' +
-    'V:|-[child1(child2)]-[child2]-|\n' +
-    'V:|-[child3(child4,child5)]-[child4]-[child5]-|';
+    vfl = `|-[child1(child3)]-[child3]-|
+|-[child2(child4)]-[child4]-|
+[child5(child4)]-|
+V:|-[child1(child2)]-[child2]-|
+V:|-[child3(child4,child5)]-[child4]-[child5]-|`;
 }
-vfl = vfl || '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|';
+if (vfl === 'stack') {
+    vfl = `V:|-[col1:[child1(child2,child3)]-[child2]-[child3]]-|
+V:|-[col2:[child4(child5)]-[child5]]-|
+H:|-[col1(col2)]-[col2]-|`;
+}
+vfl = vfl || `|-[child(==child2/2)]-[child2]-|
+V:|-[child]-|
+V:|-[child2]-|`;
 
 class EditorView extends View {
     constructor(options) {
@@ -44,10 +50,10 @@ class EditorView extends View {
         });
 
         this.layout = new LayoutController({
-            layout: vflToLayout([
-                '|[content]|',
-                'V:|[content]|'
-            ]),
+            layout: vflToLayout(`
+                |[content]|
+                V:|[content]|
+            `),
             dataSource: {
                 content: this.surface
             }

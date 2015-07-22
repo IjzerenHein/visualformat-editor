@@ -35,10 +35,10 @@ class InputView extends View {
         ]);
 
         this.layout = new LayoutController({
-            layout: vflToLayout([
-                '|[content]|',
-                'V:|[content]|'
-            ]),
+            layout: vflToLayout(`
+                |[content]|
+                V:|[content]|
+            `),
             dataSource: {
                 content: parseInt(getParameterByName('settings') || '1') ? this.tabBarController : this.editor
             }
