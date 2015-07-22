@@ -8,7 +8,9 @@ CodeMirror.defineSimpleMode("vfl", {
     start: [
         {regex: /^[HVZ]/, token: "meta", push: "orientation"},
         {regex: /\|/, token: "keyword"},
+        {regex: /->/, token: "def"},
         {regex: /-/, token: "def", push: "connection"},
+        {regex: /~/, token: "def", push: "connection"},
         {regex: /\[/, token: "bracket", push: "view"},
         {regex: /.*\/\/.*/, token: "comment"}
     ],
@@ -16,24 +18,25 @@ CodeMirror.defineSimpleMode("vfl", {
         {regex: /:/, token: "def", pop: true}
     ],
     connection: [
-        {regex: /\(/, token: "bracket", push: "connectionPredicate"},
+        {regex: /\(/, token: "atom", push: "connectionPredicate"},
         {regex: /[0-9]+/, token: "number"},
         {regex: /\[/, token: "bracket", pop: true, push: "view"},
         {regex: /|/, token: "bracket", pop: true},
-        {regex: /-/, token: "def", pop: true}
+        {regex: /-/, token: "def", pop: true},
+        {regex: /~/, token: "def", pop: true}
     ],
     connectionPredicate: [
         {regex: /[=><]=/, token: "operator"},
         {regex: /[0-9]+/, token: "number"},
-        {regex: /\)/, token: "bracket", pop: true}
+        {regex: /\)/, token: "atom", pop: true}
     ],
     view: [
         {regex: /\]/, token: "bracket", pop: true},
-        {regex: /\(/, token: "bracket", push: "predicates"},
+        {regex: /\(/, token: "atom", push: "predicates"},
         {regex: /\w/, token: "variable"}
     ],
     predicates: [
-        {regex: /\)/, token: "bracket", pop: true},
+        {regex: /\)/, token: "atom", pop: true},
         {regex: /[0-9]+/, token: "number"},
         {regex: /[=><]=/, token: "operator"},
         {regex: /[\*\/]/, token: "operator", push: "operator"},
