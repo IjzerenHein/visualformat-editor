@@ -25,6 +25,13 @@ if (vfl === 'stack') {
 V:|-[col2:[child4(child5)]-[child5]]-|
 H:|-[col1(col2)]-[col2]-|`;
 }
+if (vfl === 'rgb') {
+    vfl = `//viewport aspect-ratio:3/1 max-height:300
+//colors red:#FF0000 green:#00FF00 blue:#0000FF
+//shapes red:circle green:circle blue:circle
+H:|-[row:[red(green,blue)]-[green]-[blue]]-|
+V:|[row]|`;
+}
 vfl = vfl || `|-[child(==child2/2)]-[child2]-|
 V:|-[child]-|
 V:|-[child2]-|`;

@@ -15641,6 +15641,9 @@
 	if (vfl === 'stack') {
 	    vfl = 'V:|-[col1:[child1(child2,child3)]-[child2]-[child3]]-|\nV:|-[col2:[child4(child5)]-[child5]]-|\nH:|-[col1(col2)]-[col2]-|';
 	}
+	if (vfl === 'rgb') {
+	    vfl = '//viewport aspect-ratio:3/1 max-height:300\n//colors red:#FF0000 green:#00FF00 blue:#0000FF\n//shapes red:circle green:circle blue:circle\nH:|-[row:[red(green,blue)]-[green]-[blue]]-|\nV:|[row]|';
+	}
 	vfl = vfl || '|-[child(==child2/2)]-[child2]-|\nV:|-[child]-|\nV:|-[child2]-|';
 	
 	var EditorView = (function (_View) {

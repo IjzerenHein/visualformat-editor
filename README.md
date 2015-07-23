@@ -22,6 +22,32 @@ Example:
     visualformat-editor/.../index.html?spacing=[20,10]&extended=0
 
 
+## Extended visual format Meta info
+
+Additional meta-info can be added in the form of comments. Using this meta-info, you can instruct
+the viewer to for instance use a specific aspect ratio or a specific color for a sub-view:
+
+```vfl
+//viewport aspect-ratio:3/1 max-height:300
+//colors red:#FF0000 green:#00FF00 blue:#0000FF
+//shapes red:circle green:circle blue:circle
+H:|-[row:[red(green,blue)]-[green]-[blue]]-|
+V:|[row]|
+```
+[View this example online](https://rawgit.com/IjzerenHein/visualformat-editor/master/dist/index.html?vfl=rgb)
+
+|Category|Property|
+|--------|------|------|
+|`viewport`|`aspect-ratio:{width}/{height}`|
+||`min-width:{number}`|
+||`max-width:{number}`|
+||`min-height:{number}`|
+||`max-height:{number}`|
+|`colors`|`{view-name}:{color}`|
+|`shapes`|`{view-name}:[circle/square]`|
+
+
+
 ## Contribute
 
 If you like this project and want to support it, show some love
