@@ -61,12 +61,11 @@ class SettingsView extends View {
             });
         }
         this.layout = new LayoutController({
-            layout: vflToLayout([
-                '|[spacingText(==spacingInput)]-[spacingInput]|',
-                '|[extendedText(==extendedInput)]-[extendedInput]|',
-                'V:|-[spacingText(==30,==spacingInput)]-[extendedText(==spacingText,==extendedInput)]',
-                'V:|-[spacingInput]-[extendedInput]'
-            ]),
+            layout: vflToLayout(`
+|[spacing:[spacingText(spacingInput)]-[spacingInput]]|
+|[extended:[extendedText(extendedInput)]-[extendedInput]]|
+V:|-[spacing(30)]-[extended(30)]
+            `),
             dataSource: this.renderables
         });
         this.add(this.layout);

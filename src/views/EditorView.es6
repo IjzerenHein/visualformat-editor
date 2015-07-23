@@ -69,7 +69,7 @@ class EditorView extends View {
         }
     }
 
-    getVisualFormat() {
+    get visualFormat() {
         return this.editor ? this.editor.getValue() : vfl;
     }
 }

@@ -39,6 +39,7 @@ define(function(require) {
     var VisualOutputView = require('./views/VisualOutputView.es6');
     var vflToLayout = require('./vflToLayout');
     var Surface = require('famous/core/Surface');
+    var parseMetaInfo = require('./parseMetaInfo.es6');
 
     // create the main context and layout
     var mainContext = Engine.createContext();
@@ -103,23 +104,38 @@ define(function(require) {
 
     // Update handling
     function _update() {
-        var vfl = inputView.editor.getVisualFormat();
-        var constraints = outputView.parse(vfl, inputView.settings.getExtended());
+        var constraints = outputView.parse(inputView.editor.visualFormat, inputView.settings.getExtended());
         if (constraints) {
             var view = new AutoLayout.View();
             view.addConstraints(constraints);
-            visualOutputView.setAutoLayoutView(view);
+            visualOutputView.view = view;
         }
         _updateSettings(); //eslint-disable-line no-use-before-define
+        _updateMetaInfo(); //eslint-disable-line no-use-before-define
+    }
+    function _updateMetaInfo() {
+        var metaInfo = parseMetaInfo(inputView.editor.visualFormat);
+        var aspectRatio = metaInfo.viewport ? metaInfo.viewport['aspect-ratio'] : undefined;
+        if (aspectRatio) {
+            aspectRatio = aspectRatio.split('/');
+            aspectRatio = parseInt(aspectRatio[0]) / parseInt(aspectRatio[1]);
+        }
+        visualOutputView.aspectRatio = aspectRatio;
+        visualOutputView.maxHeight = parseInt(metaInfo.viewport ? metaInfo.viewport['max-height'] : undefined);
+        visualOutputView.maxWidth = parseInt(metaInfo.viewport ? metaInfo.viewport['max-width'] : undefined);
+        visualOutputView.minHeight = parseInt(metaInfo.viewport ? metaInfo.viewport['min-height'] : undefined);
+        visualOutputView.minWidth = parseInt(metaInfo.viewport ? metaInfo.viewport['min-width'] : undefined);
+        visualOutputView.colors = metaInfo.colors;
+        visualOutputView.shapes = metaInfo.shapes;
     }
     function _updateSettings(forceParse) {
         if (forceParse) {
             return _update.call(this);
         }
-        var view = visualOutputView.getAutoLayoutView();
+        var view = visualOutputView.view;
         if (view) {
             inputView.settings.updateAutoLayoutView(view);
-            visualOutputView.setAutoLayoutView(view);
+            visualOutputView.view = view;
         }
     }
     _update();
