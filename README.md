@@ -37,15 +37,18 @@ V:|[row]|
 [View this example online](https://rawgit.com/IjzerenHein/visualformat-editor/master/dist/index.html?vfl=rgb)
 
 |Category|Property|
-|--------|------|------|
+|--------|--------|
 |`viewport`|`aspect-ratio:{width}/{height}`|
+||`width:[{number}/intrinsic]`|
+||`height:[{number}/intrinsic]`|
 ||`min-width:{number}`|
 ||`max-width:{number}`|
 ||`min-height:{number}`|
 ||`max-height:{number}`|
+|`widths`|`{view-name}:[{number}/intrinsic]`|
+|`heights`|`{view-name}:[{number}/intrinsic]`|
 |`colors`|`{view-name}:{color}`|
 |`shapes`|`{view-name}:[circle/square]`|
-
 
 
 ## Contribute

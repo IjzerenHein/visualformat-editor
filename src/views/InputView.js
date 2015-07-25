@@ -2,8 +2,8 @@ import View from 'famous/core/View';
 import LayoutController from 'famous-flex/LayoutController';
 import vflToLayout from '../vflToLayout';
 import TabBarController from 'famous-flex/widgets/TabBarController';
-import EditorView from './EditorView.es6';
-import SettingsView from './SettingsView.es6';
+import EditorView from './EditorView';
+import SettingsView from './SettingsView';
 
 function getParameterByName(name) {
     name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
