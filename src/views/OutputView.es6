@@ -28,7 +28,10 @@ class OutputView extends View {
         });
         this.log.commit = function() {
             const res = Surface.prototype.commit.apply(this.log, arguments);
-            this.log._currentTarget.scrollTop = Math.max(0, this.log._currentTarget.scrollHeight - this.log._currentTarget.clientHeight);
+            if (this._scrollToBottom) {
+                this._scrollToBottom = false;
+                this.log._currentTarget.scrollTop = Math.max(0, this.log._currentTarget.scrollHeight - this.log._currentTarget.clientHeight);
+            }
             return res;
         }.bind(this);
         this.raw = new Surface({
@@ -55,6 +58,7 @@ class OutputView extends View {
     _log(message) {
         this.logContent += message;
         this.log.setContent(this.logContent);
+        this._scrollToBottom = true;
     }
 
     parse(visualFormat, extended) {
