@@ -47,7 +47,7 @@
   \*****************/
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_RESULT__;/**
+	/**
 	 * This Source Code is licensed under the MIT license. If a copy of the
 	 * MIT-license was not distributed with this file, You can obtain one at:
 	 * http://opensource.org/licenses/mit-license.html.
@@ -56,154 +56,2258 @@
 	 * @license MIT
 	 * @copyright Gloey Apps, 2015
 	 */
-	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 	
-	    function getParameterByName(name) {
-	        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-	        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-	        var results = regex.exec(location.search);
-	        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+	//<webpack>
+	'use strict';
+	
+	__webpack_require__(/*! famous-polyfills */ 15);
+	__webpack_require__(/*! famous/core/famous.css */ 19);
+	__webpack_require__(/*! famous-flex/widgets/styles.css */ 22);
+	__webpack_require__(/*! ./styles.css */ 24);
+	__webpack_require__(/*! ./index.html */ 29);
+	__webpack_require__(/*! codemirror/lib/codemirror.css */ 30);
+	__webpack_require__(/*! ./mode/vfl/vfl.css */ 32);
+	//</webpack>
+	
+	function getParameterByName(name) {
+	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+	    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+	    var results = regex.exec(location.search);
+	    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+	}
+	
+	// Fast-click
+	var FastClick = __webpack_require__(/*! fastclick/lib/fastclick */ 34);
+	FastClick.attach(document.body);
+	
+	// import dependencies
+	var Engine = __webpack_require__(/*! famous/core/Engine */ 1);
+	var LayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 35);
+	var AutoLayout = __webpack_require__(/*! autolayout.js */ 49);
+	var InputView = __webpack_require__(/*! ./views/InputView */ 50);
+	var OutputView = __webpack_require__(/*! ./views/OutputView */ 70);
+	var VisualOutputView = __webpack_require__(/*! ./views/VisualOutputView */ 71);
+	var vflToLayout = __webpack_require__(/*! ./vflToLayout */ 63);
+	var Surface = __webpack_require__(/*! famous/core/Surface */ 60);
+	
+	// create the main context and layout
+	var mainContext = Engine.createContext();
+	var layout;
+	switch (getParameterByName('mode')) {
+	    case 'preview':
+	        layout = vflToLayout('\n|-[visualOutput]-|\nV:|-[visualOutput]-|\n        ');
+	        break;
+	    case 'compact':
+	        layout = vflToLayout('\nV:|-[input(output)]-[output]-|\nV:|-[visualOutput]-|\n|-[input(output,visualOutput)]-[visualOutput]-|\n|-[output]-[visualOutput]-|\n        ', { spacing: [10, 10] });
+	        break;
+	    case 'nolog':
+	        layout = vflToLayout('\nV:|-[input]-|\nV:|-[visualOutput]-|\n|-[input(visualOutput)]-[visualOutput]-|\n        ', { spacing: [10, 10] });
+	        break;
+	    default:
+	        layout = vflToLayout('\n//heights banner:intrinsic\n|[banner]|\nV:|[banner]-[input(output)]-[output]-|\nV:[banner]-[visualOutput]-|\n|-[input(output,visualOutput)]-[visualOutput]-|\n|-[output]-[visualOutput]-|\n        ', { spacing: [10, 10] });
+	}
+	var mainLC = new LayoutController({
+	    layout: layout
+	});
+	mainContext.add(mainLC);
+	
+	// Create banner
+	var banner = new Surface({
+	    classes: ['banner'],
+	    content: '<div class="va">AUTOLAYOUT.JS<div class="subTitle">Visual Format Editor</div></div>' + (parseInt(getParameterByName('fork') || '1') ? '<a href="https://github.com/ijzerenhein/autolayout.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>' : ''),
+	    size: [undefined, 124]
+	});
+	mainLC.insert('banner', banner);
+	
+	// Create input view
+	var inputView = new InputView();
+	mainLC.insert('input', inputView);
+	inputView.editor.on('update', _update); //eslint-disable-line no-use-before-define
+	inputView.settings.on('update', _updateSettings); //eslint-disable-line no-use-before-define
+	
+	// Create output view
+	var outputView = new OutputView();
+	mainLC.insert('output', outputView);
+	
+	// Create visualoutput view
+	var visualOutputView = new VisualOutputView();
+	mainLC.insert('visualOutput', visualOutputView);
+	
+	// Update handling
+	function _update() {
+	    var constraints = outputView.parse(inputView.editor.visualFormat, inputView.settings.getExtended());
+	    if (constraints) {
+	        var view = new AutoLayout.View();
+	        view.addConstraints(constraints);
+	        visualOutputView.view = view;
 	    }
-	
-	    //<webpack>
-	    __webpack_require__(/*! famous-polyfills */ 1);
-	    __webpack_require__(/*! famous/core/famous.css */ 5);
-	    __webpack_require__(/*! famous-flex/widgets/styles.css */ 8);
-	    __webpack_require__(/*! ./styles.css */ 10);
-	    __webpack_require__(/*! ./index.html */ 15);
-	    __webpack_require__(/*! codemirror/lib/codemirror.css */ 16);
-	    __webpack_require__(/*! ./mode/vfl/vfl.css */ 18);
-	    //</webpack>
-	
-	    // Fast-click
-	    var FastClick = __webpack_require__(/*! fastclick/lib/fastclick */ 20);
-	    FastClick.attach(document.body);
-	
-	    // import dependencies
-	    var Engine = __webpack_require__(/*! famous/core/Engine */ 21);
-	    var LayoutController = __webpack_require__(/*! famous-flex/LayoutController */ 35);
-	    var AutoLayout = __webpack_require__(/*! autolayout.js */ 49);
-	    var InputView = __webpack_require__(/*! ./views/InputView.es6 */ 50);
-	    var OutputView = __webpack_require__(/*! ./views/OutputView.es6 */ 70);
-	    var VisualOutputView = __webpack_require__(/*! ./views/VisualOutputView.es6 */ 71);
-	    var vflToLayout = __webpack_require__(/*! ./vflToLayout */ 63);
-	    var Surface = __webpack_require__(/*! famous/core/Surface */ 60);
-	    var parseMetaInfo = __webpack_require__(/*! ./parseMetaInfo.es6 */ 74);
-	
-	    // create the main context and layout
-	    var mainContext = Engine.createContext();
-	    var layout;
-	    switch (getParameterByName('mode')) {
-	        case 'preview':
-	            layout = vflToLayout([
-	                '|-[visualOutput]-|',
-	                'V:|-[visualOutput]-|'
-	            ]);
-	            break;
-	        case 'compact':
-	            layout = vflToLayout([
-	                'V:|-[input(output)]-[output]-|',
-	                'V:|-[visualOutput]-|',
-	                '|-[input(output,visualOutput)]-[visualOutput]-|',
-	                '|-[output]-[visualOutput]-|'
-	            ], {spacing: [10, 10]});
-	            break;
-	        case 'nolog':
-	            layout = vflToLayout([
-	                'V:|-[input]-|',
-	                'V:|-[visualOutput]-|',
-	                '|-[input(visualOutput)]-[visualOutput]-|'
-	            ], {spacing: [10, 10]});
-	            break;
-	        default:
-	            layout = vflToLayout([
-	                '|[banner]|\nV:[banner(124)]',
-	                'V:|[banner]-[input(output)]-[output]-|',
-	                'V:[banner]-[visualOutput]-|',
-	                '|-[input(output,visualOutput)]-[visualOutput]-|',
-	                '|-[output]-[visualOutput]-|'
-	            ], {spacing: [10, 10]});
+	    _updateSettings(); //eslint-disable-line no-use-before-define
+	    _updateMetaInfo(); //eslint-disable-line no-use-before-define
+	}
+	function _updateMetaInfo() {
+	    var metaInfo = AutoLayout.VisualFormat.parseMetaInfo(inputView.editor.visualFormat);
+	    visualOutputView.viewPort = metaInfo.viewport;
+	    visualOutputView.colors = metaInfo.colors;
+	    visualOutputView.shapes = metaInfo.shapes;
+	    visualOutputView.widths = metaInfo.widths;
+	    visualOutputView.heights = metaInfo.heights;
+	}
+	function _updateSettings(forceParse) {
+	    if (forceParse) {
+	        return _update.call(this);
 	    }
-	    var mainLC = new LayoutController({
-	        layout: layout
-	    });
-	    mainContext.add(mainLC);
-	
-	    // Create banner
-	    var banner = new Surface({
-	        classes: ['banner'],
-	        content: '<div class="va">AUTOLAYOUT.JS<div class="subTitle">Visual Format Editor</div></div>' +
-	        (parseInt(getParameterByName('fork') || '1') ? '<a href="https://github.com/ijzerenhein/autolayout.js"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/652c5b9acfaddf3a9c326fa6bde407b87f7be0f4/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6f72616e67655f6666373630302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>' : '')
-	    });
-	    mainLC.insert('banner', banner);
-	
-	    // Create input view
-	    var inputView = new InputView();
-	    mainLC.insert('input', inputView);
-	    inputView.editor.on('update', _update); //eslint-disable-line no-use-before-define
-	    inputView.settings.on('update', _updateSettings); //eslint-disable-line no-use-before-define
-	
-	    // Create output view
-	    var outputView = new OutputView();
-	    mainLC.insert('output', outputView);
-	
-	    // Create visualoutput view
-	    var visualOutputView = new VisualOutputView();
-	    mainLC.insert('visualOutput', visualOutputView);
-	
-	    // Update handling
-	    function _update() {
-	        var constraints = outputView.parse(inputView.editor.visualFormat, inputView.settings.getExtended());
-	        if (constraints) {
-	            var view = new AutoLayout.View();
-	            view.addConstraints(constraints);
-	            visualOutputView.view = view;
-	        }
-	        _updateSettings(); //eslint-disable-line no-use-before-define
-	        _updateMetaInfo(); //eslint-disable-line no-use-before-define
+	    var view = visualOutputView.view;
+	    if (view) {
+	        inputView.settings.updateAutoLayoutView(view);
+	        visualOutputView.view = view;
 	    }
-	    function _updateMetaInfo() {
-	        var metaInfo = parseMetaInfo(inputView.editor.visualFormat);
-	        var aspectRatio = metaInfo.viewport ? metaInfo.viewport['aspect-ratio'] : undefined;
-	        if (aspectRatio) {
-	            aspectRatio = aspectRatio.split('/');
-	            aspectRatio = parseInt(aspectRatio[0]) / parseInt(aspectRatio[1]);
-	        }
-	        visualOutputView.aspectRatio = aspectRatio;
-	        visualOutputView.maxHeight = parseInt(metaInfo.viewport ? metaInfo.viewport['max-height'] : undefined);
-	        visualOutputView.maxWidth = parseInt(metaInfo.viewport ? metaInfo.viewport['max-width'] : undefined);
-	        visualOutputView.minHeight = parseInt(metaInfo.viewport ? metaInfo.viewport['min-height'] : undefined);
-	        visualOutputView.minWidth = parseInt(metaInfo.viewport ? metaInfo.viewport['min-width'] : undefined);
-	        visualOutputView.colors = metaInfo.colors;
-	        visualOutputView.shapes = metaInfo.shapes;
-	    }
-	    function _updateSettings(forceParse) {
-	        if (forceParse) {
-	            return _update.call(this);
-	        }
-	        var view = visualOutputView.view;
-	        if (view) {
-	            inputView.settings.updateAutoLayoutView(view);
-	            visualOutputView.view = view;
-	        }
-	    }
-	    _update();
-	}.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-
+	}
+	_update();
 
 /***/ },
 /* 1 */
+/*!**********************************!*\
+  !*** ../~/famous/core/Engine.js ***!
+  \**********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Context = __webpack_require__(/*! ./Context */ 2);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 7);
+	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 14);
+	var Engine = {};
+	var contexts = [];
+	var nextTickQueue = [];
+	var currentFrame = 0;
+	var nextTickFrame = 0;
+	var deferQueue = [];
+	var lastTime = Date.now();
+	var frameTime;
+	var frameTimeLimit;
+	var loopEnabled = true;
+	var eventForwarders = {};
+	var eventHandler = new EventHandler();
+	var options = {
+	    containerType: 'div',
+	    containerClass: 'famous-container',
+	    fpsCap: undefined,
+	    runLoop: true,
+	    appMode: true
+	};
+	var optionsManager = new OptionsManager(options);
+	var MAX_DEFER_FRAME_TIME = 10;
+	Engine.step = function step() {
+	    currentFrame++;
+	    nextTickFrame = currentFrame;
+	    var currentTime = Date.now();
+	    if (frameTimeLimit && currentTime - lastTime < frameTimeLimit)
+	        return;
+	    var i = 0;
+	    frameTime = currentTime - lastTime;
+	    lastTime = currentTime;
+	    eventHandler.emit('prerender');
+	    var numFunctions = nextTickQueue.length;
+	    while (numFunctions--)
+	        nextTickQueue.shift()(currentFrame);
+	    while (deferQueue.length && Date.now() - currentTime < MAX_DEFER_FRAME_TIME) {
+	        deferQueue.shift().call(this);
+	    }
+	    for (i = 0; i < contexts.length; i++)
+	        contexts[i].update();
+	    eventHandler.emit('postrender');
+	};
+	function loop() {
+	    if (options.runLoop) {
+	        Engine.step();
+	        window.requestAnimationFrame(loop);
+	    } else
+	        loopEnabled = false;
+	}
+	window.requestAnimationFrame(loop);
+	function handleResize(event) {
+	    for (var i = 0; i < contexts.length; i++) {
+	        contexts[i].emit('resize');
+	    }
+	    eventHandler.emit('resize');
+	}
+	window.addEventListener('resize', handleResize, false);
+	handleResize();
+	function initialize() {
+	    window.addEventListener('touchmove', function (event) {
+	        event.preventDefault();
+	    }, true);
+	    addRootClasses();
+	}
+	var initialized = false;
+	function addRootClasses() {
+	    if (!document.body) {
+	        Engine.nextTick(addRootClasses);
+	        return;
+	    }
+	    document.body.classList.add('famous-root');
+	    document.documentElement.classList.add('famous-root');
+	}
+	Engine.pipe = function pipe(target) {
+	    if (target.subscribe instanceof Function)
+	        return target.subscribe(Engine);
+	    else
+	        return eventHandler.pipe(target);
+	};
+	Engine.unpipe = function unpipe(target) {
+	    if (target.unsubscribe instanceof Function)
+	        return target.unsubscribe(Engine);
+	    else
+	        return eventHandler.unpipe(target);
+	};
+	Engine.on = function on(type, handler) {
+	    if (!(type in eventForwarders)) {
+	        eventForwarders[type] = eventHandler.emit.bind(eventHandler, type);
+	        addEngineListener(type, eventForwarders[type]);
+	    }
+	    return eventHandler.on(type, handler);
+	};
+	function addEngineListener(type, forwarder) {
+	    if (!document.body) {
+	        Engine.nextTick(addEventListener.bind(this, type, forwarder));
+	        return;
+	    }
+	    document.body.addEventListener(type, forwarder);
+	}
+	Engine.emit = function emit(type, event) {
+	    return eventHandler.emit(type, event);
+	};
+	Engine.removeListener = function removeListener(type, handler) {
+	    return eventHandler.removeListener(type, handler);
+	};
+	Engine.getFPS = function getFPS() {
+	    return 1000 / frameTime;
+	};
+	Engine.setFPSCap = function setFPSCap(fps) {
+	    frameTimeLimit = Math.floor(1000 / fps);
+	};
+	Engine.getOptions = function getOptions(key) {
+	    return optionsManager.getOptions(key);
+	};
+	Engine.setOptions = function setOptions(options) {
+	    return optionsManager.setOptions.apply(optionsManager, arguments);
+	};
+	Engine.createContext = function createContext(el) {
+	    if (!initialized && options.appMode)
+	        Engine.nextTick(initialize);
+	    var needMountContainer = false;
+	    if (!el) {
+	        el = document.createElement(options.containerType);
+	        el.classList.add(options.containerClass);
+	        needMountContainer = true;
+	    }
+	    var context = new Context(el);
+	    Engine.registerContext(context);
+	    if (needMountContainer)
+	        mount(context, el);
+	    return context;
+	};
+	function mount(context, el) {
+	    if (!document.body) {
+	        Engine.nextTick(mount.bind(this, context, el));
+	        return;
+	    }
+	    document.body.appendChild(el);
+	    context.emit('resize');
+	}
+	Engine.registerContext = function registerContext(context) {
+	    contexts.push(context);
+	    return context;
+	};
+	Engine.getContexts = function getContexts() {
+	    return contexts;
+	};
+	Engine.deregisterContext = function deregisterContext(context) {
+	    var i = contexts.indexOf(context);
+	    if (i >= 0)
+	        contexts.splice(i, 1);
+	};
+	Engine.nextTick = function nextTick(fn) {
+	    nextTickQueue.push(fn);
+	};
+	Engine.defer = function defer(fn) {
+	    deferQueue.push(fn);
+	};
+	optionsManager.on('change', function (data) {
+	    if (data.id === 'fpsCap')
+	        Engine.setFPSCap(data.value);
+	    else if (data.id === 'runLoop') {
+	        if (!loopEnabled && data.value) {
+	            loopEnabled = true;
+	            window.requestAnimationFrame(loop);
+	        }
+	    }
+	});
+	module.exports = Engine;
+
+/***/ },
+/* 2 */
+/*!***********************************!*\
+  !*** ../~/famous/core/Context.js ***!
+  \***********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var RenderNode = __webpack_require__(/*! ./RenderNode */ 3);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 7);
+	var ElementAllocator = __webpack_require__(/*! ./ElementAllocator */ 9);
+	var Transform = __webpack_require__(/*! ./Transform */ 6);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 10);
+	var _zeroZero = [
+	    0,
+	    0
+	];
+	var usePrefix = !('perspective' in document.documentElement.style);
+	function _getElementSize() {
+	    var element = this.container;
+	    return [
+	        element.clientWidth,
+	        element.clientHeight
+	    ];
+	}
+	var _setPerspective = usePrefix ? function (element, perspective) {
+	    element.style.webkitPerspective = perspective ? perspective.toFixed() + 'px' : '';
+	} : function (element, perspective) {
+	    element.style.perspective = perspective ? perspective.toFixed() + 'px' : '';
+	};
+	function Context(container) {
+	    this.container = container;
+	    this._allocator = new ElementAllocator(container);
+	    this._node = new RenderNode();
+	    this._eventOutput = new EventHandler();
+	    this._size = _getElementSize.call(this);
+	    this._perspectiveState = new Transitionable(0);
+	    this._perspective = undefined;
+	    this._nodeContext = {
+	        allocator: this._allocator,
+	        transform: Transform.identity,
+	        opacity: 1,
+	        origin: _zeroZero,
+	        align: _zeroZero,
+	        size: this._size
+	    };
+	    this._eventOutput.on('resize', function () {
+	        this.setSize(_getElementSize.call(this));
+	    }.bind(this));
+	}
+	Context.prototype.getAllocator = function getAllocator() {
+	    return this._allocator;
+	};
+	Context.prototype.add = function add(obj) {
+	    return this._node.add(obj);
+	};
+	Context.prototype.migrate = function migrate(container) {
+	    if (container === this.container)
+	        return;
+	    this.container = container;
+	    this._allocator.migrate(container);
+	};
+	Context.prototype.getSize = function getSize() {
+	    return this._size;
+	};
+	Context.prototype.setSize = function setSize(size) {
+	    if (!size)
+	        size = _getElementSize.call(this);
+	    this._size[0] = size[0];
+	    this._size[1] = size[1];
+	};
+	Context.prototype.update = function update(contextParameters) {
+	    if (contextParameters) {
+	        if (contextParameters.transform)
+	            this._nodeContext.transform = contextParameters.transform;
+	        if (contextParameters.opacity)
+	            this._nodeContext.opacity = contextParameters.opacity;
+	        if (contextParameters.origin)
+	            this._nodeContext.origin = contextParameters.origin;
+	        if (contextParameters.align)
+	            this._nodeContext.align = contextParameters.align;
+	        if (contextParameters.size)
+	            this._nodeContext.size = contextParameters.size;
+	    }
+	    var perspective = this._perspectiveState.get();
+	    if (perspective !== this._perspective) {
+	        _setPerspective(this.container, perspective);
+	        this._perspective = perspective;
+	    }
+	    this._node.commit(this._nodeContext);
+	};
+	Context.prototype.getPerspective = function getPerspective() {
+	    return this._perspectiveState.get();
+	};
+	Context.prototype.setPerspective = function setPerspective(perspective, transition, callback) {
+	    return this._perspectiveState.set(perspective, transition, callback);
+	};
+	Context.prototype.emit = function emit(type, event) {
+	    return this._eventOutput.emit(type, event);
+	};
+	Context.prototype.on = function on(type, handler) {
+	    return this._eventOutput.on(type, handler);
+	};
+	Context.prototype.removeListener = function removeListener(type, handler) {
+	    return this._eventOutput.removeListener(type, handler);
+	};
+	Context.prototype.pipe = function pipe(target) {
+	    return this._eventOutput.pipe(target);
+	};
+	Context.prototype.unpipe = function unpipe(target) {
+	    return this._eventOutput.unpipe(target);
+	};
+	module.exports = Context;
+
+/***/ },
+/* 3 */
+/*!**************************************!*\
+  !*** ../~/famous/core/RenderNode.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Entity = __webpack_require__(/*! ./Entity */ 4);
+	var SpecParser = __webpack_require__(/*! ./SpecParser */ 5);
+	function RenderNode(object) {
+	    this._object = null;
+	    this._child = null;
+	    this._hasMultipleChildren = false;
+	    this._isRenderable = false;
+	    this._isModifier = false;
+	    this._resultCache = {};
+	    this._prevResults = {};
+	    this._childResult = null;
+	    if (object)
+	        this.set(object);
+	}
+	RenderNode.prototype.add = function add(child) {
+	    var childNode = child instanceof RenderNode ? child : new RenderNode(child);
+	    if (this._child instanceof Array)
+	        this._child.push(childNode);
+	    else if (this._child) {
+	        this._child = [
+	            this._child,
+	            childNode
+	        ];
+	        this._hasMultipleChildren = true;
+	        this._childResult = [];
+	    } else
+	        this._child = childNode;
+	    return childNode;
+	};
+	RenderNode.prototype.get = function get() {
+	    return this._object || (this._hasMultipleChildren ? null : this._child ? this._child.get() : null);
+	};
+	RenderNode.prototype.set = function set(child) {
+	    this._childResult = null;
+	    this._hasMultipleChildren = false;
+	    this._isRenderable = child.render ? true : false;
+	    this._isModifier = child.modify ? true : false;
+	    this._object = child;
+	    this._child = null;
+	    if (child instanceof RenderNode)
+	        return child;
+	    else
+	        return this;
+	};
+	RenderNode.prototype.getSize = function getSize() {
+	    var result = null;
+	    var target = this.get();
+	    if (target && target.getSize)
+	        result = target.getSize();
+	    if (!result && this._child && this._child.getSize)
+	        result = this._child.getSize();
+	    return result;
+	};
+	function _applyCommit(spec, context, cacheStorage) {
+	    var result = SpecParser.parse(spec, context);
+	    var keys = Object.keys(result);
+	    for (var i = 0; i < keys.length; i++) {
+	        var id = keys[i];
+	        var childNode = Entity.get(id);
+	        var commitParams = result[id];
+	        commitParams.allocator = context.allocator;
+	        var commitResult = childNode.commit(commitParams);
+	        if (commitResult)
+	            _applyCommit(commitResult, context, cacheStorage);
+	        else
+	            cacheStorage[id] = commitParams;
+	    }
+	}
+	RenderNode.prototype.commit = function commit(context) {
+	    var prevKeys = Object.keys(this._prevResults);
+	    for (var i = 0; i < prevKeys.length; i++) {
+	        var id = prevKeys[i];
+	        if (this._resultCache[id] === undefined) {
+	            var object = Entity.get(id);
+	            if (object.cleanup)
+	                object.cleanup(context.allocator);
+	        }
+	    }
+	    this._prevResults = this._resultCache;
+	    this._resultCache = {};
+	    _applyCommit(this.render(), context, this._resultCache);
+	};
+	RenderNode.prototype.render = function render() {
+	    if (this._isRenderable)
+	        return this._object.render();
+	    var result = null;
+	    if (this._hasMultipleChildren) {
+	        result = this._childResult;
+	        var children = this._child;
+	        for (var i = 0; i < children.length; i++) {
+	            result[i] = children[i].render();
+	        }
+	    } else if (this._child)
+	        result = this._child.render();
+	    return this._isModifier ? this._object.modify(result) : result;
+	};
+	module.exports = RenderNode;
+
+/***/ },
+/* 4 */
+/*!**********************************!*\
+  !*** ../~/famous/core/Entity.js ***!
+  \**********************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var entities = [];
+	function get(id) {
+	    return entities[id];
+	}
+	function set(id, entity) {
+	    entities[id] = entity;
+	}
+	function register(entity) {
+	    var id = entities.length;
+	    set(id, entity);
+	    return id;
+	}
+	function unregister(id) {
+	    set(id, null);
+	}
+	module.exports = {
+	    register: register,
+	    unregister: unregister,
+	    get: get,
+	    set: set
+	};
+
+/***/ },
+/* 5 */
+/*!**************************************!*\
+  !*** ../~/famous/core/SpecParser.js ***!
+  \**************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Transform = __webpack_require__(/*! ./Transform */ 6);
+	function SpecParser() {
+	    this.result = {};
+	}
+	SpecParser._instance = new SpecParser();
+	SpecParser.parse = function parse(spec, context) {
+	    return SpecParser._instance.parse(spec, context);
+	};
+	SpecParser.prototype.parse = function parse(spec, context) {
+	    this.reset();
+	    this._parseSpec(spec, context, Transform.identity);
+	    return this.result;
+	};
+	SpecParser.prototype.reset = function reset() {
+	    this.result = {};
+	};
+	function _vecInContext(v, m) {
+	    return [
+	        v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
+	        v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
+	        v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
+	    ];
+	}
+	var _zeroZero = [
+	    0,
+	    0
+	];
+	SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
+	    var id;
+	    var target;
+	    var transform;
+	    var opacity;
+	    var origin;
+	    var align;
+	    var size;
+	    if (typeof spec === 'number') {
+	        id = spec;
+	        transform = parentContext.transform;
+	        align = parentContext.align || _zeroZero;
+	        if (parentContext.size && align && (align[0] || align[1])) {
+	            var alignAdjust = [
+	                align[0] * parentContext.size[0],
+	                align[1] * parentContext.size[1],
+	                0
+	            ];
+	            transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
+	        }
+	        this.result[id] = {
+	            transform: transform,
+	            opacity: parentContext.opacity,
+	            origin: parentContext.origin || _zeroZero,
+	            align: parentContext.align || _zeroZero,
+	            size: parentContext.size
+	        };
+	    } else if (!spec) {
+	        return;
+	    } else if (spec instanceof Array) {
+	        for (var i = 0; i < spec.length; i++) {
+	            this._parseSpec(spec[i], parentContext, sizeContext);
+	        }
+	    } else {
+	        target = spec.target;
+	        transform = parentContext.transform;
+	        opacity = parentContext.opacity;
+	        origin = parentContext.origin;
+	        align = parentContext.align;
+	        size = parentContext.size;
+	        var nextSizeContext = sizeContext;
+	        if (spec.opacity !== undefined)
+	            opacity = parentContext.opacity * spec.opacity;
+	        if (spec.transform)
+	            transform = Transform.multiply(parentContext.transform, spec.transform);
+	        if (spec.origin) {
+	            origin = spec.origin;
+	            nextSizeContext = parentContext.transform;
+	        }
+	        if (spec.align)
+	            align = spec.align;
+	        if (spec.size || spec.proportions) {
+	            var parentSize = size;
+	            size = [
+	                size[0],
+	                size[1]
+	            ];
+	            if (spec.size) {
+	                if (spec.size[0] !== undefined)
+	                    size[0] = spec.size[0];
+	                if (spec.size[1] !== undefined)
+	                    size[1] = spec.size[1];
+	            }
+	            if (spec.proportions) {
+	                if (spec.proportions[0] !== undefined)
+	                    size[0] = size[0] * spec.proportions[0];
+	                if (spec.proportions[1] !== undefined)
+	                    size[1] = size[1] * spec.proportions[1];
+	            }
+	            if (parentSize) {
+	                if (align && (align[0] || align[1]))
+	                    transform = Transform.thenMove(transform, _vecInContext([
+	                        align[0] * parentSize[0],
+	                        align[1] * parentSize[1],
+	                        0
+	                    ], sizeContext));
+	                if (origin && (origin[0] || origin[1]))
+	                    transform = Transform.moveThen([
+	                        -origin[0] * size[0],
+	                        -origin[1] * size[1],
+	                        0
+	                    ], transform);
+	            }
+	            nextSizeContext = parentContext.transform;
+	            origin = null;
+	            align = null;
+	        }
+	        this._parseSpec(target, {
+	            transform: transform,
+	            opacity: opacity,
+	            origin: origin,
+	            align: align,
+	            size: size
+	        }, nextSizeContext);
+	    }
+	};
+	module.exports = SpecParser;
+
+/***/ },
+/* 6 */
+/*!*************************************!*\
+  !*** ../~/famous/core/Transform.js ***!
+  \*************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Transform = {};
+	Transform.precision = 0.000001;
+	Transform.identity = [
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1
+	];
+	Transform.multiply4x4 = function multiply4x4(a, b) {
+	    return [
+	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2] + a[12] * b[3],
+	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2] + a[13] * b[3],
+	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2] + a[14] * b[3],
+	        a[3] * b[0] + a[7] * b[1] + a[11] * b[2] + a[15] * b[3],
+	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6] + a[12] * b[7],
+	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6] + a[13] * b[7],
+	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6] + a[14] * b[7],
+	        a[3] * b[4] + a[7] * b[5] + a[11] * b[6] + a[15] * b[7],
+	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10] + a[12] * b[11],
+	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10] + a[13] * b[11],
+	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10] + a[14] * b[11],
+	        a[3] * b[8] + a[7] * b[9] + a[11] * b[10] + a[15] * b[11],
+	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12] * b[15],
+	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13] * b[15],
+	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14] * b[15],
+	        a[3] * b[12] + a[7] * b[13] + a[11] * b[14] + a[15] * b[15]
+	    ];
+	};
+	Transform.multiply = function multiply(a, b) {
+	    return [
+	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2],
+	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2],
+	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2],
+	        0,
+	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6],
+	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6],
+	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6],
+	        0,
+	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10],
+	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10],
+	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10],
+	        0,
+	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12],
+	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13],
+	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14],
+	        1
+	    ];
+	};
+	Transform.thenMove = function thenMove(m, t) {
+	    if (!t[2])
+	        t[2] = 0;
+	    return [
+	        m[0],
+	        m[1],
+	        m[2],
+	        0,
+	        m[4],
+	        m[5],
+	        m[6],
+	        0,
+	        m[8],
+	        m[9],
+	        m[10],
+	        0,
+	        m[12] + t[0],
+	        m[13] + t[1],
+	        m[14] + t[2],
+	        1
+	    ];
+	};
+	Transform.moveThen = function moveThen(v, m) {
+	    if (!v[2])
+	        v[2] = 0;
+	    var t0 = v[0] * m[0] + v[1] * m[4] + v[2] * m[8];
+	    var t1 = v[0] * m[1] + v[1] * m[5] + v[2] * m[9];
+	    var t2 = v[0] * m[2] + v[1] * m[6] + v[2] * m[10];
+	    return Transform.thenMove(m, [
+	        t0,
+	        t1,
+	        t2
+	    ]);
+	};
+	Transform.translate = function translate(x, y, z) {
+	    if (z === undefined)
+	        z = 0;
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        x,
+	        y,
+	        z,
+	        1
+	    ];
+	};
+	Transform.thenScale = function thenScale(m, s) {
+	    return [
+	        s[0] * m[0],
+	        s[1] * m[1],
+	        s[2] * m[2],
+	        0,
+	        s[0] * m[4],
+	        s[1] * m[5],
+	        s[2] * m[6],
+	        0,
+	        s[0] * m[8],
+	        s[1] * m[9],
+	        s[2] * m[10],
+	        0,
+	        s[0] * m[12],
+	        s[1] * m[13],
+	        s[2] * m[14],
+	        1
+	    ];
+	};
+	Transform.scale = function scale(x, y, z) {
+	    if (z === undefined)
+	        z = 1;
+	    if (y === undefined)
+	        y = x;
+	    return [
+	        x,
+	        0,
+	        0,
+	        0,
+	        0,
+	        y,
+	        0,
+	        0,
+	        0,
+	        0,
+	        z,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotateX = function rotateX(theta) {
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        cosTheta,
+	        sinTheta,
+	        0,
+	        0,
+	        -sinTheta,
+	        cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotateY = function rotateY(theta) {
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    return [
+	        cosTheta,
+	        0,
+	        -sinTheta,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        sinTheta,
+	        0,
+	        cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotateZ = function rotateZ(theta) {
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    return [
+	        cosTheta,
+	        sinTheta,
+	        0,
+	        0,
+	        -sinTheta,
+	        cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.rotate = function rotate(phi, theta, psi) {
+	    var cosPhi = Math.cos(phi);
+	    var sinPhi = Math.sin(phi);
+	    var cosTheta = Math.cos(theta);
+	    var sinTheta = Math.sin(theta);
+	    var cosPsi = Math.cos(psi);
+	    var sinPsi = Math.sin(psi);
+	    var result = [
+	        cosTheta * cosPsi,
+	        cosPhi * sinPsi + sinPhi * sinTheta * cosPsi,
+	        sinPhi * sinPsi - cosPhi * sinTheta * cosPsi,
+	        0,
+	        -cosTheta * sinPsi,
+	        cosPhi * cosPsi - sinPhi * sinTheta * sinPsi,
+	        sinPhi * cosPsi + cosPhi * sinTheta * sinPsi,
+	        0,
+	        sinTheta,
+	        -sinPhi * cosTheta,
+	        cosPhi * cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    return result;
+	};
+	Transform.rotateAxis = function rotateAxis(v, theta) {
+	    var sinTheta = Math.sin(theta);
+	    var cosTheta = Math.cos(theta);
+	    var verTheta = 1 - cosTheta;
+	    var xxV = v[0] * v[0] * verTheta;
+	    var xyV = v[0] * v[1] * verTheta;
+	    var xzV = v[0] * v[2] * verTheta;
+	    var yyV = v[1] * v[1] * verTheta;
+	    var yzV = v[1] * v[2] * verTheta;
+	    var zzV = v[2] * v[2] * verTheta;
+	    var xs = v[0] * sinTheta;
+	    var ys = v[1] * sinTheta;
+	    var zs = v[2] * sinTheta;
+	    var result = [
+	        xxV + cosTheta,
+	        xyV + zs,
+	        xzV - ys,
+	        0,
+	        xyV - zs,
+	        yyV + cosTheta,
+	        yzV + xs,
+	        0,
+	        xzV + ys,
+	        yzV - xs,
+	        zzV + cosTheta,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    return result;
+	};
+	Transform.aboutOrigin = function aboutOrigin(v, m) {
+	    var t0 = v[0] - (v[0] * m[0] + v[1] * m[4] + v[2] * m[8]);
+	    var t1 = v[1] - (v[0] * m[1] + v[1] * m[5] + v[2] * m[9]);
+	    var t2 = v[2] - (v[0] * m[2] + v[1] * m[6] + v[2] * m[10]);
+	    return Transform.thenMove(m, [
+	        t0,
+	        t1,
+	        t2
+	    ]);
+	};
+	Transform.skew = function skew(phi, theta, psi) {
+	    return [
+	        1,
+	        Math.tan(theta),
+	        0,
+	        0,
+	        Math.tan(psi),
+	        1,
+	        0,
+	        0,
+	        0,
+	        Math.tan(phi),
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.skewX = function skewX(angle) {
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        Math.tan(angle),
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.skewY = function skewY(angle) {
+	    return [
+	        1,
+	        Math.tan(angle),
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.perspective = function perspective(focusZ) {
+	    return [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1,
+	        -1 / focusZ,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	};
+	Transform.getTranslate = function getTranslate(m) {
+	    return [
+	        m[12],
+	        m[13],
+	        m[14]
+	    ];
+	};
+	Transform.inverse = function inverse(m) {
+	    var c0 = m[5] * m[10] - m[6] * m[9];
+	    var c1 = m[4] * m[10] - m[6] * m[8];
+	    var c2 = m[4] * m[9] - m[5] * m[8];
+	    var c4 = m[1] * m[10] - m[2] * m[9];
+	    var c5 = m[0] * m[10] - m[2] * m[8];
+	    var c6 = m[0] * m[9] - m[1] * m[8];
+	    var c8 = m[1] * m[6] - m[2] * m[5];
+	    var c9 = m[0] * m[6] - m[2] * m[4];
+	    var c10 = m[0] * m[5] - m[1] * m[4];
+	    var detM = m[0] * c0 - m[1] * c1 + m[2] * c2;
+	    var invD = 1 / detM;
+	    var result = [
+	        invD * c0,
+	        -invD * c4,
+	        invD * c8,
+	        0,
+	        -invD * c1,
+	        invD * c5,
+	        -invD * c9,
+	        0,
+	        invD * c2,
+	        -invD * c6,
+	        invD * c10,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    result[12] = -m[12] * result[0] - m[13] * result[4] - m[14] * result[8];
+	    result[13] = -m[12] * result[1] - m[13] * result[5] - m[14] * result[9];
+	    result[14] = -m[12] * result[2] - m[13] * result[6] - m[14] * result[10];
+	    return result;
+	};
+	Transform.transpose = function transpose(m) {
+	    return [
+	        m[0],
+	        m[4],
+	        m[8],
+	        m[12],
+	        m[1],
+	        m[5],
+	        m[9],
+	        m[13],
+	        m[2],
+	        m[6],
+	        m[10],
+	        m[14],
+	        m[3],
+	        m[7],
+	        m[11],
+	        m[15]
+	    ];
+	};
+	function _normSquared(v) {
+	    return v.length === 2 ? v[0] * v[0] + v[1] * v[1] : v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+	}
+	function _norm(v) {
+	    return Math.sqrt(_normSquared(v));
+	}
+	function _sign(n) {
+	    return n < 0 ? -1 : 1;
+	}
+	Transform.interpret = function interpret(M) {
+	    var x = [
+	        M[0],
+	        M[1],
+	        M[2]
+	    ];
+	    var sgn = _sign(x[0]);
+	    var xNorm = _norm(x);
+	    var v = [
+	        x[0] + sgn * xNorm,
+	        x[1],
+	        x[2]
+	    ];
+	    var mult = 2 / _normSquared(v);
+	    if (mult >= Infinity) {
+	        return {
+	            translate: Transform.getTranslate(M),
+	            rotate: [
+	                0,
+	                0,
+	                0
+	            ],
+	            scale: [
+	                0,
+	                0,
+	                0
+	            ],
+	            skew: [
+	                0,
+	                0,
+	                0
+	            ]
+	        };
+	    }
+	    var Q1 = [
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    Q1[0] = 1 - mult * v[0] * v[0];
+	    Q1[5] = 1 - mult * v[1] * v[1];
+	    Q1[10] = 1 - mult * v[2] * v[2];
+	    Q1[1] = -mult * v[0] * v[1];
+	    Q1[2] = -mult * v[0] * v[2];
+	    Q1[6] = -mult * v[1] * v[2];
+	    Q1[4] = Q1[1];
+	    Q1[8] = Q1[2];
+	    Q1[9] = Q1[6];
+	    var MQ1 = Transform.multiply(Q1, M);
+	    var x2 = [
+	        MQ1[5],
+	        MQ1[6]
+	    ];
+	    var sgn2 = _sign(x2[0]);
+	    var x2Norm = _norm(x2);
+	    var v2 = [
+	        x2[0] + sgn2 * x2Norm,
+	        x2[1]
+	    ];
+	    var mult2 = 2 / _normSquared(v2);
+	    var Q2 = [
+	        1,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        0,
+	        1
+	    ];
+	    Q2[5] = 1 - mult2 * v2[0] * v2[0];
+	    Q2[10] = 1 - mult2 * v2[1] * v2[1];
+	    Q2[6] = -mult2 * v2[0] * v2[1];
+	    Q2[9] = Q2[6];
+	    var Q = Transform.multiply(Q2, Q1);
+	    var R = Transform.multiply(Q, M);
+	    var remover = Transform.scale(R[0] < 0 ? -1 : 1, R[5] < 0 ? -1 : 1, R[10] < 0 ? -1 : 1);
+	    R = Transform.multiply(R, remover);
+	    Q = Transform.multiply(remover, Q);
+	    var result = {};
+	    result.translate = Transform.getTranslate(M);
+	    result.rotate = [
+	        Math.atan2(-Q[6], Q[10]),
+	        Math.asin(Q[2]),
+	        Math.atan2(-Q[1], Q[0])
+	    ];
+	    if (!result.rotate[0]) {
+	        result.rotate[0] = 0;
+	        result.rotate[2] = Math.atan2(Q[4], Q[5]);
+	    }
+	    result.scale = [
+	        R[0],
+	        R[5],
+	        R[10]
+	    ];
+	    result.skew = [
+	        Math.atan2(R[9], result.scale[2]),
+	        Math.atan2(R[8], result.scale[2]),
+	        Math.atan2(R[4], result.scale[0])
+	    ];
+	    if (Math.abs(result.rotate[0]) + Math.abs(result.rotate[2]) > 1.5 * Math.PI) {
+	        result.rotate[1] = Math.PI - result.rotate[1];
+	        if (result.rotate[1] > Math.PI)
+	            result.rotate[1] -= 2 * Math.PI;
+	        if (result.rotate[1] < -Math.PI)
+	            result.rotate[1] += 2 * Math.PI;
+	        if (result.rotate[0] < 0)
+	            result.rotate[0] += Math.PI;
+	        else
+	            result.rotate[0] -= Math.PI;
+	        if (result.rotate[2] < 0)
+	            result.rotate[2] += Math.PI;
+	        else
+	            result.rotate[2] -= Math.PI;
+	    }
+	    return result;
+	};
+	Transform.average = function average(M1, M2, t) {
+	    t = t === undefined ? 0.5 : t;
+	    var specM1 = Transform.interpret(M1);
+	    var specM2 = Transform.interpret(M2);
+	    var specAvg = {
+	        translate: [
+	            0,
+	            0,
+	            0
+	        ],
+	        rotate: [
+	            0,
+	            0,
+	            0
+	        ],
+	        scale: [
+	            0,
+	            0,
+	            0
+	        ],
+	        skew: [
+	            0,
+	            0,
+	            0
+	        ]
+	    };
+	    for (var i = 0; i < 3; i++) {
+	        specAvg.translate[i] = (1 - t) * specM1.translate[i] + t * specM2.translate[i];
+	        specAvg.rotate[i] = (1 - t) * specM1.rotate[i] + t * specM2.rotate[i];
+	        specAvg.scale[i] = (1 - t) * specM1.scale[i] + t * specM2.scale[i];
+	        specAvg.skew[i] = (1 - t) * specM1.skew[i] + t * specM2.skew[i];
+	    }
+	    return Transform.build(specAvg);
+	};
+	Transform.build = function build(spec) {
+	    var scaleMatrix = Transform.scale(spec.scale[0], spec.scale[1], spec.scale[2]);
+	    var skewMatrix = Transform.skew(spec.skew[0], spec.skew[1], spec.skew[2]);
+	    var rotateMatrix = Transform.rotate(spec.rotate[0], spec.rotate[1], spec.rotate[2]);
+	    return Transform.thenMove(Transform.multiply(Transform.multiply(rotateMatrix, skewMatrix), scaleMatrix), spec.translate);
+	};
+	Transform.equals = function equals(a, b) {
+	    return !Transform.notEquals(a, b);
+	};
+	Transform.notEquals = function notEquals(a, b) {
+	    if (a === b)
+	        return false;
+	    return !(a && b) || a[12] !== b[12] || a[13] !== b[13] || a[14] !== b[14] || a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2] || a[4] !== b[4] || a[5] !== b[5] || a[6] !== b[6] || a[8] !== b[8] || a[9] !== b[9] || a[10] !== b[10];
+	};
+	Transform.normalizeRotation = function normalizeRotation(rotation) {
+	    var result = rotation.slice(0);
+	    if (result[0] === Math.PI * 0.5 || result[0] === -Math.PI * 0.5) {
+	        result[0] = -result[0];
+	        result[1] = Math.PI - result[1];
+	        result[2] -= Math.PI;
+	    }
+	    if (result[0] > Math.PI * 0.5) {
+	        result[0] = result[0] - Math.PI;
+	        result[1] = Math.PI - result[1];
+	        result[2] -= Math.PI;
+	    }
+	    if (result[0] < -Math.PI * 0.5) {
+	        result[0] = result[0] + Math.PI;
+	        result[1] = -Math.PI - result[1];
+	        result[2] -= Math.PI;
+	    }
+	    while (result[1] < -Math.PI)
+	        result[1] += 2 * Math.PI;
+	    while (result[1] >= Math.PI)
+	        result[1] -= 2 * Math.PI;
+	    while (result[2] < -Math.PI)
+	        result[2] += 2 * Math.PI;
+	    while (result[2] >= Math.PI)
+	        result[2] -= 2 * Math.PI;
+	    return result;
+	};
+	Transform.inFront = [
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0.001,
+	    1
+	];
+	Transform.behind = [
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    0,
+	    1,
+	    0,
+	    0,
+	    0,
+	    -0.001,
+	    1
+	];
+	module.exports = Transform;
+
+/***/ },
+/* 7 */
+/*!****************************************!*\
+  !*** ../~/famous/core/EventHandler.js ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var EventEmitter = __webpack_require__(/*! ./EventEmitter */ 8);
+	function EventHandler() {
+	    EventEmitter.apply(this, arguments);
+	    this.downstream = [];
+	    this.downstreamFn = [];
+	    this.upstream = [];
+	    this.upstreamListeners = {};
+	}
+	EventHandler.prototype = Object.create(EventEmitter.prototype);
+	EventHandler.prototype.constructor = EventHandler;
+	EventHandler.setInputHandler = function setInputHandler(object, handler) {
+	    object.trigger = handler.trigger.bind(handler);
+	    if (handler.subscribe && handler.unsubscribe) {
+	        object.subscribe = handler.subscribe.bind(handler);
+	        object.unsubscribe = handler.unsubscribe.bind(handler);
+	    }
+	};
+	EventHandler.setOutputHandler = function setOutputHandler(object, handler) {
+	    if (handler instanceof EventHandler)
+	        handler.bindThis(object);
+	    object.pipe = handler.pipe.bind(handler);
+	    object.unpipe = handler.unpipe.bind(handler);
+	    object.on = handler.on.bind(handler);
+	    object.addListener = object.on;
+	    object.removeListener = handler.removeListener.bind(handler);
+	};
+	EventHandler.prototype.emit = function emit(type, event) {
+	    EventEmitter.prototype.emit.apply(this, arguments);
+	    var i = 0;
+	    for (i = 0; i < this.downstream.length; i++) {
+	        if (this.downstream[i].trigger)
+	            this.downstream[i].trigger(type, event);
+	    }
+	    for (i = 0; i < this.downstreamFn.length; i++) {
+	        this.downstreamFn[i](type, event);
+	    }
+	    return this;
+	};
+	EventHandler.prototype.trigger = EventHandler.prototype.emit;
+	EventHandler.prototype.pipe = function pipe(target) {
+	    if (target.subscribe instanceof Function)
+	        return target.subscribe(this);
+	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
+	    var index = downstreamCtx.indexOf(target);
+	    if (index < 0)
+	        downstreamCtx.push(target);
+	    if (target instanceof Function)
+	        target('pipe', null);
+	    else if (target.trigger)
+	        target.trigger('pipe', null);
+	    return target;
+	};
+	EventHandler.prototype.unpipe = function unpipe(target) {
+	    if (target.unsubscribe instanceof Function)
+	        return target.unsubscribe(this);
+	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
+	    var index = downstreamCtx.indexOf(target);
+	    if (index >= 0) {
+	        downstreamCtx.splice(index, 1);
+	        if (target instanceof Function)
+	            target('unpipe', null);
+	        else if (target.trigger)
+	            target.trigger('unpipe', null);
+	        return target;
+	    } else
+	        return false;
+	};
+	EventHandler.prototype.on = function on(type, handler) {
+	    EventEmitter.prototype.on.apply(this, arguments);
+	    if (!(type in this.upstreamListeners)) {
+	        var upstreamListener = this.trigger.bind(this, type);
+	        this.upstreamListeners[type] = upstreamListener;
+	        for (var i = 0; i < this.upstream.length; i++) {
+	            this.upstream[i].on(type, upstreamListener);
+	        }
+	    }
+	    return this;
+	};
+	EventHandler.prototype.addListener = EventHandler.prototype.on;
+	EventHandler.prototype.subscribe = function subscribe(source) {
+	    var index = this.upstream.indexOf(source);
+	    if (index < 0) {
+	        this.upstream.push(source);
+	        for (var type in this.upstreamListeners) {
+	            source.on(type, this.upstreamListeners[type]);
+	        }
+	    }
+	    return this;
+	};
+	EventHandler.prototype.unsubscribe = function unsubscribe(source) {
+	    var index = this.upstream.indexOf(source);
+	    if (index >= 0) {
+	        this.upstream.splice(index, 1);
+	        for (var type in this.upstreamListeners) {
+	            source.removeListener(type, this.upstreamListeners[type]);
+	        }
+	    }
+	    return this;
+	};
+	module.exports = EventHandler;
+
+/***/ },
+/* 8 */
+/*!****************************************!*\
+  !*** ../~/famous/core/EventEmitter.js ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	function EventEmitter() {
+	    this.listeners = {};
+	    this._owner = this;
+	}
+	EventEmitter.prototype.emit = function emit(type, event) {
+	    var handlers = this.listeners[type];
+	    if (handlers) {
+	        for (var i = 0; i < handlers.length; i++) {
+	            handlers[i].call(this._owner, event);
+	        }
+	    }
+	    return this;
+	};
+	EventEmitter.prototype.on = function on(type, handler) {
+	    if (!(type in this.listeners))
+	        this.listeners[type] = [];
+	    var index = this.listeners[type].indexOf(handler);
+	    if (index < 0)
+	        this.listeners[type].push(handler);
+	    return this;
+	};
+	EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+	EventEmitter.prototype.removeListener = function removeListener(type, handler) {
+	    var listener = this.listeners[type];
+	    if (listener !== undefined) {
+	        var index = listener.indexOf(handler);
+	        if (index >= 0)
+	            listener.splice(index, 1);
+	    }
+	    return this;
+	};
+	EventEmitter.prototype.bindThis = function bindThis(owner) {
+	    this._owner = owner;
+	};
+	module.exports = EventEmitter;
+
+/***/ },
+/* 9 */
+/*!********************************************!*\
+  !*** ../~/famous/core/ElementAllocator.js ***!
+  \********************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	function ElementAllocator(container) {
+	    if (!container)
+	        container = document.createDocumentFragment();
+	    this.container = container;
+	    this.detachedNodes = {};
+	    this.nodeCount = 0;
+	}
+	ElementAllocator.prototype.migrate = function migrate(container) {
+	    var oldContainer = this.container;
+	    if (container === oldContainer)
+	        return;
+	    if (oldContainer instanceof DocumentFragment) {
+	        container.appendChild(oldContainer);
+	    } else {
+	        while (oldContainer.hasChildNodes()) {
+	            container.appendChild(oldContainer.firstChild);
+	        }
+	    }
+	    this.container = container;
+	};
+	ElementAllocator.prototype.allocate = function allocate(type) {
+	    type = type.toLowerCase();
+	    if (!(type in this.detachedNodes))
+	        this.detachedNodes[type] = [];
+	    var nodeStore = this.detachedNodes[type];
+	    var result;
+	    if (nodeStore.length > 0) {
+	        result = nodeStore.pop();
+	    } else {
+	        result = document.createElement(type);
+	        this.container.appendChild(result);
+	    }
+	    this.nodeCount++;
+	    return result;
+	};
+	ElementAllocator.prototype.deallocate = function deallocate(element) {
+	    var nodeType = element.nodeName.toLowerCase();
+	    var nodeStore = this.detachedNodes[nodeType];
+	    nodeStore.push(element);
+	    this.nodeCount--;
+	};
+	ElementAllocator.prototype.getNodeCount = function getNodeCount() {
+	    return this.nodeCount;
+	};
+	module.exports = ElementAllocator;
+
+/***/ },
+/* 10 */
+/*!*************************************************!*\
+  !*** ../~/famous/transitions/Transitionable.js ***!
+  \*************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var MultipleTransition = __webpack_require__(/*! ./MultipleTransition */ 11);
+	var TweenTransition = __webpack_require__(/*! ./TweenTransition */ 13);
+	function Transitionable(start) {
+	    this.currentAction = null;
+	    this.actionQueue = [];
+	    this.callbackQueue = [];
+	    this.state = 0;
+	    this.velocity = undefined;
+	    this._callback = undefined;
+	    this._engineInstance = null;
+	    this._currentMethod = null;
+	    this.set(start);
+	}
+	var transitionMethods = {};
+	Transitionable.register = function register(methods) {
+	    var success = true;
+	    for (var method in methods) {
+	        if (!Transitionable.registerMethod(method, methods[method]))
+	            success = false;
+	    }
+	    return success;
+	};
+	Transitionable.registerMethod = function registerMethod(name, engineClass) {
+	    if (!(name in transitionMethods)) {
+	        transitionMethods[name] = engineClass;
+	        return true;
+	    } else
+	        return false;
+	};
+	Transitionable.unregisterMethod = function unregisterMethod(name) {
+	    if (name in transitionMethods) {
+	        delete transitionMethods[name];
+	        return true;
+	    } else
+	        return false;
+	};
+	function _loadNext() {
+	    if (this._callback) {
+	        var callback = this._callback;
+	        this._callback = undefined;
+	        callback();
+	    }
+	    if (this.actionQueue.length <= 0) {
+	        this.set(this.get());
+	        return;
+	    }
+	    this.currentAction = this.actionQueue.shift();
+	    this._callback = this.callbackQueue.shift();
+	    var method = null;
+	    var endValue = this.currentAction[0];
+	    var transition = this.currentAction[1];
+	    if (transition instanceof Object && transition.method) {
+	        method = transition.method;
+	        if (typeof method === 'string')
+	            method = transitionMethods[method];
+	    } else {
+	        method = TweenTransition;
+	    }
+	    if (this._currentMethod !== method) {
+	        if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
+	            this._engineInstance = new method();
+	        } else {
+	            this._engineInstance = new MultipleTransition(method);
+	        }
+	        this._currentMethod = method;
+	    }
+	    this._engineInstance.reset(this.state, this.velocity);
+	    if (this.velocity !== undefined)
+	        transition.velocity = this.velocity;
+	    this._engineInstance.set(endValue, transition, _loadNext.bind(this));
+	}
+	Transitionable.prototype.set = function set(endState, transition, callback) {
+	    if (!transition) {
+	        this.reset(endState);
+	        if (callback)
+	            callback();
+	        return this;
+	    }
+	    var action = [
+	        endState,
+	        transition
+	    ];
+	    this.actionQueue.push(action);
+	    this.callbackQueue.push(callback);
+	    if (!this.currentAction)
+	        _loadNext.call(this);
+	    return this;
+	};
+	Transitionable.prototype.reset = function reset(startState, startVelocity) {
+	    this._currentMethod = null;
+	    this._engineInstance = null;
+	    this._callback = undefined;
+	    this.state = startState;
+	    this.velocity = startVelocity;
+	    this.currentAction = null;
+	    this.actionQueue = [];
+	    this.callbackQueue = [];
+	};
+	Transitionable.prototype.delay = function delay(duration, callback) {
+	    var endValue;
+	    if (this.actionQueue.length)
+	        endValue = this.actionQueue[this.actionQueue.length - 1][0];
+	    else if (this.currentAction)
+	        endValue = this.currentAction[0];
+	    else
+	        endValue = this.get();
+	    return this.set(endValue, {
+	        duration: duration,
+	        curve: function () {
+	            return 0;
+	        }
+	    }, callback);
+	};
+	Transitionable.prototype.get = function get(timestamp) {
+	    if (this._engineInstance) {
+	        if (this._engineInstance.getVelocity)
+	            this.velocity = this._engineInstance.getVelocity();
+	        this.state = this._engineInstance.get(timestamp);
+	    }
+	    return this.state;
+	};
+	Transitionable.prototype.isActive = function isActive() {
+	    return !!this.currentAction;
+	};
+	Transitionable.prototype.halt = function halt() {
+	    return this.set(this.get());
+	};
+	module.exports = Transitionable;
+
+/***/ },
+/* 11 */
+/*!*****************************************************!*\
+  !*** ../~/famous/transitions/MultipleTransition.js ***!
+  \*****************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 12);
+	function MultipleTransition(method) {
+	    this.method = method;
+	    this._instances = [];
+	    this.state = [];
+	}
+	MultipleTransition.SUPPORTS_MULTIPLE = true;
+	MultipleTransition.prototype.get = function get() {
+	    for (var i = 0; i < this._instances.length; i++) {
+	        this.state[i] = this._instances[i].get();
+	    }
+	    return this.state;
+	};
+	MultipleTransition.prototype.set = function set(endState, transition, callback) {
+	    var _allCallback = Utility.after(endState.length, callback);
+	    for (var i = 0; i < endState.length; i++) {
+	        if (!this._instances[i])
+	            this._instances[i] = new this.method();
+	        this._instances[i].set(endState[i], transition, _allCallback);
+	    }
+	};
+	MultipleTransition.prototype.reset = function reset(startState) {
+	    for (var i = 0; i < startState.length; i++) {
+	        if (!this._instances[i])
+	            this._instances[i] = new this.method();
+	        this._instances[i].reset(startState[i]);
+	    }
+	};
+	module.exports = MultipleTransition;
+
+/***/ },
+/* 12 */
+/*!****************************************!*\
+  !*** ../~/famous/utilities/Utility.js ***!
+  \****************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var Utility = {};
+	Utility.Direction = {
+	    X: 0,
+	    Y: 1,
+	    Z: 2
+	};
+	Utility.after = function after(count, callback) {
+	    var counter = count;
+	    return function () {
+	        counter--;
+	        if (counter === 0)
+	            callback.apply(this, arguments);
+	    };
+	};
+	Utility.loadURL = function loadURL(url, callback) {
+	    var xhr = new XMLHttpRequest();
+	    xhr.onreadystatechange = function onreadystatechange() {
+	        if (this.readyState === 4) {
+	            if (callback)
+	                callback(this.responseText);
+	        }
+	    };
+	    xhr.open('GET', url);
+	    xhr.send();
+	};
+	Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
+	    var element = document.createElement('div');
+	    element.innerHTML = html;
+	    var result = document.createDocumentFragment();
+	    while (element.hasChildNodes())
+	        result.appendChild(element.firstChild);
+	    return result;
+	};
+	Utility.clone = function clone(b) {
+	    var a;
+	    if (typeof b === 'object') {
+	        a = b instanceof Array ? [] : {};
+	        for (var key in b) {
+	            if (typeof b[key] === 'object' && b[key] !== null) {
+	                if (b[key] instanceof Array) {
+	                    a[key] = new Array(b[key].length);
+	                    for (var i = 0; i < b[key].length; i++) {
+	                        a[key][i] = Utility.clone(b[key][i]);
+	                    }
+	                } else {
+	                    a[key] = Utility.clone(b[key]);
+	                }
+	            } else {
+	                a[key] = b[key];
+	            }
+	        }
+	    } else {
+	        a = b;
+	    }
+	    return a;
+	};
+	module.exports = Utility;
+
+/***/ },
+/* 13 */
+/*!**************************************************!*\
+  !*** ../~/famous/transitions/TweenTransition.js ***!
+  \**************************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	function TweenTransition(options) {
+	    this.options = Object.create(TweenTransition.DEFAULT_OPTIONS);
+	    if (options)
+	        this.setOptions(options);
+	    this._startTime = 0;
+	    this._startValue = 0;
+	    this._updateTime = 0;
+	    this._endValue = 0;
+	    this._curve = undefined;
+	    this._duration = 0;
+	    this._active = false;
+	    this._callback = undefined;
+	    this.state = 0;
+	    this.velocity = undefined;
+	}
+	TweenTransition.Curves = {
+	    linear: function (t) {
+	        return t;
+	    },
+	    easeIn: function (t) {
+	        return t * t;
+	    },
+	    easeOut: function (t) {
+	        return t * (2 - t);
+	    },
+	    easeInOut: function (t) {
+	        if (t <= 0.5)
+	            return 2 * t * t;
+	        else
+	            return -2 * t * t + 4 * t - 1;
+	    },
+	    easeOutBounce: function (t) {
+	        return t * (3 - 2 * t);
+	    },
+	    spring: function (t) {
+	        return (1 - t) * Math.sin(6 * Math.PI * t) + t;
+	    }
+	};
+	TweenTransition.SUPPORTS_MULTIPLE = true;
+	TweenTransition.DEFAULT_OPTIONS = {
+	    curve: TweenTransition.Curves.linear,
+	    duration: 500,
+	    speed: 0
+	};
+	var registeredCurves = {};
+	TweenTransition.registerCurve = function registerCurve(curveName, curve) {
+	    if (!registeredCurves[curveName]) {
+	        registeredCurves[curveName] = curve;
+	        return true;
+	    } else {
+	        return false;
+	    }
+	};
+	TweenTransition.unregisterCurve = function unregisterCurve(curveName) {
+	    if (registeredCurves[curveName]) {
+	        delete registeredCurves[curveName];
+	        return true;
+	    } else {
+	        return false;
+	    }
+	};
+	TweenTransition.getCurve = function getCurve(curveName) {
+	    var curve = registeredCurves[curveName];
+	    if (curve !== undefined)
+	        return curve;
+	    else
+	        throw new Error('curve not registered');
+	};
+	TweenTransition.getCurves = function getCurves() {
+	    return registeredCurves;
+	};
+	function _interpolate(a, b, t) {
+	    return (1 - t) * a + t * b;
+	}
+	function _clone(obj) {
+	    if (obj instanceof Object) {
+	        if (obj instanceof Array)
+	            return obj.slice(0);
+	        else
+	            return Object.create(obj);
+	    } else
+	        return obj;
+	}
+	function _normalize(transition, defaultTransition) {
+	    var result = { curve: defaultTransition.curve };
+	    if (defaultTransition.duration)
+	        result.duration = defaultTransition.duration;
+	    if (defaultTransition.speed)
+	        result.speed = defaultTransition.speed;
+	    if (transition instanceof Object) {
+	        if (transition.duration !== undefined)
+	            result.duration = transition.duration;
+	        if (transition.curve)
+	            result.curve = transition.curve;
+	        if (transition.speed)
+	            result.speed = transition.speed;
+	    }
+	    if (typeof result.curve === 'string')
+	        result.curve = TweenTransition.getCurve(result.curve);
+	    return result;
+	}
+	TweenTransition.prototype.setOptions = function setOptions(options) {
+	    if (options.curve !== undefined)
+	        this.options.curve = options.curve;
+	    if (options.duration !== undefined)
+	        this.options.duration = options.duration;
+	    if (options.speed !== undefined)
+	        this.options.speed = options.speed;
+	};
+	TweenTransition.prototype.set = function set(endValue, transition, callback) {
+	    if (!transition) {
+	        this.reset(endValue);
+	        if (callback)
+	            callback();
+	        return;
+	    }
+	    this._startValue = _clone(this.get());
+	    transition = _normalize(transition, this.options);
+	    if (transition.speed) {
+	        var startValue = this._startValue;
+	        if (startValue instanceof Object) {
+	            var variance = 0;
+	            for (var i in startValue)
+	                variance += (endValue[i] - startValue[i]) * (endValue[i] - startValue[i]);
+	            transition.duration = Math.sqrt(variance) / transition.speed;
+	        } else {
+	            transition.duration = Math.abs(endValue - startValue) / transition.speed;
+	        }
+	    }
+	    this._startTime = Date.now();
+	    this._endValue = _clone(endValue);
+	    this._startVelocity = _clone(transition.velocity);
+	    this._duration = transition.duration;
+	    this._curve = transition.curve;
+	    this._active = true;
+	    this._callback = callback;
+	};
+	TweenTransition.prototype.reset = function reset(startValue, startVelocity) {
+	    if (this._callback) {
+	        var callback = this._callback;
+	        this._callback = undefined;
+	        callback();
+	    }
+	    this.state = _clone(startValue);
+	    this.velocity = _clone(startVelocity);
+	    this._startTime = 0;
+	    this._duration = 0;
+	    this._updateTime = 0;
+	    this._startValue = this.state;
+	    this._startVelocity = this.velocity;
+	    this._endValue = this.state;
+	    this._active = false;
+	};
+	TweenTransition.prototype.getVelocity = function getVelocity() {
+	    return this.velocity;
+	};
+	TweenTransition.prototype.get = function get(timestamp) {
+	    this.update(timestamp);
+	    return this.state;
+	};
+	function _calculateVelocity(current, start, curve, duration, t) {
+	    var velocity;
+	    var eps = 1e-7;
+	    var speed = (curve(t) - curve(t - eps)) / eps;
+	    if (current instanceof Array) {
+	        velocity = [];
+	        for (var i = 0; i < current.length; i++) {
+	            if (typeof current[i] === 'number')
+	                velocity[i] = speed * (current[i] - start[i]) / duration;
+	            else
+	                velocity[i] = 0;
+	        }
+	    } else
+	        velocity = speed * (current - start) / duration;
+	    return velocity;
+	}
+	function _calculateState(start, end, t) {
+	    var state;
+	    if (start instanceof Array) {
+	        state = [];
+	        for (var i = 0; i < start.length; i++) {
+	            if (typeof start[i] === 'number')
+	                state[i] = _interpolate(start[i], end[i], t);
+	            else
+	                state[i] = start[i];
+	        }
+	    } else
+	        state = _interpolate(start, end, t);
+	    return state;
+	}
+	TweenTransition.prototype.update = function update(timestamp) {
+	    if (!this._active) {
+	        if (this._callback) {
+	            var callback = this._callback;
+	            this._callback = undefined;
+	            callback();
+	        }
+	        return;
+	    }
+	    if (!timestamp)
+	        timestamp = Date.now();
+	    if (this._updateTime >= timestamp)
+	        return;
+	    this._updateTime = timestamp;
+	    var timeSinceStart = timestamp - this._startTime;
+	    if (timeSinceStart >= this._duration) {
+	        this.state = this._endValue;
+	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, 1);
+	        this._active = false;
+	    } else if (timeSinceStart < 0) {
+	        this.state = this._startValue;
+	        this.velocity = this._startVelocity;
+	    } else {
+	        var t = timeSinceStart / this._duration;
+	        this.state = _calculateState(this._startValue, this._endValue, this._curve(t));
+	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, t);
+	    }
+	};
+	TweenTransition.prototype.isActive = function isActive() {
+	    return this._active;
+	};
+	TweenTransition.prototype.halt = function halt() {
+	    this.reset(this.get());
+	};
+	TweenTransition.registerCurve('linear', TweenTransition.Curves.linear);
+	TweenTransition.registerCurve('easeIn', TweenTransition.Curves.easeIn);
+	TweenTransition.registerCurve('easeOut', TweenTransition.Curves.easeOut);
+	TweenTransition.registerCurve('easeInOut', TweenTransition.Curves.easeInOut);
+	TweenTransition.registerCurve('easeOutBounce', TweenTransition.Curves.easeOutBounce);
+	TweenTransition.registerCurve('spring', TweenTransition.Curves.spring);
+	TweenTransition.customCurve = function customCurve(v1, v2) {
+	    v1 = v1 || 0;
+	    v2 = v2 || 0;
+	    return function (t) {
+	        return v1 * t + (-2 * v1 - v2 + 3) * t * t + (v1 + v2 - 2) * t * t * t;
+	    };
+	};
+	module.exports = TweenTransition;
+
+/***/ },
+/* 14 */
+/*!******************************************!*\
+  !*** ../~/famous/core/OptionsManager.js ***!
+  \******************************************/
+/***/ function(module, exports, __webpack_require__) {
+
+	/* This Source Code Form is subject to the terms of the Mozilla Public
+	 * License, v. 2.0. If a copy of the MPL was not distributed with this
+	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+	 *
+	 * @license MPL 2.0
+	 * @copyright Famous Industries, Inc. 2015
+	 */
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 7);
+	function OptionsManager(value) {
+	    this._value = value;
+	    this.eventOutput = null;
+	}
+	OptionsManager.patch = function patchObject(source, data) {
+	    var manager = new OptionsManager(source);
+	    for (var i = 1; i < arguments.length; i++)
+	        manager.patch(arguments[i]);
+	    return source;
+	};
+	function _createEventOutput() {
+	    this.eventOutput = new EventHandler();
+	    this.eventOutput.bindThis(this);
+	    EventHandler.setOutputHandler(this, this.eventOutput);
+	}
+	OptionsManager.prototype.patch = function patch() {
+	    var myState = this._value;
+	    for (var i = 0; i < arguments.length; i++) {
+	        var data = arguments[i];
+	        for (var k in data) {
+	            if (k in myState && (data[k] && data[k].constructor === Object) && (myState[k] && myState[k].constructor === Object)) {
+	                if (!myState.hasOwnProperty(k))
+	                    myState[k] = Object.create(myState[k]);
+	                this.key(k).patch(data[k]);
+	                if (this.eventOutput)
+	                    this.eventOutput.emit('change', {
+	                        id: k,
+	                        value: this.key(k).value()
+	                    });
+	            } else
+	                this.set(k, data[k]);
+	        }
+	    }
+	    return this;
+	};
+	OptionsManager.prototype.setOptions = OptionsManager.prototype.patch;
+	OptionsManager.prototype.key = function key(identifier) {
+	    var result = new OptionsManager(this._value[identifier]);
+	    if (!(result._value instanceof Object) || result._value instanceof Array)
+	        result._value = {};
+	    return result;
+	};
+	OptionsManager.prototype.get = function get(key) {
+	    return key ? this._value[key] : this._value;
+	};
+	OptionsManager.prototype.getOptions = OptionsManager.prototype.get;
+	OptionsManager.prototype.set = function set(key, value) {
+	    var originalValue = this.get(key);
+	    this._value[key] = value;
+	    if (this.eventOutput && value !== originalValue)
+	        this.eventOutput.emit('change', {
+	            id: key,
+	            value: value
+	        });
+	    return this;
+	};
+	OptionsManager.prototype.on = function on() {
+	    _createEventOutput.call(this);
+	    return this.on.apply(this, arguments);
+	};
+	OptionsManager.prototype.removeListener = function removeListener() {
+	    _createEventOutput.call(this);
+	    return this.removeListener.apply(this, arguments);
+	};
+	OptionsManager.prototype.pipe = function pipe() {
+	    _createEventOutput.call(this);
+	    return this.pipe.apply(this, arguments);
+	};
+	OptionsManager.prototype.unpipe = function unpipe() {
+	    _createEventOutput.call(this);
+	    return this.unpipe.apply(this, arguments);
+	};
+	module.exports = OptionsManager;
+
+/***/ },
+/* 15 */
 /*!**************************************!*\
   !*** ../~/famous-polyfills/index.js ***!
   \**************************************/
 /***/ function(module, exports, __webpack_require__) {
 
-	__webpack_require__(/*! ./classList.js */ 2);
-	__webpack_require__(/*! ./functionPrototypeBind.js */ 3);
-	__webpack_require__(/*! ./requestAnimationFrame.js */ 4);
+	__webpack_require__(/*! ./classList.js */ 16);
+	__webpack_require__(/*! ./functionPrototypeBind.js */ 17);
+	__webpack_require__(/*! ./requestAnimationFrame.js */ 18);
 
 /***/ },
-/* 2 */
+/* 16 */
 /*!******************************************!*\
   !*** ../~/famous-polyfills/classList.js ***!
   \******************************************/
@@ -350,7 +2454,7 @@
 
 
 /***/ },
-/* 3 */
+/* 17 */
 /*!******************************************************!*\
   !*** ../~/famous-polyfills/functionPrototypeBind.js ***!
   \******************************************************/
@@ -382,7 +2486,7 @@
 
 
 /***/ },
-/* 4 */
+/* 18 */
 /*!******************************************************!*\
   !*** ../~/famous-polyfills/requestAnimationFrame.js ***!
   \******************************************************/
@@ -404,16 +2508,16 @@
 
 
 /***/ },
-/* 5 */
+/* 19 */
 /*!***********************************!*\
   !*** ../~/famous/core/famous.css ***!
   \***********************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 20)
 		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!../~/famous/core/famous.css */ 7));
+		(__webpack_require__(/*! !../~/css-loader!../~/famous/core/famous.css */ 21));
 	// Hot Module Replacement
 	if(false) {
 		module.hot.accept();
@@ -421,7 +2525,7 @@
 	}
 
 /***/ },
-/* 6 */
+/* 20 */
 /*!*************************************!*\
   !*** ../~/style-loader/addStyle.js ***!
   \*************************************/
@@ -451,7 +2555,7 @@
 
 
 /***/ },
-/* 7 */
+/* 21 */
 /*!***************************************************!*\
   !*** ../~/css-loader!../~/famous/core/famous.css ***!
   \***************************************************/
@@ -461,16 +2565,16 @@
 		"/* This Source Code Form is subject to the terms of the Mozilla Public\n * License, v. 2.0. If a copy of the MPL was not distributed with this\n * file, You can obtain one at http://mozilla.org/MPL/2.0/.\n *\n * Owner: mark@famo.us\n * @license MPL 2.0\n * @copyright Famous Industries, Inc. 2015\n */\n\n.famous-root {\n    width: 100%;\n    height: 100%;\n    margin: 0px;\n    padding: 0px;\n    opacity: .999999; /* ios8 hotfix */\n    overflow: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n}\n\n.famous-container, .famous-group {\n    position: absolute;\n    top: 0px;\n    left: 0px;\n    bottom: 0px;\n    right: 0px;\n    overflow: visible;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-backface-visibility: visible;\n    backface-visibility: visible;\n    pointer-events: none;\n}\n\n.famous-group {\n    width: 0px;\n    height: 0px;\n    margin: 0px;\n    padding: 0px;\n}\n\n.famous-surface {\n    position: absolute;\n    -webkit-transform-origin: center center;\n    transform-origin: center center;\n    -webkit-backface-visibility: hidden;\n    backface-visibility: hidden;\n    -webkit-transform-style: preserve-3d;\n    transform-style: preserve-3d;\n    -webkit-box-sizing: border-box;\n    -moz-box-sizing: border-box;\n    box-sizing: border-box;\n    -webkit-tap-highlight-color: transparent;\n    pointer-events: auto;\n}\n\n.famous-container-group {\n    position: relative;\n    width: 100%;\n    height: 100%;\n}\n";
 
 /***/ },
-/* 8 */
+/* 22 */
 /*!***********************************************!*\
   !*** ../~/famous-flex/src/widgets/styles.css ***!
   \***********************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 20)
 		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!../~/famous-flex/src/widgets/styles.css */ 9));
+		(__webpack_require__(/*! !../~/css-loader!../~/famous-flex/src/widgets/styles.css */ 23));
 	// Hot Module Replacement
 	if(false) {
 		module.hot.accept();
@@ -478,7 +2582,7 @@
 	}
 
 /***/ },
-/* 9 */
+/* 23 */
 /*!***************************************************************!*\
   !*** ../~/css-loader!../~/famous-flex/src/widgets/styles.css ***!
   \***************************************************************/
@@ -488,16 +2592,16 @@
 		"/**\n * This Source Code is licensed under the MIT license. If a copy of the\n * MIT-license was not distributed with this file, You can obtain one at:\n * http://opensource.org/licenses/mit-license.html.\n *\n * @author: Hein Rutjes (IjzerenHein)\n * @license MIT\n * @copyright Gloey Apps, 2015\n */\n\n/* datepicker */\n.ff-datepicker.item {\n  text-align: center;\n}\n.ff-datepicker.item > div {\n  /* align content vertically */\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n.ff-datepicker.top, .ff-datepicker.middle, .ff-datepicker.bottom {\n  pointer-events: none;\n}\n\n\n/* tabbar common */\n.ff-tabbar.item {\n  text-align: center;\n  white-space: nowrap;\n  color: #333333;\n  cursor: pointer;\n}\n.ff-tabbar.item > div {\n  /* align content vertically */\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 6px solid #1185c3;\n}\n";
 
 /***/ },
-/* 10 */
+/* 24 */
 /*!********************!*\
   !*** ./styles.css ***!
   \********************/
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 20)
 		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!./styles.css */ 11));
+		(__webpack_require__(/*! !../~/css-loader!./styles.css */ 25));
 	// Hot Module Replacement
 	if(false) {
 		module.hot.accept();
@@ -505,17 +2609,17 @@
 	}
 
 /***/ },
-/* 11 */
+/* 25 */
 /*!************************************!*\
   !*** ../~/css-loader!./styles.css ***!
   \************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	module.exports =
-		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 12)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 13)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'DancingScriptOT';\n  src: url("+__webpack_require__(/*! ./fonts/dancing-script-ot/DancingScript-Regular.otf */ 14)+");\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n  -moz-tab-size: 2;\n  -o-tab-size: 2;\n  tab-size: 2;\n  resize: none;\n}\n.CodeMirror {\n  position: absolute !important;\n  width: 100% !important;\n  height: 100% !important;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n  z-index: 10;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n.banner .subTitle {\n  font-family: DancingScriptOT;\n  font-weight: bold;\n  font-size: 26px;\n  color: orange;\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 3px solid orange;\n}\n.ff-tabbar.item > div {\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n}\n.ff-tabbar.item.selected {\n  color: orange;\n  font-weight: bold;\n}\n.setting.text {\n  text-align: right;\n}\n\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  text-align: center;\n}\n.subView.circle {\n  border-radius: 50%;\n}\n";
+		"@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Hairline.otf */ 26)+");\n  font-weight: 100;\n}\n\n@font-face {\n  font-family: 'Montserrat';\n  src: url("+__webpack_require__(/*! ./fonts/montserrat/Montserrat-Light.otf */ 27)+");\n  font-weight: 200;\n}\n\n@font-face {\n  font-family: 'DancingScriptOT';\n  src: url("+__webpack_require__(/*! ./fonts/dancing-script-ot/DancingScript-Regular.otf */ 28)+");\n}\n\nbody {\n  color: #555555;\n  font-family: 'Montserrat';\n  font-weight: 200;\n  font-size: 15px;\n}\ntextarea, input {\n  font-family: 'droid sans mono', monospace, 'courier new', courier, sans-serif;\n  font-size: 17px;\n  border: 1px solid #DDDDDD;\n  -moz-tab-size: 2;\n  -o-tab-size: 2;\n  tab-size: 2;\n  resize: none;\n}\n.CodeMirror {\n  position: absolute !important;\n  width: 100% !important;\n  height: 100% !important;\n}\ninput {\n  text-align: center;\n}\n.banner {\n  font-weight: 100;\n  font-size: 60px;\n  text-align: center;\n  color: black;\n  z-index: 10;\n}\n.banner > iframe {\n  position: absolute;\n  left: 10px;\n  top: 10px;\n}\n.banner .subTitle {\n  font-family: DancingScriptOT;\n  font-weight: bold;\n  font-size: 26px;\n  color: orange;\n}\n.ff-tabbar.selectedItemOverlay {\n  border-bottom: 3px solid orange;\n}\n.ff-tabbar.item > div {\n  text-overflow: ellipsis;\n  white-space: nowrap;\n  overflow: hidden;\n}\n.ff-tabbar.item.selected {\n  color: orange;\n  font-weight: bold;\n}\n.setting.text {\n  text-align: right;\n}\n\n.constraints, .log, .raw {\n  overflow: scroll;\n  font-size: 17px;\n}\n.log {\n  padding: 5px;\n}\n\n.va {\n  /* align vertical */\n  display: block;\n  position: relative;\n  top: 50%;\n  -webkit-transform: translateY(-50%);\n  -moz-transform: translateY(-50%);\n  -ms-transform: translateY(-50%);\n  -o-transform: translateY(-50%);\n  transform: translateY(-50%);\n}\n\n.subView {\n  border: 1px solid #DDDDDD;\n  border-radius: 5px;\n  text-align: center;\n}\n.subView.circle {\n  border-radius: 50%;\n}\n";
 
 /***/ },
-/* 12 */
+/* 26 */
 /*!**************************************************!*\
   !*** ./fonts/montserrat/Montserrat-Hairline.otf ***!
   \**************************************************/
@@ -524,7 +2628,7 @@
 	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Hairline.otf"
 
 /***/ },
-/* 13 */
+/* 27 */
 /*!***********************************************!*\
   !*** ./fonts/montserrat/Montserrat-Light.otf ***!
   \***********************************************/
@@ -533,7 +2637,7 @@
 	module.exports = __webpack_require__.p + "fonts/montserrat/Montserrat-Light.otf"
 
 /***/ },
-/* 14 */
+/* 28 */
 /*!***********************************************************!*\
   !*** ./fonts/dancing-script-ot/DancingScript-Regular.otf ***!
   \***********************************************************/
@@ -542,7 +2646,7 @@
 	module.exports = __webpack_require__.p + "fonts/dancing-script-ot/DancingScript-Regular.otf"
 
 /***/ },
-/* 15 */
+/* 29 */
 /*!********************!*\
   !*** ./index.html ***!
   \********************/
@@ -551,16 +2655,16 @@
 	module.exports = __webpack_require__.p + "index.html"
 
 /***/ },
-/* 16 */
+/* 30 */
 /*!******************************************!*\
   !*** ../~/codemirror/lib/codemirror.css ***!
   \******************************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 20)
 		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!../~/codemirror/lib/codemirror.css */ 17));
+		(__webpack_require__(/*! !../~/css-loader!../~/codemirror/lib/codemirror.css */ 31));
 	// Hot Module Replacement
 	if(false) {
 		module.hot.accept();
@@ -568,7 +2672,7 @@
 	}
 
 /***/ },
-/* 17 */
+/* 31 */
 /*!**********************************************************!*\
   !*** ../~/css-loader!../~/codemirror/lib/codemirror.css ***!
   \**********************************************************/
@@ -578,16 +2682,16 @@
 		"/* BASICS */\n\n.CodeMirror {\n  /* Set height, width, borders, and global font properties here */\n  font-family: monospace;\n  height: 300px;\n  color: black;\n}\n\n/* PADDING */\n\n.CodeMirror-lines {\n  padding: 4px 0; /* Vertical padding around content */\n}\n.CodeMirror pre {\n  padding: 0 4px; /* Horizontal padding of content */\n}\n\n.CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {\n  background-color: white; /* The little square between H and V scrollbars */\n}\n\n/* GUTTER */\n\n.CodeMirror-gutters {\n  border-right: 1px solid #ddd;\n  background-color: #f7f7f7;\n  white-space: nowrap;\n}\n.CodeMirror-linenumbers {}\n.CodeMirror-linenumber {\n  padding: 0 3px 0 5px;\n  min-width: 20px;\n  text-align: right;\n  color: #999;\n  white-space: nowrap;\n}\n\n.CodeMirror-guttermarker { color: black; }\n.CodeMirror-guttermarker-subtle { color: #999; }\n\n/* CURSOR */\n\n.CodeMirror div.CodeMirror-cursor {\n  border-left: 1px solid black;\n}\n/* Shown when moving in bi-directional text */\n.CodeMirror div.CodeMirror-secondarycursor {\n  border-left: 1px solid silver;\n}\n.CodeMirror.cm-fat-cursor div.CodeMirror-cursor {\n  width: auto;\n  border: 0;\n  background: #7e7;\n}\n.CodeMirror.cm-fat-cursor div.CodeMirror-cursors {\n  z-index: 1;\n}\n\n.cm-animate-fat-cursor {\n  width: auto;\n  border: 0;\n  -webkit-animation: blink 1.06s steps(1) infinite;\n  -moz-animation: blink 1.06s steps(1) infinite;\n  animation: blink 1.06s steps(1) infinite;\n}\n@-moz-keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n@-webkit-keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n@keyframes blink {\n  0% { background: #7e7; }\n  50% { background: none; }\n  100% { background: #7e7; }\n}\n\n/* Can style cursor different in overwrite (non-insert) mode */\ndiv.CodeMirror-overwrite div.CodeMirror-cursor {}\n\n.cm-tab { display: inline-block; text-decoration: inherit; }\n\n.CodeMirror-ruler {\n  border-left: 1px solid #ccc;\n  position: absolute;\n}\n\n/* DEFAULT THEME */\n\n.cm-s-default .cm-keyword {color: #708;}\n.cm-s-default .cm-atom {color: #219;}\n.cm-s-default .cm-number {color: #164;}\n.cm-s-default .cm-def {color: #00f;}\n.cm-s-default .cm-variable,\n.cm-s-default .cm-punctuation,\n.cm-s-default .cm-property,\n.cm-s-default .cm-operator {}\n.cm-s-default .cm-variable-2 {color: #05a;}\n.cm-s-default .cm-variable-3 {color: #085;}\n.cm-s-default .cm-comment {color: #a50;}\n.cm-s-default .cm-string {color: #a11;}\n.cm-s-default .cm-string-2 {color: #f50;}\n.cm-s-default .cm-meta {color: #555;}\n.cm-s-default .cm-qualifier {color: #555;}\n.cm-s-default .cm-builtin {color: #30a;}\n.cm-s-default .cm-bracket {color: #997;}\n.cm-s-default .cm-tag {color: #170;}\n.cm-s-default .cm-attribute {color: #00c;}\n.cm-s-default .cm-header {color: blue;}\n.cm-s-default .cm-quote {color: #090;}\n.cm-s-default .cm-hr {color: #999;}\n.cm-s-default .cm-link {color: #00c;}\n\n.cm-negative {color: #d44;}\n.cm-positive {color: #292;}\n.cm-header, .cm-strong {font-weight: bold;}\n.cm-em {font-style: italic;}\n.cm-link {text-decoration: underline;}\n.cm-strikethrough {text-decoration: line-through;}\n\n.cm-s-default .cm-error {color: #f00;}\n.cm-invalidchar {color: #f00;}\n\n.CodeMirror-composing { border-bottom: 2px solid; }\n\n/* Default styles for common addons */\n\ndiv.CodeMirror span.CodeMirror-matchingbracket {color: #0f0;}\ndiv.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}\n.CodeMirror-matchingtag { background: rgba(255, 150, 0, .3); }\n.CodeMirror-activeline-background {background: #e8f2ff;}\n\n/* STOP */\n\n/* The rest of this file contains styles related to the mechanics of\n   the editor. You probably shouldn't touch them. */\n\n.CodeMirror {\n  position: relative;\n  overflow: hidden;\n  background: white;\n}\n\n.CodeMirror-scroll {\n  overflow: scroll !important; /* Things will break if this is overridden */\n  /* 30px is the magic margin used to hide the element's real scrollbars */\n  /* See overflow: hidden in .CodeMirror */\n  margin-bottom: -30px; margin-right: -30px;\n  padding-bottom: 30px;\n  height: 100%;\n  outline: none; /* Prevent dragging from highlighting the element */\n  position: relative;\n}\n.CodeMirror-sizer {\n  position: relative;\n  border-right: 30px solid transparent;\n}\n\n/* The fake, visible scrollbars. Used to force redraw during scrolling\n   before actuall scrolling happens, thus preventing shaking and\n   flickering artifacts. */\n.CodeMirror-vscrollbar, .CodeMirror-hscrollbar, .CodeMirror-scrollbar-filler, .CodeMirror-gutter-filler {\n  position: absolute;\n  z-index: 6;\n  display: none;\n}\n.CodeMirror-vscrollbar {\n  right: 0; top: 0;\n  overflow-x: hidden;\n  overflow-y: scroll;\n}\n.CodeMirror-hscrollbar {\n  bottom: 0; left: 0;\n  overflow-y: hidden;\n  overflow-x: scroll;\n}\n.CodeMirror-scrollbar-filler {\n  right: 0; bottom: 0;\n}\n.CodeMirror-gutter-filler {\n  left: 0; bottom: 0;\n}\n\n.CodeMirror-gutters {\n  position: absolute; left: 0; top: 0;\n  z-index: 3;\n}\n.CodeMirror-gutter {\n  white-space: normal;\n  height: 100%;\n  display: inline-block;\n  margin-bottom: -30px;\n  /* Hack to make IE7 behave */\n  *zoom:1;\n  *display:inline;\n}\n.CodeMirror-gutter-wrapper {\n  position: absolute;\n  z-index: 4;\n  height: 100%;\n}\n.CodeMirror-gutter-elt {\n  position: absolute;\n  cursor: default;\n  z-index: 4;\n}\n.CodeMirror-gutter-wrapper {\n  -webkit-user-select: none;\n  -moz-user-select: none;\n  user-select: none;\n}\n\n.CodeMirror-lines {\n  cursor: text;\n  min-height: 1px; /* prevents collapsing before first draw */\n}\n.CodeMirror pre {\n  /* Reset some styles that the rest of the page might have set */\n  -moz-border-radius: 0; -webkit-border-radius: 0; border-radius: 0;\n  border-width: 0;\n  background: transparent;\n  font-family: inherit;\n  font-size: inherit;\n  margin: 0;\n  white-space: pre;\n  word-wrap: normal;\n  line-height: inherit;\n  color: inherit;\n  z-index: 2;\n  position: relative;\n  overflow: visible;\n  -webkit-tap-highlight-color: transparent;\n}\n.CodeMirror-wrap pre {\n  word-wrap: break-word;\n  white-space: pre-wrap;\n  word-break: normal;\n}\n\n.CodeMirror-linebackground {\n  position: absolute;\n  left: 0; right: 0; top: 0; bottom: 0;\n  z-index: 0;\n}\n\n.CodeMirror-linewidget {\n  position: relative;\n  z-index: 2;\n  overflow: auto;\n}\n\n.CodeMirror-widget {}\n\n.CodeMirror-code {\n  outline: none;\n}\n\n/* Force content-box sizing for the elements where we expect it */\n.CodeMirror-scroll,\n.CodeMirror-sizer,\n.CodeMirror-gutter,\n.CodeMirror-gutters,\n.CodeMirror-linenumber {\n  -moz-box-sizing: content-box;\n  box-sizing: content-box;\n}\n\n.CodeMirror-measure {\n  position: absolute;\n  width: 100%;\n  height: 0;\n  overflow: hidden;\n  visibility: hidden;\n}\n.CodeMirror-measure pre { position: static; }\n\n.CodeMirror div.CodeMirror-cursor {\n  position: absolute;\n  border-right: none;\n  width: 0;\n}\n\ndiv.CodeMirror-cursors {\n  visibility: hidden;\n  position: relative;\n  z-index: 3;\n}\n.CodeMirror-focused div.CodeMirror-cursors {\n  visibility: visible;\n}\n\n.CodeMirror-selected { background: #d9d9d9; }\n.CodeMirror-focused .CodeMirror-selected { background: #d7d4f0; }\n.CodeMirror-crosshair { cursor: crosshair; }\n.CodeMirror ::selection { background: #d7d4f0; }\n.CodeMirror ::-moz-selection { background: #d7d4f0; }\n\n.cm-searching {\n  background: #ffa;\n  background: rgba(255, 255, 0, .4);\n}\n\n/* IE7 hack to prevent it from returning funny offsetTops on the spans */\n.CodeMirror span { *vertical-align: text-bottom; }\n\n/* Used to force a border model for a node */\n.cm-force-border { padding-right: .1px; }\n\n@media print {\n  /* Hide the cursor when printing */\n  .CodeMirror div.CodeMirror-cursors {\n    visibility: hidden;\n  }\n}\n\n/* See issue #2901 */\n.cm-tab-wrap-hack:after { content: ''; }\n\n/* Help users use markselection to safely style text background */\nspan.CodeMirror-selectedtext { background: none; }\n";
 
 /***/ },
-/* 18 */
+/* 32 */
 /*!**************************!*\
   !*** ./mode/vfl/vfl.css ***!
   \**************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
-	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 6)
+	var dispose = __webpack_require__(/*! ../~/style-loader/addStyle.js */ 20)
 		// The css code:
-		(__webpack_require__(/*! !../~/css-loader!./mode/vfl/vfl.css */ 19));
+		(__webpack_require__(/*! !../~/css-loader!./mode/vfl/vfl.css */ 33));
 	// Hot Module Replacement
 	if(false) {
 		module.hot.accept();
@@ -595,7 +2699,7 @@
 	}
 
 /***/ },
-/* 19 */
+/* 33 */
 /*!******************************************!*\
   !*** ../~/css-loader!./mode/vfl/vfl.css ***!
   \******************************************/
@@ -605,7 +2709,7 @@
 		".cm-s-vfl span.cm-def {color: #D8D8D8;}\n.cm-s-vfl span.cm-atom {color: #62a35c;}\n.cm-s-vfl span.cm-meta {color: #a71d5d;}\n.cm-s-vfl span.cm-number {color: #0086b3;}\n.cm-s-vfl span.cm-bracket {color: #193691;}\n.cm-s-vfl span.cm-keyword {color: #193691; font-weight: bold;}\n.cm-s-vfl span.cm-variable {color: #f09e53;}\n.cm-s-vfl span.cm-operator {color: #795da3;}\n.cm-s-vfl span.cm-comment {color: #999999;}\n";
 
 /***/ },
-/* 20 */
+/* 34 */
 /*!***************************************!*\
   !*** ../~/fastclick/lib/fastclick.js ***!
   \***************************************/
@@ -1455,2137 +3559,6 @@
 
 
 /***/ },
-/* 21 */
-/*!**********************************!*\
-  !*** ../~/famous/core/Engine.js ***!
-  \**********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Context = __webpack_require__(/*! ./Context */ 22);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 27);
-	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 34);
-	var Engine = {};
-	var contexts = [];
-	var nextTickQueue = [];
-	var currentFrame = 0;
-	var nextTickFrame = 0;
-	var deferQueue = [];
-	var lastTime = Date.now();
-	var frameTime;
-	var frameTimeLimit;
-	var loopEnabled = true;
-	var eventForwarders = {};
-	var eventHandler = new EventHandler();
-	var options = {
-	    containerType: 'div',
-	    containerClass: 'famous-container',
-	    fpsCap: undefined,
-	    runLoop: true,
-	    appMode: true
-	};
-	var optionsManager = new OptionsManager(options);
-	var MAX_DEFER_FRAME_TIME = 10;
-	Engine.step = function step() {
-	    currentFrame++;
-	    nextTickFrame = currentFrame;
-	    var currentTime = Date.now();
-	    if (frameTimeLimit && currentTime - lastTime < frameTimeLimit)
-	        return;
-	    var i = 0;
-	    frameTime = currentTime - lastTime;
-	    lastTime = currentTime;
-	    eventHandler.emit('prerender');
-	    var numFunctions = nextTickQueue.length;
-	    while (numFunctions--)
-	        nextTickQueue.shift()(currentFrame);
-	    while (deferQueue.length && Date.now() - currentTime < MAX_DEFER_FRAME_TIME) {
-	        deferQueue.shift().call(this);
-	    }
-	    for (i = 0; i < contexts.length; i++)
-	        contexts[i].update();
-	    eventHandler.emit('postrender');
-	};
-	function loop() {
-	    if (options.runLoop) {
-	        Engine.step();
-	        window.requestAnimationFrame(loop);
-	    } else
-	        loopEnabled = false;
-	}
-	window.requestAnimationFrame(loop);
-	function handleResize(event) {
-	    for (var i = 0; i < contexts.length; i++) {
-	        contexts[i].emit('resize');
-	    }
-	    eventHandler.emit('resize');
-	}
-	window.addEventListener('resize', handleResize, false);
-	handleResize();
-	function initialize() {
-	    window.addEventListener('touchmove', function (event) {
-	        event.preventDefault();
-	    }, true);
-	    addRootClasses();
-	}
-	var initialized = false;
-	function addRootClasses() {
-	    if (!document.body) {
-	        Engine.nextTick(addRootClasses);
-	        return;
-	    }
-	    document.body.classList.add('famous-root');
-	    document.documentElement.classList.add('famous-root');
-	}
-	Engine.pipe = function pipe(target) {
-	    if (target.subscribe instanceof Function)
-	        return target.subscribe(Engine);
-	    else
-	        return eventHandler.pipe(target);
-	};
-	Engine.unpipe = function unpipe(target) {
-	    if (target.unsubscribe instanceof Function)
-	        return target.unsubscribe(Engine);
-	    else
-	        return eventHandler.unpipe(target);
-	};
-	Engine.on = function on(type, handler) {
-	    if (!(type in eventForwarders)) {
-	        eventForwarders[type] = eventHandler.emit.bind(eventHandler, type);
-	        addEngineListener(type, eventForwarders[type]);
-	    }
-	    return eventHandler.on(type, handler);
-	};
-	function addEngineListener(type, forwarder) {
-	    if (!document.body) {
-	        Engine.nextTick(addEventListener.bind(this, type, forwarder));
-	        return;
-	    }
-	    document.body.addEventListener(type, forwarder);
-	}
-	Engine.emit = function emit(type, event) {
-	    return eventHandler.emit(type, event);
-	};
-	Engine.removeListener = function removeListener(type, handler) {
-	    return eventHandler.removeListener(type, handler);
-	};
-	Engine.getFPS = function getFPS() {
-	    return 1000 / frameTime;
-	};
-	Engine.setFPSCap = function setFPSCap(fps) {
-	    frameTimeLimit = Math.floor(1000 / fps);
-	};
-	Engine.getOptions = function getOptions(key) {
-	    return optionsManager.getOptions(key);
-	};
-	Engine.setOptions = function setOptions(options) {
-	    return optionsManager.setOptions.apply(optionsManager, arguments);
-	};
-	Engine.createContext = function createContext(el) {
-	    if (!initialized && options.appMode)
-	        Engine.nextTick(initialize);
-	    var needMountContainer = false;
-	    if (!el) {
-	        el = document.createElement(options.containerType);
-	        el.classList.add(options.containerClass);
-	        needMountContainer = true;
-	    }
-	    var context = new Context(el);
-	    Engine.registerContext(context);
-	    if (needMountContainer)
-	        mount(context, el);
-	    return context;
-	};
-	function mount(context, el) {
-	    if (!document.body) {
-	        Engine.nextTick(mount.bind(this, context, el));
-	        return;
-	    }
-	    document.body.appendChild(el);
-	    context.emit('resize');
-	}
-	Engine.registerContext = function registerContext(context) {
-	    contexts.push(context);
-	    return context;
-	};
-	Engine.getContexts = function getContexts() {
-	    return contexts;
-	};
-	Engine.deregisterContext = function deregisterContext(context) {
-	    var i = contexts.indexOf(context);
-	    if (i >= 0)
-	        contexts.splice(i, 1);
-	};
-	Engine.nextTick = function nextTick(fn) {
-	    nextTickQueue.push(fn);
-	};
-	Engine.defer = function defer(fn) {
-	    deferQueue.push(fn);
-	};
-	optionsManager.on('change', function (data) {
-	    if (data.id === 'fpsCap')
-	        Engine.setFPSCap(data.value);
-	    else if (data.id === 'runLoop') {
-	        if (!loopEnabled && data.value) {
-	            loopEnabled = true;
-	            window.requestAnimationFrame(loop);
-	        }
-	    }
-	});
-	module.exports = Engine;
-
-/***/ },
-/* 22 */
-/*!***********************************!*\
-  !*** ../~/famous/core/Context.js ***!
-  \***********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var RenderNode = __webpack_require__(/*! ./RenderNode */ 23);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 27);
-	var ElementAllocator = __webpack_require__(/*! ./ElementAllocator */ 29);
-	var Transform = __webpack_require__(/*! ./Transform */ 26);
-	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 30);
-	var _zeroZero = [
-	    0,
-	    0
-	];
-	var usePrefix = !('perspective' in document.documentElement.style);
-	function _getElementSize() {
-	    var element = this.container;
-	    return [
-	        element.clientWidth,
-	        element.clientHeight
-	    ];
-	}
-	var _setPerspective = usePrefix ? function (element, perspective) {
-	    element.style.webkitPerspective = perspective ? perspective.toFixed() + 'px' : '';
-	} : function (element, perspective) {
-	    element.style.perspective = perspective ? perspective.toFixed() + 'px' : '';
-	};
-	function Context(container) {
-	    this.container = container;
-	    this._allocator = new ElementAllocator(container);
-	    this._node = new RenderNode();
-	    this._eventOutput = new EventHandler();
-	    this._size = _getElementSize.call(this);
-	    this._perspectiveState = new Transitionable(0);
-	    this._perspective = undefined;
-	    this._nodeContext = {
-	        allocator: this._allocator,
-	        transform: Transform.identity,
-	        opacity: 1,
-	        origin: _zeroZero,
-	        align: _zeroZero,
-	        size: this._size
-	    };
-	    this._eventOutput.on('resize', function () {
-	        this.setSize(_getElementSize.call(this));
-	    }.bind(this));
-	}
-	Context.prototype.getAllocator = function getAllocator() {
-	    return this._allocator;
-	};
-	Context.prototype.add = function add(obj) {
-	    return this._node.add(obj);
-	};
-	Context.prototype.migrate = function migrate(container) {
-	    if (container === this.container)
-	        return;
-	    this.container = container;
-	    this._allocator.migrate(container);
-	};
-	Context.prototype.getSize = function getSize() {
-	    return this._size;
-	};
-	Context.prototype.setSize = function setSize(size) {
-	    if (!size)
-	        size = _getElementSize.call(this);
-	    this._size[0] = size[0];
-	    this._size[1] = size[1];
-	};
-	Context.prototype.update = function update(contextParameters) {
-	    if (contextParameters) {
-	        if (contextParameters.transform)
-	            this._nodeContext.transform = contextParameters.transform;
-	        if (contextParameters.opacity)
-	            this._nodeContext.opacity = contextParameters.opacity;
-	        if (contextParameters.origin)
-	            this._nodeContext.origin = contextParameters.origin;
-	        if (contextParameters.align)
-	            this._nodeContext.align = contextParameters.align;
-	        if (contextParameters.size)
-	            this._nodeContext.size = contextParameters.size;
-	    }
-	    var perspective = this._perspectiveState.get();
-	    if (perspective !== this._perspective) {
-	        _setPerspective(this.container, perspective);
-	        this._perspective = perspective;
-	    }
-	    this._node.commit(this._nodeContext);
-	};
-	Context.prototype.getPerspective = function getPerspective() {
-	    return this._perspectiveState.get();
-	};
-	Context.prototype.setPerspective = function setPerspective(perspective, transition, callback) {
-	    return this._perspectiveState.set(perspective, transition, callback);
-	};
-	Context.prototype.emit = function emit(type, event) {
-	    return this._eventOutput.emit(type, event);
-	};
-	Context.prototype.on = function on(type, handler) {
-	    return this._eventOutput.on(type, handler);
-	};
-	Context.prototype.removeListener = function removeListener(type, handler) {
-	    return this._eventOutput.removeListener(type, handler);
-	};
-	Context.prototype.pipe = function pipe(target) {
-	    return this._eventOutput.pipe(target);
-	};
-	Context.prototype.unpipe = function unpipe(target) {
-	    return this._eventOutput.unpipe(target);
-	};
-	module.exports = Context;
-
-/***/ },
-/* 23 */
-/*!**************************************!*\
-  !*** ../~/famous/core/RenderNode.js ***!
-  \**************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Entity = __webpack_require__(/*! ./Entity */ 24);
-	var SpecParser = __webpack_require__(/*! ./SpecParser */ 25);
-	function RenderNode(object) {
-	    this._object = null;
-	    this._child = null;
-	    this._hasMultipleChildren = false;
-	    this._isRenderable = false;
-	    this._isModifier = false;
-	    this._resultCache = {};
-	    this._prevResults = {};
-	    this._childResult = null;
-	    if (object)
-	        this.set(object);
-	}
-	RenderNode.prototype.add = function add(child) {
-	    var childNode = child instanceof RenderNode ? child : new RenderNode(child);
-	    if (this._child instanceof Array)
-	        this._child.push(childNode);
-	    else if (this._child) {
-	        this._child = [
-	            this._child,
-	            childNode
-	        ];
-	        this._hasMultipleChildren = true;
-	        this._childResult = [];
-	    } else
-	        this._child = childNode;
-	    return childNode;
-	};
-	RenderNode.prototype.get = function get() {
-	    return this._object || (this._hasMultipleChildren ? null : this._child ? this._child.get() : null);
-	};
-	RenderNode.prototype.set = function set(child) {
-	    this._childResult = null;
-	    this._hasMultipleChildren = false;
-	    this._isRenderable = child.render ? true : false;
-	    this._isModifier = child.modify ? true : false;
-	    this._object = child;
-	    this._child = null;
-	    if (child instanceof RenderNode)
-	        return child;
-	    else
-	        return this;
-	};
-	RenderNode.prototype.getSize = function getSize() {
-	    var result = null;
-	    var target = this.get();
-	    if (target && target.getSize)
-	        result = target.getSize();
-	    if (!result && this._child && this._child.getSize)
-	        result = this._child.getSize();
-	    return result;
-	};
-	function _applyCommit(spec, context, cacheStorage) {
-	    var result = SpecParser.parse(spec, context);
-	    var keys = Object.keys(result);
-	    for (var i = 0; i < keys.length; i++) {
-	        var id = keys[i];
-	        var childNode = Entity.get(id);
-	        var commitParams = result[id];
-	        commitParams.allocator = context.allocator;
-	        var commitResult = childNode.commit(commitParams);
-	        if (commitResult)
-	            _applyCommit(commitResult, context, cacheStorage);
-	        else
-	            cacheStorage[id] = commitParams;
-	    }
-	}
-	RenderNode.prototype.commit = function commit(context) {
-	    var prevKeys = Object.keys(this._prevResults);
-	    for (var i = 0; i < prevKeys.length; i++) {
-	        var id = prevKeys[i];
-	        if (this._resultCache[id] === undefined) {
-	            var object = Entity.get(id);
-	            if (object.cleanup)
-	                object.cleanup(context.allocator);
-	        }
-	    }
-	    this._prevResults = this._resultCache;
-	    this._resultCache = {};
-	    _applyCommit(this.render(), context, this._resultCache);
-	};
-	RenderNode.prototype.render = function render() {
-	    if (this._isRenderable)
-	        return this._object.render();
-	    var result = null;
-	    if (this._hasMultipleChildren) {
-	        result = this._childResult;
-	        var children = this._child;
-	        for (var i = 0; i < children.length; i++) {
-	            result[i] = children[i].render();
-	        }
-	    } else if (this._child)
-	        result = this._child.render();
-	    return this._isModifier ? this._object.modify(result) : result;
-	};
-	module.exports = RenderNode;
-
-/***/ },
-/* 24 */
-/*!**********************************!*\
-  !*** ../~/famous/core/Entity.js ***!
-  \**********************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var entities = [];
-	function get(id) {
-	    return entities[id];
-	}
-	function set(id, entity) {
-	    entities[id] = entity;
-	}
-	function register(entity) {
-	    var id = entities.length;
-	    set(id, entity);
-	    return id;
-	}
-	function unregister(id) {
-	    set(id, null);
-	}
-	module.exports = {
-	    register: register,
-	    unregister: unregister,
-	    get: get,
-	    set: set
-	};
-
-/***/ },
-/* 25 */
-/*!**************************************!*\
-  !*** ../~/famous/core/SpecParser.js ***!
-  \**************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Transform = __webpack_require__(/*! ./Transform */ 26);
-	function SpecParser() {
-	    this.result = {};
-	}
-	SpecParser._instance = new SpecParser();
-	SpecParser.parse = function parse(spec, context) {
-	    return SpecParser._instance.parse(spec, context);
-	};
-	SpecParser.prototype.parse = function parse(spec, context) {
-	    this.reset();
-	    this._parseSpec(spec, context, Transform.identity);
-	    return this.result;
-	};
-	SpecParser.prototype.reset = function reset() {
-	    this.result = {};
-	};
-	function _vecInContext(v, m) {
-	    return [
-	        v[0] * m[0] + v[1] * m[4] + v[2] * m[8],
-	        v[0] * m[1] + v[1] * m[5] + v[2] * m[9],
-	        v[0] * m[2] + v[1] * m[6] + v[2] * m[10]
-	    ];
-	}
-	var _zeroZero = [
-	    0,
-	    0
-	];
-	SpecParser.prototype._parseSpec = function _parseSpec(spec, parentContext, sizeContext) {
-	    var id;
-	    var target;
-	    var transform;
-	    var opacity;
-	    var origin;
-	    var align;
-	    var size;
-	    if (typeof spec === 'number') {
-	        id = spec;
-	        transform = parentContext.transform;
-	        align = parentContext.align || _zeroZero;
-	        if (parentContext.size && align && (align[0] || align[1])) {
-	            var alignAdjust = [
-	                align[0] * parentContext.size[0],
-	                align[1] * parentContext.size[1],
-	                0
-	            ];
-	            transform = Transform.thenMove(transform, _vecInContext(alignAdjust, sizeContext));
-	        }
-	        this.result[id] = {
-	            transform: transform,
-	            opacity: parentContext.opacity,
-	            origin: parentContext.origin || _zeroZero,
-	            align: parentContext.align || _zeroZero,
-	            size: parentContext.size
-	        };
-	    } else if (!spec) {
-	        return;
-	    } else if (spec instanceof Array) {
-	        for (var i = 0; i < spec.length; i++) {
-	            this._parseSpec(spec[i], parentContext, sizeContext);
-	        }
-	    } else {
-	        target = spec.target;
-	        transform = parentContext.transform;
-	        opacity = parentContext.opacity;
-	        origin = parentContext.origin;
-	        align = parentContext.align;
-	        size = parentContext.size;
-	        var nextSizeContext = sizeContext;
-	        if (spec.opacity !== undefined)
-	            opacity = parentContext.opacity * spec.opacity;
-	        if (spec.transform)
-	            transform = Transform.multiply(parentContext.transform, spec.transform);
-	        if (spec.origin) {
-	            origin = spec.origin;
-	            nextSizeContext = parentContext.transform;
-	        }
-	        if (spec.align)
-	            align = spec.align;
-	        if (spec.size || spec.proportions) {
-	            var parentSize = size;
-	            size = [
-	                size[0],
-	                size[1]
-	            ];
-	            if (spec.size) {
-	                if (spec.size[0] !== undefined)
-	                    size[0] = spec.size[0];
-	                if (spec.size[1] !== undefined)
-	                    size[1] = spec.size[1];
-	            }
-	            if (spec.proportions) {
-	                if (spec.proportions[0] !== undefined)
-	                    size[0] = size[0] * spec.proportions[0];
-	                if (spec.proportions[1] !== undefined)
-	                    size[1] = size[1] * spec.proportions[1];
-	            }
-	            if (parentSize) {
-	                if (align && (align[0] || align[1]))
-	                    transform = Transform.thenMove(transform, _vecInContext([
-	                        align[0] * parentSize[0],
-	                        align[1] * parentSize[1],
-	                        0
-	                    ], sizeContext));
-	                if (origin && (origin[0] || origin[1]))
-	                    transform = Transform.moveThen([
-	                        -origin[0] * size[0],
-	                        -origin[1] * size[1],
-	                        0
-	                    ], transform);
-	            }
-	            nextSizeContext = parentContext.transform;
-	            origin = null;
-	            align = null;
-	        }
-	        this._parseSpec(target, {
-	            transform: transform,
-	            opacity: opacity,
-	            origin: origin,
-	            align: align,
-	            size: size
-	        }, nextSizeContext);
-	    }
-	};
-	module.exports = SpecParser;
-
-/***/ },
-/* 26 */
-/*!*************************************!*\
-  !*** ../~/famous/core/Transform.js ***!
-  \*************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Transform = {};
-	Transform.precision = 0.000001;
-	Transform.identity = [
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1
-	];
-	Transform.multiply4x4 = function multiply4x4(a, b) {
-	    return [
-	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2] + a[12] * b[3],
-	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2] + a[13] * b[3],
-	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2] + a[14] * b[3],
-	        a[3] * b[0] + a[7] * b[1] + a[11] * b[2] + a[15] * b[3],
-	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6] + a[12] * b[7],
-	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6] + a[13] * b[7],
-	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6] + a[14] * b[7],
-	        a[3] * b[4] + a[7] * b[5] + a[11] * b[6] + a[15] * b[7],
-	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10] + a[12] * b[11],
-	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10] + a[13] * b[11],
-	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10] + a[14] * b[11],
-	        a[3] * b[8] + a[7] * b[9] + a[11] * b[10] + a[15] * b[11],
-	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12] * b[15],
-	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13] * b[15],
-	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14] * b[15],
-	        a[3] * b[12] + a[7] * b[13] + a[11] * b[14] + a[15] * b[15]
-	    ];
-	};
-	Transform.multiply = function multiply(a, b) {
-	    return [
-	        a[0] * b[0] + a[4] * b[1] + a[8] * b[2],
-	        a[1] * b[0] + a[5] * b[1] + a[9] * b[2],
-	        a[2] * b[0] + a[6] * b[1] + a[10] * b[2],
-	        0,
-	        a[0] * b[4] + a[4] * b[5] + a[8] * b[6],
-	        a[1] * b[4] + a[5] * b[5] + a[9] * b[6],
-	        a[2] * b[4] + a[6] * b[5] + a[10] * b[6],
-	        0,
-	        a[0] * b[8] + a[4] * b[9] + a[8] * b[10],
-	        a[1] * b[8] + a[5] * b[9] + a[9] * b[10],
-	        a[2] * b[8] + a[6] * b[9] + a[10] * b[10],
-	        0,
-	        a[0] * b[12] + a[4] * b[13] + a[8] * b[14] + a[12],
-	        a[1] * b[12] + a[5] * b[13] + a[9] * b[14] + a[13],
-	        a[2] * b[12] + a[6] * b[13] + a[10] * b[14] + a[14],
-	        1
-	    ];
-	};
-	Transform.thenMove = function thenMove(m, t) {
-	    if (!t[2])
-	        t[2] = 0;
-	    return [
-	        m[0],
-	        m[1],
-	        m[2],
-	        0,
-	        m[4],
-	        m[5],
-	        m[6],
-	        0,
-	        m[8],
-	        m[9],
-	        m[10],
-	        0,
-	        m[12] + t[0],
-	        m[13] + t[1],
-	        m[14] + t[2],
-	        1
-	    ];
-	};
-	Transform.moveThen = function moveThen(v, m) {
-	    if (!v[2])
-	        v[2] = 0;
-	    var t0 = v[0] * m[0] + v[1] * m[4] + v[2] * m[8];
-	    var t1 = v[0] * m[1] + v[1] * m[5] + v[2] * m[9];
-	    var t2 = v[0] * m[2] + v[1] * m[6] + v[2] * m[10];
-	    return Transform.thenMove(m, [
-	        t0,
-	        t1,
-	        t2
-	    ]);
-	};
-	Transform.translate = function translate(x, y, z) {
-	    if (z === undefined)
-	        z = 0;
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        x,
-	        y,
-	        z,
-	        1
-	    ];
-	};
-	Transform.thenScale = function thenScale(m, s) {
-	    return [
-	        s[0] * m[0],
-	        s[1] * m[1],
-	        s[2] * m[2],
-	        0,
-	        s[0] * m[4],
-	        s[1] * m[5],
-	        s[2] * m[6],
-	        0,
-	        s[0] * m[8],
-	        s[1] * m[9],
-	        s[2] * m[10],
-	        0,
-	        s[0] * m[12],
-	        s[1] * m[13],
-	        s[2] * m[14],
-	        1
-	    ];
-	};
-	Transform.scale = function scale(x, y, z) {
-	    if (z === undefined)
-	        z = 1;
-	    if (y === undefined)
-	        y = x;
-	    return [
-	        x,
-	        0,
-	        0,
-	        0,
-	        0,
-	        y,
-	        0,
-	        0,
-	        0,
-	        0,
-	        z,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotateX = function rotateX(theta) {
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        cosTheta,
-	        sinTheta,
-	        0,
-	        0,
-	        -sinTheta,
-	        cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotateY = function rotateY(theta) {
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    return [
-	        cosTheta,
-	        0,
-	        -sinTheta,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        sinTheta,
-	        0,
-	        cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotateZ = function rotateZ(theta) {
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    return [
-	        cosTheta,
-	        sinTheta,
-	        0,
-	        0,
-	        -sinTheta,
-	        cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.rotate = function rotate(phi, theta, psi) {
-	    var cosPhi = Math.cos(phi);
-	    var sinPhi = Math.sin(phi);
-	    var cosTheta = Math.cos(theta);
-	    var sinTheta = Math.sin(theta);
-	    var cosPsi = Math.cos(psi);
-	    var sinPsi = Math.sin(psi);
-	    var result = [
-	        cosTheta * cosPsi,
-	        cosPhi * sinPsi + sinPhi * sinTheta * cosPsi,
-	        sinPhi * sinPsi - cosPhi * sinTheta * cosPsi,
-	        0,
-	        -cosTheta * sinPsi,
-	        cosPhi * cosPsi - sinPhi * sinTheta * sinPsi,
-	        sinPhi * cosPsi + cosPhi * sinTheta * sinPsi,
-	        0,
-	        sinTheta,
-	        -sinPhi * cosTheta,
-	        cosPhi * cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    return result;
-	};
-	Transform.rotateAxis = function rotateAxis(v, theta) {
-	    var sinTheta = Math.sin(theta);
-	    var cosTheta = Math.cos(theta);
-	    var verTheta = 1 - cosTheta;
-	    var xxV = v[0] * v[0] * verTheta;
-	    var xyV = v[0] * v[1] * verTheta;
-	    var xzV = v[0] * v[2] * verTheta;
-	    var yyV = v[1] * v[1] * verTheta;
-	    var yzV = v[1] * v[2] * verTheta;
-	    var zzV = v[2] * v[2] * verTheta;
-	    var xs = v[0] * sinTheta;
-	    var ys = v[1] * sinTheta;
-	    var zs = v[2] * sinTheta;
-	    var result = [
-	        xxV + cosTheta,
-	        xyV + zs,
-	        xzV - ys,
-	        0,
-	        xyV - zs,
-	        yyV + cosTheta,
-	        yzV + xs,
-	        0,
-	        xzV + ys,
-	        yzV - xs,
-	        zzV + cosTheta,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    return result;
-	};
-	Transform.aboutOrigin = function aboutOrigin(v, m) {
-	    var t0 = v[0] - (v[0] * m[0] + v[1] * m[4] + v[2] * m[8]);
-	    var t1 = v[1] - (v[0] * m[1] + v[1] * m[5] + v[2] * m[9]);
-	    var t2 = v[2] - (v[0] * m[2] + v[1] * m[6] + v[2] * m[10]);
-	    return Transform.thenMove(m, [
-	        t0,
-	        t1,
-	        t2
-	    ]);
-	};
-	Transform.skew = function skew(phi, theta, psi) {
-	    return [
-	        1,
-	        Math.tan(theta),
-	        0,
-	        0,
-	        Math.tan(psi),
-	        1,
-	        0,
-	        0,
-	        0,
-	        Math.tan(phi),
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.skewX = function skewX(angle) {
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        Math.tan(angle),
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.skewY = function skewY(angle) {
-	    return [
-	        1,
-	        Math.tan(angle),
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.perspective = function perspective(focusZ) {
-	    return [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1,
-	        -1 / focusZ,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	};
-	Transform.getTranslate = function getTranslate(m) {
-	    return [
-	        m[12],
-	        m[13],
-	        m[14]
-	    ];
-	};
-	Transform.inverse = function inverse(m) {
-	    var c0 = m[5] * m[10] - m[6] * m[9];
-	    var c1 = m[4] * m[10] - m[6] * m[8];
-	    var c2 = m[4] * m[9] - m[5] * m[8];
-	    var c4 = m[1] * m[10] - m[2] * m[9];
-	    var c5 = m[0] * m[10] - m[2] * m[8];
-	    var c6 = m[0] * m[9] - m[1] * m[8];
-	    var c8 = m[1] * m[6] - m[2] * m[5];
-	    var c9 = m[0] * m[6] - m[2] * m[4];
-	    var c10 = m[0] * m[5] - m[1] * m[4];
-	    var detM = m[0] * c0 - m[1] * c1 + m[2] * c2;
-	    var invD = 1 / detM;
-	    var result = [
-	        invD * c0,
-	        -invD * c4,
-	        invD * c8,
-	        0,
-	        -invD * c1,
-	        invD * c5,
-	        -invD * c9,
-	        0,
-	        invD * c2,
-	        -invD * c6,
-	        invD * c10,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    result[12] = -m[12] * result[0] - m[13] * result[4] - m[14] * result[8];
-	    result[13] = -m[12] * result[1] - m[13] * result[5] - m[14] * result[9];
-	    result[14] = -m[12] * result[2] - m[13] * result[6] - m[14] * result[10];
-	    return result;
-	};
-	Transform.transpose = function transpose(m) {
-	    return [
-	        m[0],
-	        m[4],
-	        m[8],
-	        m[12],
-	        m[1],
-	        m[5],
-	        m[9],
-	        m[13],
-	        m[2],
-	        m[6],
-	        m[10],
-	        m[14],
-	        m[3],
-	        m[7],
-	        m[11],
-	        m[15]
-	    ];
-	};
-	function _normSquared(v) {
-	    return v.length === 2 ? v[0] * v[0] + v[1] * v[1] : v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	}
-	function _norm(v) {
-	    return Math.sqrt(_normSquared(v));
-	}
-	function _sign(n) {
-	    return n < 0 ? -1 : 1;
-	}
-	Transform.interpret = function interpret(M) {
-	    var x = [
-	        M[0],
-	        M[1],
-	        M[2]
-	    ];
-	    var sgn = _sign(x[0]);
-	    var xNorm = _norm(x);
-	    var v = [
-	        x[0] + sgn * xNorm,
-	        x[1],
-	        x[2]
-	    ];
-	    var mult = 2 / _normSquared(v);
-	    if (mult >= Infinity) {
-	        return {
-	            translate: Transform.getTranslate(M),
-	            rotate: [
-	                0,
-	                0,
-	                0
-	            ],
-	            scale: [
-	                0,
-	                0,
-	                0
-	            ],
-	            skew: [
-	                0,
-	                0,
-	                0
-	            ]
-	        };
-	    }
-	    var Q1 = [
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    Q1[0] = 1 - mult * v[0] * v[0];
-	    Q1[5] = 1 - mult * v[1] * v[1];
-	    Q1[10] = 1 - mult * v[2] * v[2];
-	    Q1[1] = -mult * v[0] * v[1];
-	    Q1[2] = -mult * v[0] * v[2];
-	    Q1[6] = -mult * v[1] * v[2];
-	    Q1[4] = Q1[1];
-	    Q1[8] = Q1[2];
-	    Q1[9] = Q1[6];
-	    var MQ1 = Transform.multiply(Q1, M);
-	    var x2 = [
-	        MQ1[5],
-	        MQ1[6]
-	    ];
-	    var sgn2 = _sign(x2[0]);
-	    var x2Norm = _norm(x2);
-	    var v2 = [
-	        x2[0] + sgn2 * x2Norm,
-	        x2[1]
-	    ];
-	    var mult2 = 2 / _normSquared(v2);
-	    var Q2 = [
-	        1,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        0,
-	        1
-	    ];
-	    Q2[5] = 1 - mult2 * v2[0] * v2[0];
-	    Q2[10] = 1 - mult2 * v2[1] * v2[1];
-	    Q2[6] = -mult2 * v2[0] * v2[1];
-	    Q2[9] = Q2[6];
-	    var Q = Transform.multiply(Q2, Q1);
-	    var R = Transform.multiply(Q, M);
-	    var remover = Transform.scale(R[0] < 0 ? -1 : 1, R[5] < 0 ? -1 : 1, R[10] < 0 ? -1 : 1);
-	    R = Transform.multiply(R, remover);
-	    Q = Transform.multiply(remover, Q);
-	    var result = {};
-	    result.translate = Transform.getTranslate(M);
-	    result.rotate = [
-	        Math.atan2(-Q[6], Q[10]),
-	        Math.asin(Q[2]),
-	        Math.atan2(-Q[1], Q[0])
-	    ];
-	    if (!result.rotate[0]) {
-	        result.rotate[0] = 0;
-	        result.rotate[2] = Math.atan2(Q[4], Q[5]);
-	    }
-	    result.scale = [
-	        R[0],
-	        R[5],
-	        R[10]
-	    ];
-	    result.skew = [
-	        Math.atan2(R[9], result.scale[2]),
-	        Math.atan2(R[8], result.scale[2]),
-	        Math.atan2(R[4], result.scale[0])
-	    ];
-	    if (Math.abs(result.rotate[0]) + Math.abs(result.rotate[2]) > 1.5 * Math.PI) {
-	        result.rotate[1] = Math.PI - result.rotate[1];
-	        if (result.rotate[1] > Math.PI)
-	            result.rotate[1] -= 2 * Math.PI;
-	        if (result.rotate[1] < -Math.PI)
-	            result.rotate[1] += 2 * Math.PI;
-	        if (result.rotate[0] < 0)
-	            result.rotate[0] += Math.PI;
-	        else
-	            result.rotate[0] -= Math.PI;
-	        if (result.rotate[2] < 0)
-	            result.rotate[2] += Math.PI;
-	        else
-	            result.rotate[2] -= Math.PI;
-	    }
-	    return result;
-	};
-	Transform.average = function average(M1, M2, t) {
-	    t = t === undefined ? 0.5 : t;
-	    var specM1 = Transform.interpret(M1);
-	    var specM2 = Transform.interpret(M2);
-	    var specAvg = {
-	        translate: [
-	            0,
-	            0,
-	            0
-	        ],
-	        rotate: [
-	            0,
-	            0,
-	            0
-	        ],
-	        scale: [
-	            0,
-	            0,
-	            0
-	        ],
-	        skew: [
-	            0,
-	            0,
-	            0
-	        ]
-	    };
-	    for (var i = 0; i < 3; i++) {
-	        specAvg.translate[i] = (1 - t) * specM1.translate[i] + t * specM2.translate[i];
-	        specAvg.rotate[i] = (1 - t) * specM1.rotate[i] + t * specM2.rotate[i];
-	        specAvg.scale[i] = (1 - t) * specM1.scale[i] + t * specM2.scale[i];
-	        specAvg.skew[i] = (1 - t) * specM1.skew[i] + t * specM2.skew[i];
-	    }
-	    return Transform.build(specAvg);
-	};
-	Transform.build = function build(spec) {
-	    var scaleMatrix = Transform.scale(spec.scale[0], spec.scale[1], spec.scale[2]);
-	    var skewMatrix = Transform.skew(spec.skew[0], spec.skew[1], spec.skew[2]);
-	    var rotateMatrix = Transform.rotate(spec.rotate[0], spec.rotate[1], spec.rotate[2]);
-	    return Transform.thenMove(Transform.multiply(Transform.multiply(rotateMatrix, skewMatrix), scaleMatrix), spec.translate);
-	};
-	Transform.equals = function equals(a, b) {
-	    return !Transform.notEquals(a, b);
-	};
-	Transform.notEquals = function notEquals(a, b) {
-	    if (a === b)
-	        return false;
-	    return !(a && b) || a[12] !== b[12] || a[13] !== b[13] || a[14] !== b[14] || a[0] !== b[0] || a[1] !== b[1] || a[2] !== b[2] || a[4] !== b[4] || a[5] !== b[5] || a[6] !== b[6] || a[8] !== b[8] || a[9] !== b[9] || a[10] !== b[10];
-	};
-	Transform.normalizeRotation = function normalizeRotation(rotation) {
-	    var result = rotation.slice(0);
-	    if (result[0] === Math.PI * 0.5 || result[0] === -Math.PI * 0.5) {
-	        result[0] = -result[0];
-	        result[1] = Math.PI - result[1];
-	        result[2] -= Math.PI;
-	    }
-	    if (result[0] > Math.PI * 0.5) {
-	        result[0] = result[0] - Math.PI;
-	        result[1] = Math.PI - result[1];
-	        result[2] -= Math.PI;
-	    }
-	    if (result[0] < -Math.PI * 0.5) {
-	        result[0] = result[0] + Math.PI;
-	        result[1] = -Math.PI - result[1];
-	        result[2] -= Math.PI;
-	    }
-	    while (result[1] < -Math.PI)
-	        result[1] += 2 * Math.PI;
-	    while (result[1] >= Math.PI)
-	        result[1] -= 2 * Math.PI;
-	    while (result[2] < -Math.PI)
-	        result[2] += 2 * Math.PI;
-	    while (result[2] >= Math.PI)
-	        result[2] -= 2 * Math.PI;
-	    return result;
-	};
-	Transform.inFront = [
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0.001,
-	    1
-	];
-	Transform.behind = [
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    0,
-	    1,
-	    0,
-	    0,
-	    0,
-	    -0.001,
-	    1
-	];
-	module.exports = Transform;
-
-/***/ },
-/* 27 */
-/*!****************************************!*\
-  !*** ../~/famous/core/EventHandler.js ***!
-  \****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var EventEmitter = __webpack_require__(/*! ./EventEmitter */ 28);
-	function EventHandler() {
-	    EventEmitter.apply(this, arguments);
-	    this.downstream = [];
-	    this.downstreamFn = [];
-	    this.upstream = [];
-	    this.upstreamListeners = {};
-	}
-	EventHandler.prototype = Object.create(EventEmitter.prototype);
-	EventHandler.prototype.constructor = EventHandler;
-	EventHandler.setInputHandler = function setInputHandler(object, handler) {
-	    object.trigger = handler.trigger.bind(handler);
-	    if (handler.subscribe && handler.unsubscribe) {
-	        object.subscribe = handler.subscribe.bind(handler);
-	        object.unsubscribe = handler.unsubscribe.bind(handler);
-	    }
-	};
-	EventHandler.setOutputHandler = function setOutputHandler(object, handler) {
-	    if (handler instanceof EventHandler)
-	        handler.bindThis(object);
-	    object.pipe = handler.pipe.bind(handler);
-	    object.unpipe = handler.unpipe.bind(handler);
-	    object.on = handler.on.bind(handler);
-	    object.addListener = object.on;
-	    object.removeListener = handler.removeListener.bind(handler);
-	};
-	EventHandler.prototype.emit = function emit(type, event) {
-	    EventEmitter.prototype.emit.apply(this, arguments);
-	    var i = 0;
-	    for (i = 0; i < this.downstream.length; i++) {
-	        if (this.downstream[i].trigger)
-	            this.downstream[i].trigger(type, event);
-	    }
-	    for (i = 0; i < this.downstreamFn.length; i++) {
-	        this.downstreamFn[i](type, event);
-	    }
-	    return this;
-	};
-	EventHandler.prototype.trigger = EventHandler.prototype.emit;
-	EventHandler.prototype.pipe = function pipe(target) {
-	    if (target.subscribe instanceof Function)
-	        return target.subscribe(this);
-	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
-	    var index = downstreamCtx.indexOf(target);
-	    if (index < 0)
-	        downstreamCtx.push(target);
-	    if (target instanceof Function)
-	        target('pipe', null);
-	    else if (target.trigger)
-	        target.trigger('pipe', null);
-	    return target;
-	};
-	EventHandler.prototype.unpipe = function unpipe(target) {
-	    if (target.unsubscribe instanceof Function)
-	        return target.unsubscribe(this);
-	    var downstreamCtx = target instanceof Function ? this.downstreamFn : this.downstream;
-	    var index = downstreamCtx.indexOf(target);
-	    if (index >= 0) {
-	        downstreamCtx.splice(index, 1);
-	        if (target instanceof Function)
-	            target('unpipe', null);
-	        else if (target.trigger)
-	            target.trigger('unpipe', null);
-	        return target;
-	    } else
-	        return false;
-	};
-	EventHandler.prototype.on = function on(type, handler) {
-	    EventEmitter.prototype.on.apply(this, arguments);
-	    if (!(type in this.upstreamListeners)) {
-	        var upstreamListener = this.trigger.bind(this, type);
-	        this.upstreamListeners[type] = upstreamListener;
-	        for (var i = 0; i < this.upstream.length; i++) {
-	            this.upstream[i].on(type, upstreamListener);
-	        }
-	    }
-	    return this;
-	};
-	EventHandler.prototype.addListener = EventHandler.prototype.on;
-	EventHandler.prototype.subscribe = function subscribe(source) {
-	    var index = this.upstream.indexOf(source);
-	    if (index < 0) {
-	        this.upstream.push(source);
-	        for (var type in this.upstreamListeners) {
-	            source.on(type, this.upstreamListeners[type]);
-	        }
-	    }
-	    return this;
-	};
-	EventHandler.prototype.unsubscribe = function unsubscribe(source) {
-	    var index = this.upstream.indexOf(source);
-	    if (index >= 0) {
-	        this.upstream.splice(index, 1);
-	        for (var type in this.upstreamListeners) {
-	            source.removeListener(type, this.upstreamListeners[type]);
-	        }
-	    }
-	    return this;
-	};
-	module.exports = EventHandler;
-
-/***/ },
-/* 28 */
-/*!****************************************!*\
-  !*** ../~/famous/core/EventEmitter.js ***!
-  \****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	function EventEmitter() {
-	    this.listeners = {};
-	    this._owner = this;
-	}
-	EventEmitter.prototype.emit = function emit(type, event) {
-	    var handlers = this.listeners[type];
-	    if (handlers) {
-	        for (var i = 0; i < handlers.length; i++) {
-	            handlers[i].call(this._owner, event);
-	        }
-	    }
-	    return this;
-	};
-	EventEmitter.prototype.on = function on(type, handler) {
-	    if (!(type in this.listeners))
-	        this.listeners[type] = [];
-	    var index = this.listeners[type].indexOf(handler);
-	    if (index < 0)
-	        this.listeners[type].push(handler);
-	    return this;
-	};
-	EventEmitter.prototype.addListener = EventEmitter.prototype.on;
-	EventEmitter.prototype.removeListener = function removeListener(type, handler) {
-	    var listener = this.listeners[type];
-	    if (listener !== undefined) {
-	        var index = listener.indexOf(handler);
-	        if (index >= 0)
-	            listener.splice(index, 1);
-	    }
-	    return this;
-	};
-	EventEmitter.prototype.bindThis = function bindThis(owner) {
-	    this._owner = owner;
-	};
-	module.exports = EventEmitter;
-
-/***/ },
-/* 29 */
-/*!********************************************!*\
-  !*** ../~/famous/core/ElementAllocator.js ***!
-  \********************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	function ElementAllocator(container) {
-	    if (!container)
-	        container = document.createDocumentFragment();
-	    this.container = container;
-	    this.detachedNodes = {};
-	    this.nodeCount = 0;
-	}
-	ElementAllocator.prototype.migrate = function migrate(container) {
-	    var oldContainer = this.container;
-	    if (container === oldContainer)
-	        return;
-	    if (oldContainer instanceof DocumentFragment) {
-	        container.appendChild(oldContainer);
-	    } else {
-	        while (oldContainer.hasChildNodes()) {
-	            container.appendChild(oldContainer.firstChild);
-	        }
-	    }
-	    this.container = container;
-	};
-	ElementAllocator.prototype.allocate = function allocate(type) {
-	    type = type.toLowerCase();
-	    if (!(type in this.detachedNodes))
-	        this.detachedNodes[type] = [];
-	    var nodeStore = this.detachedNodes[type];
-	    var result;
-	    if (nodeStore.length > 0) {
-	        result = nodeStore.pop();
-	    } else {
-	        result = document.createElement(type);
-	        this.container.appendChild(result);
-	    }
-	    this.nodeCount++;
-	    return result;
-	};
-	ElementAllocator.prototype.deallocate = function deallocate(element) {
-	    var nodeType = element.nodeName.toLowerCase();
-	    var nodeStore = this.detachedNodes[nodeType];
-	    nodeStore.push(element);
-	    this.nodeCount--;
-	};
-	ElementAllocator.prototype.getNodeCount = function getNodeCount() {
-	    return this.nodeCount;
-	};
-	module.exports = ElementAllocator;
-
-/***/ },
-/* 30 */
-/*!*************************************************!*\
-  !*** ../~/famous/transitions/Transitionable.js ***!
-  \*************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var MultipleTransition = __webpack_require__(/*! ./MultipleTransition */ 31);
-	var TweenTransition = __webpack_require__(/*! ./TweenTransition */ 33);
-	function Transitionable(start) {
-	    this.currentAction = null;
-	    this.actionQueue = [];
-	    this.callbackQueue = [];
-	    this.state = 0;
-	    this.velocity = undefined;
-	    this._callback = undefined;
-	    this._engineInstance = null;
-	    this._currentMethod = null;
-	    this.set(start);
-	}
-	var transitionMethods = {};
-	Transitionable.register = function register(methods) {
-	    var success = true;
-	    for (var method in methods) {
-	        if (!Transitionable.registerMethod(method, methods[method]))
-	            success = false;
-	    }
-	    return success;
-	};
-	Transitionable.registerMethod = function registerMethod(name, engineClass) {
-	    if (!(name in transitionMethods)) {
-	        transitionMethods[name] = engineClass;
-	        return true;
-	    } else
-	        return false;
-	};
-	Transitionable.unregisterMethod = function unregisterMethod(name) {
-	    if (name in transitionMethods) {
-	        delete transitionMethods[name];
-	        return true;
-	    } else
-	        return false;
-	};
-	function _loadNext() {
-	    if (this._callback) {
-	        var callback = this._callback;
-	        this._callback = undefined;
-	        callback();
-	    }
-	    if (this.actionQueue.length <= 0) {
-	        this.set(this.get());
-	        return;
-	    }
-	    this.currentAction = this.actionQueue.shift();
-	    this._callback = this.callbackQueue.shift();
-	    var method = null;
-	    var endValue = this.currentAction[0];
-	    var transition = this.currentAction[1];
-	    if (transition instanceof Object && transition.method) {
-	        method = transition.method;
-	        if (typeof method === 'string')
-	            method = transitionMethods[method];
-	    } else {
-	        method = TweenTransition;
-	    }
-	    if (this._currentMethod !== method) {
-	        if (!(endValue instanceof Object) || method.SUPPORTS_MULTIPLE === true || endValue.length <= method.SUPPORTS_MULTIPLE) {
-	            this._engineInstance = new method();
-	        } else {
-	            this._engineInstance = new MultipleTransition(method);
-	        }
-	        this._currentMethod = method;
-	    }
-	    this._engineInstance.reset(this.state, this.velocity);
-	    if (this.velocity !== undefined)
-	        transition.velocity = this.velocity;
-	    this._engineInstance.set(endValue, transition, _loadNext.bind(this));
-	}
-	Transitionable.prototype.set = function set(endState, transition, callback) {
-	    if (!transition) {
-	        this.reset(endState);
-	        if (callback)
-	            callback();
-	        return this;
-	    }
-	    var action = [
-	        endState,
-	        transition
-	    ];
-	    this.actionQueue.push(action);
-	    this.callbackQueue.push(callback);
-	    if (!this.currentAction)
-	        _loadNext.call(this);
-	    return this;
-	};
-	Transitionable.prototype.reset = function reset(startState, startVelocity) {
-	    this._currentMethod = null;
-	    this._engineInstance = null;
-	    this._callback = undefined;
-	    this.state = startState;
-	    this.velocity = startVelocity;
-	    this.currentAction = null;
-	    this.actionQueue = [];
-	    this.callbackQueue = [];
-	};
-	Transitionable.prototype.delay = function delay(duration, callback) {
-	    var endValue;
-	    if (this.actionQueue.length)
-	        endValue = this.actionQueue[this.actionQueue.length - 1][0];
-	    else if (this.currentAction)
-	        endValue = this.currentAction[0];
-	    else
-	        endValue = this.get();
-	    return this.set(endValue, {
-	        duration: duration,
-	        curve: function () {
-	            return 0;
-	        }
-	    }, callback);
-	};
-	Transitionable.prototype.get = function get(timestamp) {
-	    if (this._engineInstance) {
-	        if (this._engineInstance.getVelocity)
-	            this.velocity = this._engineInstance.getVelocity();
-	        this.state = this._engineInstance.get(timestamp);
-	    }
-	    return this.state;
-	};
-	Transitionable.prototype.isActive = function isActive() {
-	    return !!this.currentAction;
-	};
-	Transitionable.prototype.halt = function halt() {
-	    return this.set(this.get());
-	};
-	module.exports = Transitionable;
-
-/***/ },
-/* 31 */
-/*!*****************************************************!*\
-  !*** ../~/famous/transitions/MultipleTransition.js ***!
-  \*****************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 32);
-	function MultipleTransition(method) {
-	    this.method = method;
-	    this._instances = [];
-	    this.state = [];
-	}
-	MultipleTransition.SUPPORTS_MULTIPLE = true;
-	MultipleTransition.prototype.get = function get() {
-	    for (var i = 0; i < this._instances.length; i++) {
-	        this.state[i] = this._instances[i].get();
-	    }
-	    return this.state;
-	};
-	MultipleTransition.prototype.set = function set(endState, transition, callback) {
-	    var _allCallback = Utility.after(endState.length, callback);
-	    for (var i = 0; i < endState.length; i++) {
-	        if (!this._instances[i])
-	            this._instances[i] = new this.method();
-	        this._instances[i].set(endState[i], transition, _allCallback);
-	    }
-	};
-	MultipleTransition.prototype.reset = function reset(startState) {
-	    for (var i = 0; i < startState.length; i++) {
-	        if (!this._instances[i])
-	            this._instances[i] = new this.method();
-	        this._instances[i].reset(startState[i]);
-	    }
-	};
-	module.exports = MultipleTransition;
-
-/***/ },
-/* 32 */
-/*!****************************************!*\
-  !*** ../~/famous/utilities/Utility.js ***!
-  \****************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var Utility = {};
-	Utility.Direction = {
-	    X: 0,
-	    Y: 1,
-	    Z: 2
-	};
-	Utility.after = function after(count, callback) {
-	    var counter = count;
-	    return function () {
-	        counter--;
-	        if (counter === 0)
-	            callback.apply(this, arguments);
-	    };
-	};
-	Utility.loadURL = function loadURL(url, callback) {
-	    var xhr = new XMLHttpRequest();
-	    xhr.onreadystatechange = function onreadystatechange() {
-	        if (this.readyState === 4) {
-	            if (callback)
-	                callback(this.responseText);
-	        }
-	    };
-	    xhr.open('GET', url);
-	    xhr.send();
-	};
-	Utility.createDocumentFragmentFromHTML = function createDocumentFragmentFromHTML(html) {
-	    var element = document.createElement('div');
-	    element.innerHTML = html;
-	    var result = document.createDocumentFragment();
-	    while (element.hasChildNodes())
-	        result.appendChild(element.firstChild);
-	    return result;
-	};
-	Utility.clone = function clone(b) {
-	    var a;
-	    if (typeof b === 'object') {
-	        a = b instanceof Array ? [] : {};
-	        for (var key in b) {
-	            if (typeof b[key] === 'object' && b[key] !== null) {
-	                if (b[key] instanceof Array) {
-	                    a[key] = new Array(b[key].length);
-	                    for (var i = 0; i < b[key].length; i++) {
-	                        a[key][i] = Utility.clone(b[key][i]);
-	                    }
-	                } else {
-	                    a[key] = Utility.clone(b[key]);
-	                }
-	            } else {
-	                a[key] = b[key];
-	            }
-	        }
-	    } else {
-	        a = b;
-	    }
-	    return a;
-	};
-	module.exports = Utility;
-
-/***/ },
-/* 33 */
-/*!**************************************************!*\
-  !*** ../~/famous/transitions/TweenTransition.js ***!
-  \**************************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	function TweenTransition(options) {
-	    this.options = Object.create(TweenTransition.DEFAULT_OPTIONS);
-	    if (options)
-	        this.setOptions(options);
-	    this._startTime = 0;
-	    this._startValue = 0;
-	    this._updateTime = 0;
-	    this._endValue = 0;
-	    this._curve = undefined;
-	    this._duration = 0;
-	    this._active = false;
-	    this._callback = undefined;
-	    this.state = 0;
-	    this.velocity = undefined;
-	}
-	TweenTransition.Curves = {
-	    linear: function (t) {
-	        return t;
-	    },
-	    easeIn: function (t) {
-	        return t * t;
-	    },
-	    easeOut: function (t) {
-	        return t * (2 - t);
-	    },
-	    easeInOut: function (t) {
-	        if (t <= 0.5)
-	            return 2 * t * t;
-	        else
-	            return -2 * t * t + 4 * t - 1;
-	    },
-	    easeOutBounce: function (t) {
-	        return t * (3 - 2 * t);
-	    },
-	    spring: function (t) {
-	        return (1 - t) * Math.sin(6 * Math.PI * t) + t;
-	    }
-	};
-	TweenTransition.SUPPORTS_MULTIPLE = true;
-	TweenTransition.DEFAULT_OPTIONS = {
-	    curve: TweenTransition.Curves.linear,
-	    duration: 500,
-	    speed: 0
-	};
-	var registeredCurves = {};
-	TweenTransition.registerCurve = function registerCurve(curveName, curve) {
-	    if (!registeredCurves[curveName]) {
-	        registeredCurves[curveName] = curve;
-	        return true;
-	    } else {
-	        return false;
-	    }
-	};
-	TweenTransition.unregisterCurve = function unregisterCurve(curveName) {
-	    if (registeredCurves[curveName]) {
-	        delete registeredCurves[curveName];
-	        return true;
-	    } else {
-	        return false;
-	    }
-	};
-	TweenTransition.getCurve = function getCurve(curveName) {
-	    var curve = registeredCurves[curveName];
-	    if (curve !== undefined)
-	        return curve;
-	    else
-	        throw new Error('curve not registered');
-	};
-	TweenTransition.getCurves = function getCurves() {
-	    return registeredCurves;
-	};
-	function _interpolate(a, b, t) {
-	    return (1 - t) * a + t * b;
-	}
-	function _clone(obj) {
-	    if (obj instanceof Object) {
-	        if (obj instanceof Array)
-	            return obj.slice(0);
-	        else
-	            return Object.create(obj);
-	    } else
-	        return obj;
-	}
-	function _normalize(transition, defaultTransition) {
-	    var result = { curve: defaultTransition.curve };
-	    if (defaultTransition.duration)
-	        result.duration = defaultTransition.duration;
-	    if (defaultTransition.speed)
-	        result.speed = defaultTransition.speed;
-	    if (transition instanceof Object) {
-	        if (transition.duration !== undefined)
-	            result.duration = transition.duration;
-	        if (transition.curve)
-	            result.curve = transition.curve;
-	        if (transition.speed)
-	            result.speed = transition.speed;
-	    }
-	    if (typeof result.curve === 'string')
-	        result.curve = TweenTransition.getCurve(result.curve);
-	    return result;
-	}
-	TweenTransition.prototype.setOptions = function setOptions(options) {
-	    if (options.curve !== undefined)
-	        this.options.curve = options.curve;
-	    if (options.duration !== undefined)
-	        this.options.duration = options.duration;
-	    if (options.speed !== undefined)
-	        this.options.speed = options.speed;
-	};
-	TweenTransition.prototype.set = function set(endValue, transition, callback) {
-	    if (!transition) {
-	        this.reset(endValue);
-	        if (callback)
-	            callback();
-	        return;
-	    }
-	    this._startValue = _clone(this.get());
-	    transition = _normalize(transition, this.options);
-	    if (transition.speed) {
-	        var startValue = this._startValue;
-	        if (startValue instanceof Object) {
-	            var variance = 0;
-	            for (var i in startValue)
-	                variance += (endValue[i] - startValue[i]) * (endValue[i] - startValue[i]);
-	            transition.duration = Math.sqrt(variance) / transition.speed;
-	        } else {
-	            transition.duration = Math.abs(endValue - startValue) / transition.speed;
-	        }
-	    }
-	    this._startTime = Date.now();
-	    this._endValue = _clone(endValue);
-	    this._startVelocity = _clone(transition.velocity);
-	    this._duration = transition.duration;
-	    this._curve = transition.curve;
-	    this._active = true;
-	    this._callback = callback;
-	};
-	TweenTransition.prototype.reset = function reset(startValue, startVelocity) {
-	    if (this._callback) {
-	        var callback = this._callback;
-	        this._callback = undefined;
-	        callback();
-	    }
-	    this.state = _clone(startValue);
-	    this.velocity = _clone(startVelocity);
-	    this._startTime = 0;
-	    this._duration = 0;
-	    this._updateTime = 0;
-	    this._startValue = this.state;
-	    this._startVelocity = this.velocity;
-	    this._endValue = this.state;
-	    this._active = false;
-	};
-	TweenTransition.prototype.getVelocity = function getVelocity() {
-	    return this.velocity;
-	};
-	TweenTransition.prototype.get = function get(timestamp) {
-	    this.update(timestamp);
-	    return this.state;
-	};
-	function _calculateVelocity(current, start, curve, duration, t) {
-	    var velocity;
-	    var eps = 1e-7;
-	    var speed = (curve(t) - curve(t - eps)) / eps;
-	    if (current instanceof Array) {
-	        velocity = [];
-	        for (var i = 0; i < current.length; i++) {
-	            if (typeof current[i] === 'number')
-	                velocity[i] = speed * (current[i] - start[i]) / duration;
-	            else
-	                velocity[i] = 0;
-	        }
-	    } else
-	        velocity = speed * (current - start) / duration;
-	    return velocity;
-	}
-	function _calculateState(start, end, t) {
-	    var state;
-	    if (start instanceof Array) {
-	        state = [];
-	        for (var i = 0; i < start.length; i++) {
-	            if (typeof start[i] === 'number')
-	                state[i] = _interpolate(start[i], end[i], t);
-	            else
-	                state[i] = start[i];
-	        }
-	    } else
-	        state = _interpolate(start, end, t);
-	    return state;
-	}
-	TweenTransition.prototype.update = function update(timestamp) {
-	    if (!this._active) {
-	        if (this._callback) {
-	            var callback = this._callback;
-	            this._callback = undefined;
-	            callback();
-	        }
-	        return;
-	    }
-	    if (!timestamp)
-	        timestamp = Date.now();
-	    if (this._updateTime >= timestamp)
-	        return;
-	    this._updateTime = timestamp;
-	    var timeSinceStart = timestamp - this._startTime;
-	    if (timeSinceStart >= this._duration) {
-	        this.state = this._endValue;
-	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, 1);
-	        this._active = false;
-	    } else if (timeSinceStart < 0) {
-	        this.state = this._startValue;
-	        this.velocity = this._startVelocity;
-	    } else {
-	        var t = timeSinceStart / this._duration;
-	        this.state = _calculateState(this._startValue, this._endValue, this._curve(t));
-	        this.velocity = _calculateVelocity(this.state, this._startValue, this._curve, this._duration, t);
-	    }
-	};
-	TweenTransition.prototype.isActive = function isActive() {
-	    return this._active;
-	};
-	TweenTransition.prototype.halt = function halt() {
-	    this.reset(this.get());
-	};
-	TweenTransition.registerCurve('linear', TweenTransition.Curves.linear);
-	TweenTransition.registerCurve('easeIn', TweenTransition.Curves.easeIn);
-	TweenTransition.registerCurve('easeOut', TweenTransition.Curves.easeOut);
-	TweenTransition.registerCurve('easeInOut', TweenTransition.Curves.easeInOut);
-	TweenTransition.registerCurve('easeOutBounce', TweenTransition.Curves.easeOutBounce);
-	TweenTransition.registerCurve('spring', TweenTransition.Curves.spring);
-	TweenTransition.customCurve = function customCurve(v1, v2) {
-	    v1 = v1 || 0;
-	    v2 = v2 || 0;
-	    return function (t) {
-	        return v1 * t + (-2 * v1 - v2 + 3) * t * t + (v1 + v2 - 2) * t * t * t;
-	    };
-	};
-	module.exports = TweenTransition;
-
-/***/ },
-/* 34 */
-/*!******************************************!*\
-  !*** ../~/famous/core/OptionsManager.js ***!
-  \******************************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	/* This Source Code Form is subject to the terms of the Mozilla Public
-	 * License, v. 2.0. If a copy of the MPL was not distributed with this
-	 * file, You can obtain one at http://mozilla.org/MPL/2.0/.
-	 *
-	 * @license MPL 2.0
-	 * @copyright Famous Industries, Inc. 2015
-	 */
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 27);
-	function OptionsManager(value) {
-	    this._value = value;
-	    this.eventOutput = null;
-	}
-	OptionsManager.patch = function patchObject(source, data) {
-	    var manager = new OptionsManager(source);
-	    for (var i = 1; i < arguments.length; i++)
-	        manager.patch(arguments[i]);
-	    return source;
-	};
-	function _createEventOutput() {
-	    this.eventOutput = new EventHandler();
-	    this.eventOutput.bindThis(this);
-	    EventHandler.setOutputHandler(this, this.eventOutput);
-	}
-	OptionsManager.prototype.patch = function patch() {
-	    var myState = this._value;
-	    for (var i = 0; i < arguments.length; i++) {
-	        var data = arguments[i];
-	        for (var k in data) {
-	            if (k in myState && (data[k] && data[k].constructor === Object) && (myState[k] && myState[k].constructor === Object)) {
-	                if (!myState.hasOwnProperty(k))
-	                    myState[k] = Object.create(myState[k]);
-	                this.key(k).patch(data[k]);
-	                if (this.eventOutput)
-	                    this.eventOutput.emit('change', {
-	                        id: k,
-	                        value: this.key(k).value()
-	                    });
-	            } else
-	                this.set(k, data[k]);
-	        }
-	    }
-	    return this;
-	};
-	OptionsManager.prototype.setOptions = OptionsManager.prototype.patch;
-	OptionsManager.prototype.key = function key(identifier) {
-	    var result = new OptionsManager(this._value[identifier]);
-	    if (!(result._value instanceof Object) || result._value instanceof Array)
-	        result._value = {};
-	    return result;
-	};
-	OptionsManager.prototype.get = function get(key) {
-	    return key ? this._value[key] : this._value;
-	};
-	OptionsManager.prototype.getOptions = OptionsManager.prototype.get;
-	OptionsManager.prototype.set = function set(key, value) {
-	    var originalValue = this.get(key);
-	    this._value[key] = value;
-	    if (this.eventOutput && value !== originalValue)
-	        this.eventOutput.emit('change', {
-	            id: key,
-	            value: value
-	        });
-	    return this;
-	};
-	OptionsManager.prototype.on = function on() {
-	    _createEventOutput.call(this);
-	    return this.on.apply(this, arguments);
-	};
-	OptionsManager.prototype.removeListener = function removeListener() {
-	    _createEventOutput.call(this);
-	    return this.removeListener.apply(this, arguments);
-	};
-	OptionsManager.prototype.pipe = function pipe() {
-	    _createEventOutput.call(this);
-	    return this.pipe.apply(this, arguments);
-	};
-	OptionsManager.prototype.unpipe = function unpipe() {
-	    _createEventOutput.call(this);
-	    return this.unpipe.apply(this, arguments);
-	};
-	module.exports = OptionsManager;
-
-/***/ },
 /* 35 */
 /*!************************************************!*\
   !*** ../~/famous-flex/src/LayoutController.js ***!
@@ -3622,16 +3595,16 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 32);
-	    var Entity = __webpack_require__(/*! famous/core/Entity */ 24);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 12);
+	    var Entity = __webpack_require__(/*! famous/core/Entity */ 4);
 	    var ViewSequence = __webpack_require__(/*! famous/core/ViewSequence */ 36);
-	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 34);
-	    var EventHandler = __webpack_require__(/*! famous/core/EventHandler */ 27);
+	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 14);
+	    var EventHandler = __webpack_require__(/*! famous/core/EventHandler */ 7);
 	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 37);
 	    var LayoutNodeManager = __webpack_require__(/*! ./LayoutNodeManager */ 38);
 	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 40);
 	    var FlowLayoutNode = __webpack_require__(/*! ./FlowLayoutNode */ 41);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 26);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 6);
 	    __webpack_require__(/*! ./helpers/LayoutDockHelper */ 48);
 	
 	    /**
@@ -4998,7 +4971,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 32);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 12);
 	
 	    /**
 	     * @class
@@ -6331,7 +6304,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 26);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 6);
 	    var LayoutUtility = __webpack_require__(/*! ./LayoutUtility */ 37);
 	
 	    /**
@@ -6540,14 +6513,14 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 34);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 26);
+	    var OptionsManager = __webpack_require__(/*! famous/core/OptionsManager */ 14);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 6);
 	    var Vector = __webpack_require__(/*! famous/math/Vector */ 44);
 	    var Particle = __webpack_require__(/*! famous/physics/bodies/Particle */ 45);
 	    var Spring = __webpack_require__(/*! famous/physics/forces/Spring */ 42);
 	    var PhysicsEngine = __webpack_require__(/*! famous/physics/PhysicsEngine */ 47);
 	    var LayoutNode = __webpack_require__(/*! ./LayoutNode */ 40);
-	    var Transitionable = __webpack_require__(/*! famous/transitions/Transitionable */ 30);
+	    var Transitionable = __webpack_require__(/*! famous/transitions/Transitionable */ 10);
 	
 	    /**
 	     * @class
@@ -7236,7 +7209,7 @@
 	 * @copyright Famous Industries, Inc. 2015
 	 */
 	var Vector = __webpack_require__(/*! ../../math/Vector */ 44);
-	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 27);
+	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 7);
 	function Force(force) {
 	    this.force = new Vector(force);
 	    this._eventOutput = new EventHandler();
@@ -7433,8 +7406,8 @@
 	 * @copyright Famous Industries, Inc. 2015
 	 */
 	var Vector = __webpack_require__(/*! ../../math/Vector */ 44);
-	var Transform = __webpack_require__(/*! ../../core/Transform */ 26);
-	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 27);
+	var Transform = __webpack_require__(/*! ../../core/Transform */ 6);
+	var EventHandler = __webpack_require__(/*! ../../core/EventHandler */ 7);
 	var Integrator = __webpack_require__(/*! ../integrators/SymplecticEuler */ 46);
 	function Particle(options) {
 	    options = options || {};
@@ -7689,7 +7662,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var EventHandler = __webpack_require__(/*! ../core/EventHandler */ 27);
+	var EventHandler = __webpack_require__(/*! ../core/EventHandler */ 7);
 	function PhysicsEngine(options) {
 	    this.options = Object.create(PhysicsEngine.DEFAULT_OPTIONS);
 	    if (options)
@@ -8249,17 +8222,15 @@
 	*
 	* @library autolayout.js
 	* @version 0.3.0
-	* @generated 23-07-2015
+	* @generated 25-07-2015
 	*/
-	/*-----------------------------------------------------------------------------
-	| Kiwi (TypeScript version)
-	|
-	| Copyright (c) 2015, Nucleic Development Team.
-	|
-	| Distributed under the terms of the Modified BSD License.
-	|
-	| The full license is in the file COPYING.txt, distributed with this software.
-	|----------------------------------------------------------------------------*/
+	/**
+	* Parts Copyright (C) 2011-2012, Alex Russell (slightlyoff@chromium.org)
+	* Parts Copyright (C) Copyright (C) 1998-2000 Greg J. Badros
+	*
+	* Use of this source code is governed by the LGPL, which can be found in the
+	* COPYING.LGPL file.
+	*/
 	
 	(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.AutoLayout = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 	/**
@@ -11723,6 +11694,8 @@
 	  }
 	}
 	
+	var metaInfoCategories = ['viewport', 'colors', 'shapes', 'widths', 'heights'];
+	
 	/**
 	 * VisualFormat
 	 *
@@ -11842,6 +11815,114 @@
 	      }
 	      return constraints;
 	    }
+	  }, {
+	    key: 'parseMetaInfo',
+	
+	    /**
+	     * Parses meta information from the comments in the VFL.
+	     *
+	     * Additional meta information can be specified in the comments
+	     * for previewing and rendering purposes. For instance, the view-port
+	     * aspect-ratio, sub-view widths and colors, can be specified. The
+	     * following example renders three colored circles in the visual-format editor:
+	     *
+	     * ```vfl
+	     * //viewport aspect-ratio:3/1 max-height:300
+	     * //colors red:#FF0000 green:#00FF00 blue:#0000FF
+	     * //shapes red:circle green:circle blue:circle
+	     * H:|-[row:[red(green,blue)]-[green]-[blue]]-|
+	     * V:|[row]|
+	     * ```
+	     *
+	     * Supported categories and properties:
+	     *
+	     * |Category|Property|
+	     * |--------|--------|
+	     * |`viewport`|`aspect-ratio:{width}/{height}`|
+	     * ||`width:[{number}/intrinsic]`|
+	     * ||`height:[{number}/intrinsic]`|
+	     * ||`min-width:{number}`|
+	     * ||`max-width:{number}`|
+	     * ||`min-height:{number}`|
+	     * ||`max-height:{number}`|
+	     * |`widths`|`{view-name}:[{number}/intrinsic]`|
+	     * |`heights`|`{view-name}:[{number}/intrinsic]`|
+	     * |`colors`|`{view-name}:{color}`|
+	     * |`shapes`|`{view-name}:[circle/square]`|
+	     *
+	     * @param {String|Array} visualFormat One or more visual format strings.
+	     * @param {Object} [options] Configuration options.
+	     * @param {String} [options.lineSeperator] String that defines the end of a line (default `\n`).
+	     * @return {Object} meta-info
+	     */
+	    value: function parseMetaInfo(visualFormat, options) {
+	      var lineSeperator = options && options.lineSeperator ? options.lineSeperator : '\n';
+	      visualFormat = Array.isArray(visualFormat) ? visualFormat : [visualFormat];
+	      var metaInfo = {};
+	      var key;
+	      for (var k = 0; k < visualFormat.length; k++) {
+	        var lines = visualFormat[k].split(lineSeperator);
+	        for (var i = 0; i < lines.length; i++) {
+	          var line = lines[i];
+	          for (var c = 0; c < metaInfoCategories.length; c++) {
+	            var category = metaInfoCategories[c];
+	            if (line.indexOf('//' + category + ' ') === 0) {
+	              var items = line.substring(3 + category.length).split(' ');
+	              for (var j = 0; j < items.length; j++) {
+	                var item = items[j].split(':');
+	                metaInfo[category] = metaInfo[category] || {};
+	                metaInfo[category][item[0]] = item.length > 1 ? item[1] : '';
+	              }
+	            }
+	          }
+	        }
+	      }
+	      if (metaInfo.viewport) {
+	        var viewport = metaInfo.viewport;
+	        var aspectRatio = viewport['aspect-ratio'];
+	        if (aspectRatio) {
+	          aspectRatio = aspectRatio.split('/');
+	          viewport['aspect-ratio'] = parseInt(aspectRatio[0]) / parseInt(aspectRatio[1]);
+	        }
+	        if (viewport.height !== undefined) {
+	          viewport.height = viewport.height === 'intrinsic' ? true : parseInt(viewport.height);
+	        }
+	        if (viewport.width !== undefined) {
+	          viewport.width = viewport.width === 'intrinsic' ? true : parseInt(viewport.width);
+	        }
+	        if (viewport['max-height'] !== undefined) {
+	          viewport['max-height'] = parseInt(viewport['max-height']);
+	        }
+	        if (viewport['max-width'] !== undefined) {
+	          viewport['max-width'] = parseInt(viewport['max-width']);
+	        }
+	        if (viewport['min-height'] !== undefined) {
+	          viewport['min-height'] = parseInt(viewport['min-height']);
+	        }
+	        if (viewport['min-width'] !== undefined) {
+	          viewport['min-width'] = parseInt(viewport['min-width']);
+	        }
+	      }
+	      if (metaInfo.widths) {
+	        for (key in metaInfo.widths) {
+	          var width = metaInfo.widths[key] === 'intrinsic' ? true : parseInt(metaInfo.widths[key]);
+	          metaInfo.widths[key] = width;
+	          if (width === undefined || isNaN(width)) {
+	            delete metaInfo.widths[key];
+	          }
+	        }
+	      }
+	      if (metaInfo.heights) {
+	        for (key in metaInfo.heights) {
+	          var height = metaInfo.heights[key] === 'intrinsic' ? true : parseInt(metaInfo.heights[key]);
+	          metaInfo.heights[key] = height;
+	          if (height === undefined || isNaN(height)) {
+	            delete metaInfo.heights[key];
+	          }
+	        }
+	      }
+	      return metaInfo;
+	    }
 	  }]);
 	
 	  return VisualFormat;
@@ -11910,7 +11991,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.LEFT).value;
+	      return this._getAttrValue(Attribute.LEFT);
 	    }
 	  }, {
 	    key: 'right',
@@ -11921,7 +12002,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.RIGHT).value;
+	      return this._getAttrValue(Attribute.RIGHT);
 	    }
 	  }, {
 	    key: 'width',
@@ -11931,7 +12012,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.WIDTH).value;
+	      return this._getAttrValue(Attribute.WIDTH);
 	    }
 	  }, {
 	    key: 'height',
@@ -11942,7 +12023,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.HEIGHT).value;
+	      return this._getAttrValue(Attribute.HEIGHT);
 	    }
 	  }, {
 	    key: 'intrinsicWidth',
@@ -12024,7 +12105,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.TOP).value;
+	      return this._getAttrValue(Attribute.TOP);
 	    }
 	  }, {
 	    key: 'bottom',
@@ -12035,7 +12116,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.BOTTOM).value;
+	      return this._getAttrValue(Attribute.BOTTOM);
 	    }
 	  }, {
 	    key: 'centerX',
@@ -12046,7 +12127,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.CENTERX).value;
+	      return this._getAttrValue(Attribute.CENTERX);
 	    }
 	  }, {
 	    key: 'centerY',
@@ -12057,7 +12138,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.CENTERY).value;
+	      return this._getAttrValue(Attribute.CENTERY);
 	    }
 	  }, {
 	    key: 'zIndex',
@@ -12068,7 +12149,7 @@
 	     * @type {Number}
 	     */
 	    get: function () {
-	      return this._getAttr(Attribute.ZINDEX).value;
+	      return this._getAttrValue(Attribute.ZINDEX);
 	    }
 	  }, {
 	    key: 'type',
@@ -12091,7 +12172,7 @@
 	     * @return {Number} value or `undefined`
 	     */
 	    value: function getValue(attr) {
-	      return this._attr[attr] ? this._attr[attr].value : undefined;
+	      return this._attr[attr] ? this._attr[attr].value() : undefined;
 	    }
 	  }, {
 	    key: '_getAttr',
@@ -12147,6 +12228,19 @@
 	      }
 	      return this._attr[attr];
 	    }
+	  }, {
+	    key: '_getAttrValue',
+	
+	    /**
+	     * @private
+	     */
+	    value: function _getAttrValue(attr) {
+	      if (true) {
+	        return this._getAttr(attr).value;
+	      } else {
+	        return this._getAttr(attr).value();
+	      }
+	    }
 	  }]);
 	
 	  return SubView;
@@ -12161,7 +12255,7 @@
 	    return vr;
 	  } else {
 	    var vr = new kiwi.Variable();
-	    this._solver.addConstraint(new kiwi.Constraint(vr, kiwi.Operator.Eq, 0));
+	    this._solver.addConstraint(new kiwi.Constraint(vr, kiwi.Operator.Eq, value));
 	    return vr;
 	  }
 	}
@@ -12608,9 +12702,9 @@
 
 /***/ },
 /* 50 */
-/*!*****************************!*\
-  !*** ./views/InputView.es6 ***!
-  \*****************************/
+/*!****************************!*\
+  !*** ./views/InputView.js ***!
+  \****************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -12643,13 +12737,13 @@
 	
 	var _famousFlexWidgetsTabBarController2 = _interopRequireDefault(_famousFlexWidgetsTabBarController);
 	
-	var _EditorViewEs6 = __webpack_require__(/*! ./EditorView.es6 */ 64);
+	var _EditorView = __webpack_require__(/*! ./EditorView */ 64);
 	
-	var _EditorViewEs62 = _interopRequireDefault(_EditorViewEs6);
+	var _EditorView2 = _interopRequireDefault(_EditorView);
 	
-	var _SettingsViewEs6 = __webpack_require__(/*! ./SettingsView.es6 */ 68);
+	var _SettingsView = __webpack_require__(/*! ./SettingsView */ 68);
 	
-	var _SettingsViewEs62 = _interopRequireDefault(_SettingsViewEs6);
+	var _SettingsView2 = _interopRequireDefault(_SettingsView);
 	
 	function getParameterByName(name) {
 	    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -12674,8 +12768,8 @@
 	            }
 	        });
 	
-	        this.editor = new _EditorViewEs62['default']();
-	        this.settings = new _SettingsViewEs62['default']();
+	        this.editor = new _EditorView2['default']();
+	        this.settings = new _SettingsView2['default']();
 	
 	        this.tabBarController.setItems([{ tabItem: 'Visual Format', view: this.editor }, { tabItem: 'Settings', view: this.settings }]);
 	
@@ -12963,10 +13057,10 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 27);
-	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 34);
-	var RenderNode = __webpack_require__(/*! ./RenderNode */ 23);
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 32);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 7);
+	var OptionsManager = __webpack_require__(/*! ./OptionsManager */ 14);
+	var RenderNode = __webpack_require__(/*! ./RenderNode */ 3);
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 12);
 	function View(options) {
 	    this._node = new RenderNode();
 	    this._eventInput = new EventHandler();
@@ -13027,10 +13121,10 @@
 	    // import dependencies
 	    var View = __webpack_require__(/*! famous/core/View */ 52);
 	    var LayoutController = __webpack_require__(/*! ./LayoutController */ 35);
-	    var Transform = __webpack_require__(/*! famous/core/Transform */ 26);
+	    var Transform = __webpack_require__(/*! famous/core/Transform */ 6);
 	    var Modifier = __webpack_require__(/*! famous/core/Modifier */ 55);
 	    var StateModifier = __webpack_require__(/*! famous/modifiers/StateModifier */ 54);
-	    var RenderNode = __webpack_require__(/*! famous/core/RenderNode */ 23);
+	    var RenderNode = __webpack_require__(/*! famous/core/RenderNode */ 3);
 	    var Timer = __webpack_require__(/*! famous/utilities/Timer */ 57);
 	    var Easing = __webpack_require__(/*! famous/transitions/Easing */ 58);
 	
@@ -13678,8 +13772,8 @@
 	 * @copyright Famous Industries, Inc. 2015
 	 */
 	var Modifier = __webpack_require__(/*! ../core/Modifier */ 55);
-	var Transform = __webpack_require__(/*! ../core/Transform */ 26);
-	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 30);
+	var Transform = __webpack_require__(/*! ../core/Transform */ 6);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 10);
 	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 56);
 	function StateModifier(options) {
 	    this._transformState = new TransitionableTransform(Transform.identity);
@@ -13839,8 +13933,8 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Transform = __webpack_require__(/*! ./Transform */ 26);
-	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 30);
+	var Transform = __webpack_require__(/*! ./Transform */ 6);
+	var Transitionable = __webpack_require__(/*! ../transitions/Transitionable */ 10);
 	var TransitionableTransform = __webpack_require__(/*! ../transitions/TransitionableTransform */ 56);
 	function Modifier(options) {
 	    this._transformGetter = null;
@@ -14099,9 +14193,9 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Transitionable = __webpack_require__(/*! ./Transitionable */ 30);
-	var Transform = __webpack_require__(/*! ../core/Transform */ 26);
-	var Utility = __webpack_require__(/*! ../utilities/Utility */ 32);
+	var Transitionable = __webpack_require__(/*! ./Transitionable */ 10);
+	var Transform = __webpack_require__(/*! ../core/Transform */ 6);
+	var Utility = __webpack_require__(/*! ../utilities/Utility */ 12);
 	function TransitionableTransform(transform) {
 	    this._final = Transform.identity.slice();
 	    this._finalTranslate = [
@@ -14231,7 +14325,7 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var FamousEngine = __webpack_require__(/*! ../core/Engine */ 21);
+	var FamousEngine = __webpack_require__(/*! ../core/Engine */ 1);
 	var _event = 'prerender';
 	var getTime = window.performance && window.performance.now ? function () {
 	    return window.performance.now();
@@ -15165,9 +15259,9 @@
 	 * @license MPL 2.0
 	 * @copyright Famous Industries, Inc. 2015
 	 */
-	var Entity = __webpack_require__(/*! ./Entity */ 24);
-	var EventHandler = __webpack_require__(/*! ./EventHandler */ 27);
-	var Transform = __webpack_require__(/*! ./Transform */ 26);
+	var Entity = __webpack_require__(/*! ./Entity */ 4);
+	var EventHandler = __webpack_require__(/*! ./EventHandler */ 7);
+	var Transform = __webpack_require__(/*! ./Transform */ 6);
 	var usePrefix = !('transform' in document.documentElement.style);
 	var devicePixelRatio = window.devicePixelRatio || 1;
 	function ElementOutput(element) {
@@ -15410,7 +15504,7 @@
 	!(__WEBPACK_AMD_DEFINE_RESULT__ = function(require, exports, module) {
 	
 	    // import dependencies
-	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 32);
+	    var Utility = __webpack_require__(/*! famous/utilities/Utility */ 12);
 	    var LayoutUtility = __webpack_require__(/*! ../LayoutUtility */ 37);
 	
 	    // Define capabilities of this layout function
@@ -15549,40 +15643,63 @@
   \************************/
 /***/ function(module, exports, __webpack_require__) {
 
-	var AutoLayout = __webpack_require__(/*! autolayout.js */ 49);
+	'use strict';
 	
-	function _layout(view, context) {
-	    view.setSize(context.size[0], context.size[1]);
-	    var subView;
-	    for (var key in view.subViews) {
-	        if (key.indexOf('_') !== 0) {
-	            subView = view.subViews[key];
-	            context.set(subView.name, {
-	                size: [subView.width, subView.height],
-	                translate: [subView.left, subView.top, subView.zIndex * 5]
-	            });
-	        }
+	Object.defineProperty(exports, '__esModule', {
+	    value: true
+	});
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+	
+	var _autolayoutJs = __webpack_require__(/*! autolayout.js */ 49);
+	
+	var _autolayoutJs2 = _interopRequireDefault(_autolayoutJs);
+	
+	function vflToLayout(visualFormat, options) {
+	    var view = new _autolayoutJs2['default'].View(options);
+	    try {
+	        var constraints = _autolayoutJs2['default'].VisualFormat.parse(visualFormat, { extended: true, strict: false });
+	        var metaInfo = _autolayoutJs2['default'].VisualFormat.parseMetaInfo(visualFormat);
+	        view.addConstraints(constraints);
+	        return function (context) {
+	            var key;
+	            var subView;
+	            for (key in metaInfo.widths) {
+	                subView = view.subViews[key];
+	                if (subView) {
+	                    subView.intrinsicWidth = metaInfo.widths[key] === true ? context.resolveSize(key, context.size)[0] : metaInfo.widths[key];
+	                }
+	            }
+	            for (key in metaInfo.heights) {
+	                subView = view.subViews[key];
+	                if (subView) {
+	                    subView.intrinsicHeight = metaInfo.heights[key] === true ? context.resolveSize(key, context.size)[1] : metaInfo.heights[key];
+	                }
+	            }
+	            view.setSize(context.size[0], context.size[1]);
+	            for (key in view.subViews) {
+	                subView = view.subViews[key];
+	                if (key.indexOf('_') !== 0 && subView.type !== 'stack') {
+	                    context.set(subView.name, {
+	                        size: [subView.width, subView.height],
+	                        translate: [subView.left, subView.top, subView.zIndex * 5]
+	                    });
+	                }
+	            }
+	        };
+	    } catch (err) {
+	        console.log(err); //eslint-disable-line no-console
 	    }
 	}
 	
-	module.exports = function(visualFormat, options) {
-	    var view = new AutoLayout.View(options);
-	    try {
-	        var constraints = AutoLayout.VisualFormat.parse(visualFormat, {extended: true, strict: false});
-	        view.addConstraints(constraints);
-	        return _layout.bind(view, view);
-	    }
-	    catch (err) {
-	        console.log(err); //eslint-disable-line no-console
-	    }
-	};
-
+	exports['default'] = vflToLayout;
+	module.exports = exports['default'];
 
 /***/ },
 /* 64 */
-/*!******************************!*\
-  !*** ./views/EditorView.es6 ***!
-  \******************************/
+/*!*****************************!*\
+  !*** ./views/EditorView.js ***!
+  \*****************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -24467,53 +24584,20 @@
 	/* Visual format language definition.
 	 */
 	/*eslint quotes:[2, "double"]*/
+	"use strict";
+	
 	var CodeMirror = __webpack_require__(/*! codemirror */ 65);
 	__webpack_require__(/*! codemirror/addon/mode/simple */ 67);
 	CodeMirror.defineSimpleMode("vfl", {
 	    // The start state contains the rules that are intially used
-	    start: [
-	        {regex: /^[HVZ]/, token: "meta", push: "orientation"},
-	        {regex: /\|/, token: "keyword"},
-	        {regex: /->/, token: "def"},
-	        {regex: /-/, token: "def", push: "connection"},
-	        {regex: /~/, token: "def", push: "connection"},
-	        {regex: /\[/, token: "bracket", push: "view"},
-	        {regex: /.*\/\/.*/, token: "comment"}
-	    ],
-	    orientation: [
-	        {regex: /:/, token: "def", pop: true}
-	    ],
-	    connection: [
-	        {regex: /\(/, token: "atom", push: "connectionPredicate"},
-	        {regex: /[0-9]+/, token: "number"},
-	        {regex: /\[/, token: "bracket", pop: true, push: "view"},
-	        {regex: /|/, token: "bracket", pop: true},
-	        {regex: /-/, token: "def", pop: true},
-	        {regex: /~/, token: "def", pop: true}
-	    ],
-	    connectionPredicate: [
-	        {regex: /[=><]=/, token: "operator"},
-	        {regex: /[0-9]+/, token: "number"},
-	        {regex: /\)/, token: "atom", pop: true}
-	    ],
-	    view: [
-	        {regex: /\]/, token: "bracket", pop: true},
-	        {regex: /\(/, token: "atom", push: "predicates"},
-	        {regex: /\w/, token: "variable"}
-	    ],
-	    predicates: [
-	        {regex: /\)/, token: "atom", pop: true},
-	        {regex: /[0-9]+/, token: "number"},
-	        {regex: /[=><]=/, token: "operator"},
-	        {regex: /[\*\/]/, token: "operator", push: "operator"},
-	        {regex: /\w+/, token: "variable"}
-	    ],
-	    operator: [
-	        {regex: /\d+/, token: "number", pop: true}
-	    ]
+	    start: [{ regex: /^[HVZ]/, token: "meta", push: "orientation" }, { regex: /\|/, token: "keyword" }, { regex: /->/, token: "def" }, { regex: /-/, token: "def", push: "connection" }, { regex: /~/, token: "def", push: "connection" }, { regex: /\[/, token: "bracket", push: "view" }, { regex: /.*\/\/.*/, token: "comment" }],
+	    orientation: [{ regex: /:/, token: "def", pop: true }],
+	    connection: [{ regex: /\(/, token: "atom", push: "connectionPredicate" }, { regex: /[0-9]+/, token: "number" }, { regex: /\[/, token: "bracket", pop: true, push: "view" }, { regex: /|/, token: "bracket", pop: true }, { regex: /-/, token: "def", pop: true }, { regex: /~/, token: "def", pop: true }],
+	    connectionPredicate: [{ regex: /[=><]=/, token: "operator" }, { regex: /[0-9]+/, token: "number" }, { regex: /\)/, token: "atom", pop: true }],
+	    view: [{ regex: /\]/, token: "bracket", pop: true }, { regex: /\(/, token: "atom", push: "predicates" }, { regex: /\w/, token: "variable" }],
+	    predicates: [{ regex: /\)/, token: "atom", pop: true }, { regex: /[0-9]+/, token: "number" }, { regex: /[=><]=/, token: "operator" }, { regex: /[\*\/]/, token: "operator", push: "operator" }, { regex: /\w+/, token: "variable" }],
+	    operator: [{ regex: /\d+/, token: "number", pop: true }]
 	});
-	
-
 
 /***/ },
 /* 67 */
@@ -24739,9 +24823,9 @@
 
 /***/ },
 /* 68 */
-/*!********************************!*\
-  !*** ./views/SettingsView.es6 ***!
-  \********************************/
+/*!*******************************!*\
+  !*** ./views/SettingsView.js ***!
+  \*******************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -24974,9 +25058,9 @@
 
 /***/ },
 /* 70 */
-/*!******************************!*\
-  !*** ./views/OutputView.es6 ***!
-  \******************************/
+/*!*****************************!*\
+  !*** ./views/OutputView.js ***!
+  \*****************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25044,7 +25128,10 @@
 	        });
 	        this.log.commit = (function () {
 	            var res = _famousCoreSurface2['default'].prototype.commit.apply(this.log, arguments);
-	            this.log._currentTarget.scrollTop = Math.max(0, this.log._currentTarget.scrollHeight - this.log._currentTarget.clientHeight);
+	            if (this._scrollToBottom) {
+	                this._scrollToBottom = false;
+	                this.log._currentTarget.scrollTop = Math.max(0, this.log._currentTarget.scrollHeight - this.log._currentTarget.clientHeight);
+	            }
 	            return res;
 	        }).bind(this);
 	        this.raw = new _famousCoreSurface2['default']({
@@ -25068,6 +25155,7 @@
 	        value: function _log(message) {
 	            this.logContent += message;
 	            this.log.setContent(this.logContent);
+	            this._scrollToBottom = true;
 	        }
 	    }, {
 	        key: 'parse',
@@ -25110,9 +25198,9 @@
 
 /***/ },
 /* 71 */
-/*!************************************!*\
-  !*** ./views/VisualOutputView.es6 ***!
-  \************************************/
+/*!***********************************!*\
+  !*** ./views/VisualOutputView.js ***!
+  \***********************************/
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -25155,50 +25243,72 @@
 	
 	        _get(Object.getPrototypeOf(VisualOutputView.prototype), 'constructor', this).call(this, options);
 	
-	        this._aspectRatio = 0;
+	        this._viewPort = {};
 	        this._colors = {};
 	        this._shapes = {};
+	        this._intrinsicWidths = {};
+	        this._intrinsicHeight = {};
 	
-	        this.content = new _famousFlexLayoutController2['default']({
+	        this.layout = new _famousFlexLayoutController2['default']({
 	            flow: true,
 	            flowOptions: {
 	                reflowOnResize: false
 	            },
 	            layout: function layout(context) {
-	                if (_this.alView) {
-	                    var subView;
-	                    _this.alView.setSize(context.size[0], context.size[1]);
-	                    for (var key in _this.alView.subViews) {
-	                        subView = _this.alView.subViews[key];
-	                        if (subView.type !== 'stack' && key.indexOf('_') !== 0) {
-	                            var node = context.get(subView.name);
-	                            context.set(node, {
-	                                size: [subView.width, subView.height],
-	                                translate: [subView.left, subView.top, subView.zIndex * 5]
-	                            });
-	                            var color = 204 - subView.zIndex * 20;
-	                            var backgroundColor = _this._colors[key] || _colorsJs2['default'].rgb2hex(color, color, color);
-	                            var textColor = _colorsJs2['default'].complement(backgroundColor);
-	                            node.renderNode.setProperties({
-	                                backgroundColor: backgroundColor,
-	                                color: textColor
-	                            });
-	                        }
+	                if (!_this.alView) {
+	                    return;
+	                }
+	                var iw = _this._widths;
+	                var key;
+	                for (key in iw) {
+	                    var subView = _this.alView.subViews[key];
+	                    if (subView) {
+	                        subView.intrinsicWidth = iw[key];
 	                    }
 	                }
-	            }
-	        });
-	        this.layout = new _famousFlexLayoutController2['default']({
-	            layout: function layout(context) {
-	                var contentSize = [Math.max(Math.min(context.size[0], _this._maxWidth || context.size[0]), _this._minWidth || 0), Math.max(Math.min(context.size[1], _this._maxHeight || context.size[1]), _this._minHeight || 0)];
-	                contentSize = _this._aspectRatio ? [Math.min(contentSize[0], contentSize[1] * _this._aspectRatio), Math.min(contentSize[1], contentSize[0] / _this._aspectRatio)] : contentSize;
-	                context.set('content', {
-	                    size: contentSize,
-	                    translate: [(context.size[0] - contentSize[0]) / 2, (context.size[1] - contentSize[1]) / 2, 0]
-	                });
-	            },
-	            dataSource: {
-	                content: this.content
+	                var ih = _this._heights;
+	                for (key in ih) {
+	                    var subView = _this.alView.subViews[key];
+	                    if (subView) {
+	                        subView.intrinsicHeight = ih[key];
+	                    }
+	                }
+	                var vp = _this._viewPort;
+	                var contentSize = [vp.width !== undefined && vp.width !== true ? vp.width : Math.max(Math.min(context.size[0], vp['max-width'] || context.size[0]), vp['min-width'] || 0), vp.height !== undefined && vp.height !== true ? vp.height : Math.max(Math.min(context.size[1], vp['max-height'] || context.size[1]), vp['min-height'] || 0)];
+	                if (vp.width === true && vp.height === true) {
+	                    contentSize[0] = _this.alView.fittingWidth;
+	                    contentSize[1] = _this.alView.fittingHeight;
+	                } else if (vp.width === true) {
+	                    _this.alView.setSize(undefined, contentSize[1]);
+	                    contentSize[0] = _this.alView.fittingWidth;
+	                    // TODO ASPECT RATIO?
+	                } else if (vp.height === true) {
+	                    _this.alView.setSize(contentSize[0], undefined);
+	                    contentSize[1] = _this.alView.fittingHeight;
+	                    // TODO ASPECT RATIO?
+	                } else {
+	                    contentSize = vp['aspect-ratio'] ? [Math.min(contentSize[0], contentSize[1] * vp['aspect-ratio']), Math.min(contentSize[1], contentSize[0] / vp['aspect-ratio'])] : contentSize;
+	                    _this.alView.setSize(contentSize[0], contentSize[1]);
+	                }
+	                var left = (context.size[0] - contentSize[0]) / 2;
+	                var top = (context.size[1] - contentSize[1]) / 2;
+	                for (key in _this.alView.subViews) {
+	                    var subView = _this.alView.subViews[key];
+	                    if (subView.type !== 'stack' && key.indexOf('_') !== 0) {
+	                        var node = context.get(subView.name);
+	                        context.set(node, {
+	                            size: [subView.width, subView.height],
+	                            translate: [left + subView.left, top + subView.top, subView.zIndex * 5]
+	                        });
+	                        var color = 204 - subView.zIndex * 20;
+	                        var backgroundColor = _this._colors[key] || _colorsJs2['default'].rgb2hex(color, color, color);
+	                        var textColor = _colorsJs2['default'].complement(backgroundColor);
+	                        node.renderNode.setProperties({
+	                            backgroundColor: backgroundColor,
+	                            color: textColor
+	                        });
+	                    }
+	                }
 	            }
 	        });
 	        this.add(this.layout);
@@ -25226,65 +25336,37 @@
 	                    }
 	                }
 	            }
-	            this.content.setDataSource(this.contentRenderables);
+	            this.layout.setDataSource(this.contentRenderables);
 	        },
 	        get: function () {
 	            return this.alView;
 	        }
 	    }, {
-	        key: 'aspectRatio',
+	        key: 'viewPort',
 	        get: function () {
-	            return this._aspectRatio;
+	            return this._viewPort;
 	        },
 	        set: function (value) {
-	            if (this._aspectRatio !== value) {
-	                this._aspectRatio = value;
-	                this.layout.reflowLayout();
-	            }
+	            this._viewPort = value || {};
+	            this.layout.reflowLayout();
 	        }
 	    }, {
-	        key: 'maxHeight',
+	        key: 'widths',
 	        get: function () {
-	            return this._maxHeight;
+	            return this._widths;
 	        },
 	        set: function (value) {
-	            if (this._maxHeight !== value) {
-	                this._maxHeight = value;
-	                this.layout.reflowLayout();
-	            }
+	            this._widths = value || {};
+	            this.layout.reflowLayout();
 	        }
 	    }, {
-	        key: 'minHeight',
+	        key: 'heights',
 	        get: function () {
-	            return this._minHeight;
+	            return this._heights;
 	        },
 	        set: function (value) {
-	            if (this._minHeight !== value) {
-	                this._minHeight = value;
-	                this.layout.reflowLayout();
-	            }
-	        }
-	    }, {
-	        key: 'maxWidth',
-	        get: function () {
-	            return this._maxWidth;
-	        },
-	        set: function (value) {
-	            if (this._maxWidth !== value) {
-	                this._maxWidth = value;
-	                this.layout.reflowLayout();
-	            }
-	        }
-	    }, {
-	        key: 'minWidth',
-	        get: function () {
-	            return this._minWidth;
-	        },
-	        set: function (value) {
-	            if (this._minWidth !== value) {
-	                this._minWidth = value;
-	                this.layout.reflowLayout();
-	            }
+	            this._heights = value || {};
+	            this.layout.reflowLayout();
 	        }
 	    }, {
 	        key: 'colors',
@@ -25293,7 +25375,7 @@
 	        },
 	        set: function (colors) {
 	            this._colors = colors || {};
-	            this.content.reflowLayout();
+	            this.layout.reflowLayout();
 	        }
 	    }, {
 	        key: 'shapes',
@@ -25881,43 +25963,6 @@
 	
 	}(window));
 
-
-/***/ },
-/* 74 */
-/*!***************************!*\
-  !*** ./parseMetaInfo.es6 ***!
-  \***************************/
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-	
-	Object.defineProperty(exports, '__esModule', {
-	    value: true
-	});
-	var categories = ['viewport', 'colors', 'shapes'];
-	
-	function parseMetaInfo(visualFormat) {
-	    var metaInfo = {};
-	    var lines = visualFormat.split('\n');
-	    for (var i = 0; i < lines.length; i++) {
-	        var line = lines[i];
-	        for (var c = 0; c < categories.length; c++) {
-	            var category = categories[c];
-	            if (line.indexOf('//' + category + ' ') === 0) {
-	                var items = line.substring(3 + category.length).split(' ');
-	                for (var j = 0; j < items.length; j++) {
-	                    var item = items[j].split(':');
-	                    metaInfo[category] = metaInfo[category] || {};
-	                    metaInfo[category][item[0]] = item.length > 1 ? item[1] : '';
-	                }
-	            }
-	        }
-	    }
-	    return metaInfo;
-	}
-	
-	exports['default'] = parseMetaInfo;
-	module.exports = exports['default'];
 
 /***/ }
 /******/ ]);
