@@ -147,6 +147,7 @@
 	function _updateMetaInfo() {
 	    var metaInfo = AutoLayout.VisualFormat.parseMetaInfo(inputView.editor.visualFormat);
 	    visualOutputView.viewPort = metaInfo.viewport;
+	    visualOutputView.spacing = metaInfo.spacing;
 	    visualOutputView.colors = metaInfo.colors;
 	    visualOutputView.shapes = metaInfo.shapes;
 	    visualOutputView.widths = metaInfo.widths;
@@ -8221,8 +8222,8 @@
 	* @copyright Gloey Apps, 2015
 	*
 	* @library autolayout.js
-	* @version 0.3.0
-	* @generated 25-07-2015
+	* @version 0.4.0
+	* @generated 27-07-2015
 	*/
 	/**
 	* Parts Copyright (C) 2011-2012, Alex Russell (slightlyoff@chromium.org)
@@ -11694,7 +11695,7 @@
 	  }
 	}
 	
-	var metaInfoCategories = ['viewport', 'colors', 'shapes', 'widths', 'heights'];
+	var metaInfoCategories = ['viewport', 'spacing', 'colors', 'shapes', 'widths', 'heights'];
 	
 	/**
 	 * VisualFormat
@@ -11836,19 +11837,20 @@
 	     *
 	     * Supported categories and properties:
 	     *
-	     * |Category|Property|
-	     * |--------|--------|
-	     * |`viewport`|`aspect-ratio:{width}/{height}`|
-	     * ||`width:[{number}/intrinsic]`|
-	     * ||`height:[{number}/intrinsic]`|
+	     * |Category|Property|Example|
+	     * |--------|--------|-------|
+	     * |`viewport`|`aspect-ratio:{width}/{height}`|`//viewport aspect-ratio:16/9`|
+	     * ||`width:[{number}/intrinsic]`|`//viewport width:10`|
+	     * ||`height:[{number}/intrinsic]`|`//viewport height:intrinsic`|
 	     * ||`min-width:{number}`|
 	     * ||`max-width:{number}`|
 	     * ||`min-height:{number}`|
 	     * ||`max-height:{number}`|
-	     * |`widths`|`{view-name}:[{number}/intrinsic]`|
-	     * |`heights`|`{view-name}:[{number}/intrinsic]`|
-	     * |`colors`|`{view-name}:{color}`|
-	     * |`shapes`|`{view-name}:[circle/square]`|
+	     * |`spacing`|`[{number}/array]`|`//spacing:8` or `//spacing:[10, 20, 5]`|
+	     * |`widths`|`{view-name}:[{number}/intrinsic]`|`//widths subview1:100`|
+	     * |`heights`|`{view-name}:[{number}/intrinsic]`|`//heights subview1:intrinsic`|
+	     * |`colors`|`{view-name}:{color}`|`//colors redview:#FF0000 blueview:#00FF00`|
+	     * |`shapes`|`{view-name}:[circle/square]`|`//shapes avatar:circle`|
 	     *
 	     * @param {String|Array} visualFormat One or more visual format strings.
 	     * @param {Object} [options] Configuration options.
@@ -11873,6 +11875,8 @@
 	                metaInfo[category] = metaInfo[category] || {};
 	                metaInfo[category][item[0]] = item.length > 1 ? item[1] : '';
 	              }
+	            } else if (line.indexOf('//' + category + ':') === 0) {
+	              metaInfo[category] = line.substring(3 + category.length);
 	            }
 	          }
 	        }
@@ -11919,6 +11923,13 @@
 	          if (height === undefined || isNaN(height)) {
 	            delete metaInfo.heights[key];
 	          }
+	        }
+	      }
+	      if (metaInfo.spacing) {
+	        var value = JSON.parse(metaInfo.spacing);
+	        metaInfo.spacing = value;
+	        if (value === undefined || isNaN(value)) {
+	          delete metaInfo.spacing;
 	        }
 	      }
 	      return metaInfo;
@@ -12390,6 +12401,21 @@
 	  this._solver.addConstraint(relation);
 	}
 	
+	function _compareSpacing(old, newz) {
+	  if (old === newz) {
+	    return true;
+	  }
+	  if (!old || !newz) {
+	    return false;
+	  }
+	  for (var i = 0; i < 7; i++) {
+	    if (old[i] !== newz[i]) {
+	      return false;
+	    }
+	  }
+	  return true;
+	}
+	
 	/**
 	 * AutoLayoutJS API reference.
 	 *
@@ -12426,8 +12452,7 @@
 	
 	    this._solver = true ? new c.SimplexSolver() : new kiwi.Solver();
 	    this._subViews = {};
-	    //this._variables = {};
-	    this._spacing = {};
+	    //this._spacing = undefined;
 	    this._parentSubView = new SubView({
 	      solver: this._solver
 	    });
@@ -12572,18 +12597,20 @@
 	        default:
 	          throw 'Invalid spacing syntax';
 	      }
-	      this._spacing = spacing;
-	      // update spacing variables
-	      if (this._spacingVars) {
-	        for (var i = 0; i < this._spacingVars.length; i++) {
-	          if (this._spacingVars[i]) {
-	            this._solver.suggestValue(this._spacingVars[i], this._spacing[i]);
+	      if (!_compareSpacing(this._spacing, spacing)) {
+	        this._spacing = spacing;
+	        // update spacing variables
+	        if (this._spacingVars) {
+	          for (var i = 0; i < this._spacingVars.length; i++) {
+	            if (this._spacingVars[i]) {
+	              this._solver.suggestValue(this._spacingVars[i], this._spacing[i]);
+	            }
 	          }
-	        }
-	        if (true) {
-	          this._solver.resolve();
-	        } else {
-	          this._solver.updateVariables();
+	          if (true) {
+	            this._solver.resolve();
+	          } else {
+	            this._solver.updateVariables();
+	          }
 	        }
 	      }
 	      return this;
@@ -12670,15 +12697,6 @@
 	    //get hasAmbiguousLayout() {
 	    // Todo
 	    //}
-	
-	    /**
-	     * Dictionary of `Variable` objects that have been created when adding constraints.
-	     * @type {Object.SubView}
-	     */
-	    /*
-	    get variables() {
-	        return this._variables;
-	    }*/
 	
 	  }]);
 	
@@ -25243,6 +25261,7 @@
 	
 	        _get(Object.getPrototypeOf(VisualOutputView.prototype), 'constructor', this).call(this, options);
 	
+	        this._spacing = undefined;
 	        this._viewPort = {};
 	        this._colors = {};
 	        this._shapes = {};
@@ -25257,6 +25276,9 @@
 	            layout: function layout(context) {
 	                if (!_this.alView) {
 	                    return;
+	                }
+	                if (_this._spacing) {
+	                    _this.alView.setSpacing(_this._spacing);
 	                }
 	                var iw = _this._widths;
 	                var key;
@@ -25348,6 +25370,15 @@
 	        },
 	        set: function (value) {
 	            this._viewPort = value || {};
+	            this.layout.reflowLayout();
+	        }
+	    }, {
+	        key: 'spacing',
+	        get: function () {
+	            return this._spacing;
+	        },
+	        set: function (value) {
+	            this._spacing = value;
 	            this.layout.reflowLayout();
 	        }
 	    }, {
