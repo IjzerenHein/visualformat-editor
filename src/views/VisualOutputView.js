@@ -7,6 +7,7 @@ class VisualOutputView extends View {
     constructor(options) {
         super(options);
 
+        this._spacing = undefined;
         this._viewPort = {};
         this._colors = {};
         this._shapes = {};
@@ -21,6 +22,9 @@ class VisualOutputView extends View {
             layout: (context) => {
                 if (!this.alView) {
                     return;
+                }
+                if (this._spacing) {
+                    this.alView.setSpacing(this._spacing);
                 }
                 const iw = this._widths;
                 var key;
@@ -118,6 +122,15 @@ class VisualOutputView extends View {
 
     set viewPort(value) {
         this._viewPort = value || {};
+        this.layout.reflowLayout();
+    }
+
+    get spacing() {
+        return this._spacing;
+    }
+
+    set spacing(value) {
+        this._spacing = value;
         this.layout.reflowLayout();
     }
 

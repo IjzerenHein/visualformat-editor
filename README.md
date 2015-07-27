@@ -36,19 +36,20 @@ V:|[row]|
 ```
 [View this example online](https://rawgit.com/IjzerenHein/visualformat-editor/master/dist/index.html?vfl=rgb)
 
-|Category|Property|
-|--------|--------|
-|`viewport`|`aspect-ratio:{width}/{height}`|
-||`width:[{number}/intrinsic]`|
-||`height:[{number}/intrinsic]`|
+|Category|Property|Example|
+|--------|--------|-------|
+|`viewport`|`aspect-ratio:{width}/{height}`|`//viewport aspect-ratio:16/9`|
+||`width:[{number}/intrinsic]`|`//viewport width:10`|
+||`height:[{number}/intrinsic]`|`//viewport height:intrinsic`|
 ||`min-width:{number}`|
 ||`max-width:{number}`|
 ||`min-height:{number}`|
 ||`max-height:{number}`|
-|`widths`|`{view-name}:[{number}/intrinsic]`|
-|`heights`|`{view-name}:[{number}/intrinsic]`|
-|`colors`|`{view-name}:{color}`|
-|`shapes`|`{view-name}:[circle/square]`|
+|`spacing`|`[{number}/array]`|`//spacing:8` or `//spacing:[10, 20, 5]`|
+|`widths`|`{view-name}:[{number}/intrinsic]`|`//widths subview1:100`|
+|`heights`|`{view-name}:[{number}/intrinsic]`|`//heights subview1:intrinsic`|
+|`colors`|`{view-name}:{color}`|`//colors redview:#FF0000 blueview:#00FF00`|
+|`shapes`|`{view-name}:[circle/square]`|`//shapes avatar:circle`|
 
 
 ## Contribute
