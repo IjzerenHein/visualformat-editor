@@ -18,17 +18,12 @@ CodeMirror.defineSimpleMode("vfl", {
         {regex: /:/, token: "def", pop: true}
     ],
     connection: [
-        {regex: /\(/, token: "atom", push: "connectionPredicate"},
+        {regex: /\(/, token: "atom", push: "predicates"},
         {regex: /[0-9]+/, token: "number"},
         {regex: /\[/, token: "bracket", pop: true, push: "view"},
         {regex: /|/, token: "bracket", pop: true},
         {regex: /-/, token: "def", pop: true},
         {regex: /~/, token: "def", pop: true}
-    ],
-    connectionPredicate: [
-        {regex: /[=><]=/, token: "operator"},
-        {regex: /[0-9]+/, token: "number"},
-        {regex: /\)/, token: "atom", pop: true}
     ],
     view: [
         {regex: /\]/, token: "bracket", pop: true},
