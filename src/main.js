@@ -114,7 +114,7 @@ function _update() {
     _updateMetaInfo(); //eslint-disable-line no-use-before-define
 }
 function _updateMetaInfo() {
-    var metaInfo = AutoLayout.VisualFormat.parseMetaInfo(inputView.editor.visualFormat);
+    var metaInfo = AutoLayout.VisualFormat.parseMetaInfo(inputView.editor.visualFormat, {prefix: '-'});
     visualOutputView.viewPort = metaInfo.viewport;
     visualOutputView.spacing = metaInfo.spacing;
     visualOutputView.colors = metaInfo.colors;
