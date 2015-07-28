@@ -24667,7 +24667,7 @@
 	__webpack_require__(/*! codemirror/addon/mode/simple */ 67);
 	CodeMirror.defineSimpleMode("vfl", {
 	    // The start state contains the rules that are intially used
-	    start: [{ regex: /^[HVZ]/, token: "meta", push: "orientation" }, { regex: /\|/, token: "keyword" }, { regex: /->/, token: "def" }, { regex: /-/, token: "def", push: "connection" }, { regex: /~/, token: "def", push: "connection" }, { regex: /\[/, token: "bracket", push: "view" }, { regex: /.*\/\/.*/, token: "comment" }],
+	    start: [{ regex: /^(HV|H|V|Z)/, token: "meta", push: "orientation" }, { regex: /\|/, token: "keyword" }, { regex: /->/, token: "def" }, { regex: /-/, token: "def", push: "connection" }, { regex: /~/, token: "def", push: "connection" }, { regex: /\[/, token: "bracket", push: "view" }, { regex: /.*\/\/.*/, token: "comment" }],
 	    orientation: [{ regex: /:/, token: "def", pop: true }],
 	    connection: [{ regex: /\(/, token: "atom", push: "connectionPredicate" }, { regex: /[0-9]+/, token: "number" }, { regex: /\[/, token: "bracket", pop: true, push: "view" }, { regex: /|/, token: "bracket", pop: true }, { regex: /-/, token: "def", pop: true }, { regex: /~/, token: "def", pop: true }],
 	    connectionPredicate: [{ regex: /[=><]=/, token: "operator" }, { regex: /[0-9]+/, token: "number" }, { regex: /\)/, token: "atom", pop: true }],
