@@ -8222,7 +8222,7 @@
 	* @copyright Gloey Apps, 2015
 	*
 	* @library autolayout.js
-	* @version 0.4.1
+	* @version 0.4.2
 	* @generated 28-07-2015
 	*/
 	/**
@@ -11487,13 +11487,13 @@
 	  }
 	  context.equalSpacerIndex++;
 	
-	  // Enforce proportional width/height
-	  if (context.relation.multiplier && context.relation.multiplier !== 1) {
+	  // Enforce view/proportional width/height
+	  if (context.relation.view || context.relation.multiplier && context.relation.multiplier !== 1) {
 	    context.constraints.push({
 	      view1: name,
 	      attr1: context.horizontal ? Attribute.WIDTH : Attribute.HEIGHT,
 	      relation: context.relation.relation || Relation.EQU,
-	      view2: null,
+	      view2: context.relation.view,
 	      attr2: context.horizontal ? Attribute.WIDTH : Attribute.HEIGHT,
 	      priority: context.relation.priority,
 	      multiplier: context.relation.multiplier
@@ -11551,7 +11551,7 @@
 	    view1: name,
 	    attr1: context.horizontal ? Attribute.WIDTH : Attribute.HEIGHT,
 	    relation: context.relation.relation || Relation.EQU,
-	    view2: null, // or relative to the stackView... food for thought
+	    view2: context.relation.view, // or relative to the stackView... food for thought
 	    attr2: context.horizontal ? Attribute.WIDTH : Attribute.HEIGHT,
 	    priority: context.relation.priority,
 	    multiplier: context.relation.multiplier
@@ -11723,7 +11723,10 @@
 	
 	  if (stackView) {
 	    subView = context.subViews[stackView];
-	    if (subView.stack) {
+	    if (!subView) {
+	      subView = { orientations: context.orientation };
+	      context.subViews[stackView] = subView;
+	    } else if (subView.stack) {
 	      throw new Error('A stack with name "' + stackView + '"" already exists');
 	    }
 	    subView.stack = {
@@ -24669,8 +24672,7 @@
 	    // The start state contains the rules that are intially used
 	    start: [{ regex: /^(HV|H|V|Z)/, token: "meta", push: "orientation" }, { regex: /\|/, token: "keyword" }, { regex: /->/, token: "def" }, { regex: /-/, token: "def", push: "connection" }, { regex: /~/, token: "def", push: "connection" }, { regex: /\[/, token: "bracket", push: "view" }, { regex: /.*\/\/.*/, token: "comment" }],
 	    orientation: [{ regex: /:/, token: "def", pop: true }],
-	    connection: [{ regex: /\(/, token: "atom", push: "connectionPredicate" }, { regex: /[0-9]+/, token: "number" }, { regex: /\[/, token: "bracket", pop: true, push: "view" }, { regex: /|/, token: "bracket", pop: true }, { regex: /-/, token: "def", pop: true }, { regex: /~/, token: "def", pop: true }],
-	    connectionPredicate: [{ regex: /[=><]=/, token: "operator" }, { regex: /[0-9]+/, token: "number" }, { regex: /\)/, token: "atom", pop: true }],
+	    connection: [{ regex: /\(/, token: "atom", push: "predicates" }, { regex: /[0-9]+/, token: "number" }, { regex: /\[/, token: "bracket", pop: true, push: "view" }, { regex: /|/, token: "bracket", pop: true }, { regex: /-/, token: "def", pop: true }, { regex: /~/, token: "def", pop: true }],
 	    view: [{ regex: /\]/, token: "bracket", pop: true }, { regex: /\(/, token: "atom", push: "predicates" }, { regex: /\w/, token: "variable" }],
 	    predicates: [{ regex: /\)/, token: "atom", pop: true }, { regex: /[0-9]+/, token: "number" }, { regex: /[=><]=/, token: "operator" }, { regex: /[\*\/]/, token: "operator", push: "operator" }, { regex: /\w+/, token: "variable" }],
 	    operator: [{ regex: /\d+/, token: "number", pop: true }]
