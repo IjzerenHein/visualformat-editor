@@ -22,10 +22,9 @@ Example:
     visualformat-editor/.../index.html?spacing=[20,10]&extended=0
 
 
-## Extended visual format Meta info
+## Visual format meta info
 
-Additional meta-info can be added in the form of comments. Using this meta-info, you can instruct
-the viewer to for instance use a specific aspect ratio or a specific color for a sub-view:
+Additional meta-info can be added in the form of comments. Using this meta-info, you can instruct the viewer to for instance use a specific aspect ratio or a specific color for a sub-view:
 
 ```vfl
 //viewport aspect-ratio:3/1 max-height:300
@@ -35,6 +34,15 @@ H:|-[row:[red(green,blue)]-[green]-[blue]]-|
 V:|[row]|
 ```
 [View this example online](https://rawgit.com/IjzerenHein/visualformat-editor/master/dist/index.html?vfl=rgb)
+
+Meta-info is also processed by renderers. If you want to set the meta-info only for previewing purposes, then prefix it with a `-`. The following example sets the `max-width` and `max-height` for previewing a mobile layout. The actual layout renderer will ignore this meta-info.
+
+```vfl
+//-viewport max-width:320 max-height:500
+//heights header:44 footer:44
+V:|[col:[header][content][footer]]|
+H:|[col]|
+```
 
 |Category|Property|Example|
 |--------|--------|-------|
