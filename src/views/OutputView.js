@@ -81,7 +81,9 @@ class OutputView extends View {
             return constraints;
         }
         catch (err) {
-            if ((err instanceof SyntaxError) || (err.name === 'SyntaxError')) {
+            if ((err instanceof SyntaxError) ||
+                (err.name === 'SyntaxError') ||
+                (err.line && err.column)) {
                 this.constraints.setContent('');
                 this.raw.setContent('');
                 let arrow = (err.column > 10) ? ' --->' : '';
