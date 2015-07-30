@@ -28,7 +28,7 @@ CodeMirror.defineSimpleMode("vfl", {
     view: [
         {regex: /\]/, token: "bracket", pop: true},
         {regex: /\(/, token: "atom", push: "predicates"},
-        {regex: /\w/, token: "variable"}
+        {regex: /\w(\.\.\d+)?/, token: "variable"}
     ],
     predicates: [
         {regex: /\)/, token: "atom", pop: true},
