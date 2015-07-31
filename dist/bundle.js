@@ -8222,7 +8222,7 @@
 	* @copyright Gloey Apps, 2015
 	*
 	* @library autolayout.js
-	* @version 0.5.0
+	* @version 0.5.1
 	*/
 	/**
 	* Parts Copyright (C) 2011-2012, Alex Russell (slightlyoff@chromium.org)
@@ -11950,6 +11950,7 @@
 	  var subView = undefined;
 	  if (stackView) {
 	    cascade.push({ view: stackView });
+	    curViews.push(stackView);
 	  }
 	  for (var i = 0; i < cascade.length; i++) {
 	    var item = cascade[i];
