@@ -35,7 +35,8 @@ var config = {
       { test: /index\.html$/,       loader: 'file-loader?name=[path][name].[ext]&context=./src' }
     ],
     noParse: [
-      /dist\/autolayout\.js$/
+      /dist\/autolayout\.js$/,
+      /dist\/autolayout\.kiwi\.js$/
     ]
   },
   resolve: {

@@ -32,7 +32,7 @@ FastClick.attach(document.body);
 // import dependencies
 var Engine = require('famous/core/Engine');
 var LayoutController = require('famous-flex/LayoutController');
-var AutoLayout = require('autolayout.js');
+var AutoLayout = require('autolayout');
 var InputView = require('./views/InputView');
 var OutputView = require('./views/OutputView');
 var VisualOutputView = require('./views/VisualOutputView');

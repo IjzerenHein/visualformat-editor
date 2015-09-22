@@ -3,7 +3,7 @@ import Surface from 'famous/core/Surface';
 import LayoutController from 'famous-flex/LayoutController';
 import TabBarController from 'famous-flex/widgets/TabBarController';
 import vflToLayout from '../vflToLayout';
-import AutoLayout from 'autolayout.js';
+import AutoLayout from 'autolayout';
 
 class OutputView extends View {
     constructor(options) {
