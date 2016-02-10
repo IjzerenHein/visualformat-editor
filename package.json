@@ -6,14 +6,14 @@
     "node": ">= 0.10.0"
   },
   "devDependencies": {
-    "autolayout": "^0.5.2",
+    "autolayout": "^0.5.3",
     "babel-core": "^5.5.3",
     "babel-loader": "^5.1.4",
     "codemirror": "^5.3.0",
     "css-loader": "^0.7.0",
     "expose-loader": "^0.5.3",
     "famous": "^0.3.5",
-    "famous-autolayout": "^0.2.4",
+    "famous-autolayout": "^0.2.6",
     "famous-flex": "^0.3.5",
     "famous-polyfills": "^0.2.2",
     "fastclick": "^1.0.3",
