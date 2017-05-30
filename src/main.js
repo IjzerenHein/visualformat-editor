@@ -108,6 +108,7 @@ function _update() {
     if (constraints) {
         var view = new AutoLayout.View();
         view.addConstraints(constraints);
+        console.log(view);
         visualOutputView.view = view;
     }
     _updateSettings(); //eslint-disable-line no-use-before-define
