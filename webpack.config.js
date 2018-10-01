@@ -41,7 +41,8 @@ var config = {
   },
   resolve: {
     alias: {
-      'famous-flex': 'famous-flex/src'
+      'famous-flex': 'famous-flex/src',
+      'autolayout': 'autolayout/dist/autolayout.kiwi.js'
     }
   },
   plugins:[
