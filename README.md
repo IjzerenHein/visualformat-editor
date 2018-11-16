@@ -66,8 +66,4 @@ If you like this project and want to support it, show some love
 and give it a star.
 
 
-## Contact
--   @IjzerenHein
--   hrutjes@gmail.com
-
 © 2015 Hein Rutjes
